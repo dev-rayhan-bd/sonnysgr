@@ -44,9 +44,9 @@ export default {
 //     stripe_webhook_secret_production:
 //       process.env.STRIPE_WEBHOOK_SECRET_PRODUCTION,
 //   },
-  openai: {
-    openai_api_key: process.env.OPENAI_API_KEY,
-  },
+  // openai: {
+  //   openai_api_key: process.env.OPENAI_API_KEY,
+  // },
 //   variables: {
 //     email_temp_image: process.env.EMAIL_TEMP_IMAGE,
 //     email_temp_text_secondary_color:

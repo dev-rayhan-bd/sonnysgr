@@ -40,6 +40,7 @@ export const ENUM_ORDER_STATUS = {
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
     PROCESSING: "Processing",
+    PARTIALLY_DELIVERED: "Partially_delivered"
 }
 
 export const ENUM_ORDER_ITEM_STATUS = {

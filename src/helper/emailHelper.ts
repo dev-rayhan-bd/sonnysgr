@@ -7,7 +7,7 @@ import { TEmailTemplate } from "../interface/email.interface";
 
 
 
-export const sendVerificationEmail = async (email: string, data: TEmailTemplate) => {
+export const sendVerificationEmail = async (email: string, data: any) => {
   try {
     await sendEmail({
       email,

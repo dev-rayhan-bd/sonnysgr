@@ -110,6 +110,7 @@ const registerUserService = async (payload: TRegisterUser) => {
         await sendVerificationEmail(email, {
             name: name,
             code: code,
+            isResetPassword: false
         });
 
         const newUser = {
@@ -275,7 +276,8 @@ const sendVerifyCodeService = async (payload:{email: string}) => {
 
     await sendVerificationEmail(email,{
         name: user.name,
-        code: code
+        code: code,
+        isResetPassword: true
     });
 
     return null;
