@@ -14,6 +14,7 @@ export interface IAuth {
     role: string
     verificationCode: string;
     isEmailVerified: boolean;
+    isResetPaswordEmailVerified: boolean;
     isProfileCompleted: boolean;
     isBlocked: boolean;
 }

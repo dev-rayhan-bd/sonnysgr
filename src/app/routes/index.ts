@@ -12,6 +12,7 @@ import ReportRouter from "../module/Report/Report.routes";
 import PairsRouter from "../module/Pairs/Pairs.routes";
 import PromotionRouter from "../module/Promotion/Promotion.routes";
 import dashboardRouter from "../module/Dashboard/Dashboard.routes";
+import notificationRouter from "../module/Notification/Notification.routes";
 
 
 const allRouter = Router();
@@ -69,6 +70,10 @@ const moduleRoutes = [
     {
         path: '/dashboard',
         router: dashboardRouter,
+    },
+    {
+        path: '/notification',
+        router: notificationRouter,
     },
   
 ];

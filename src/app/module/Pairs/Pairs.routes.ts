@@ -12,7 +12,7 @@ PairsRouter.post(
     "/add-new-pairs",
     authorizeUser,
     uploadProfile.array("pair-image",8),
-    validateRequest(PairsValidations.addnewPairValidationSchema),
+    // validateRequest(PairsValidations.addnewPairValidationSchema),
     PairsController.addNewPairsController
 );
 
@@ -46,7 +46,7 @@ PairsRouter.get(
 PairsRouter.post(
     "/request-new-pair",
     authorizeUser,
-    validateRequest(PairsValidations.makeRequestForPairValidationSchema),
+    // validateRequest(PairsValidations.makeRequestForPairValidationSchema),
     PairsController.makeRequestForPairController
 );
 
@@ -55,6 +55,13 @@ PairsRouter.post(
     authorizeUser,
     // validateRequest(PairsValidations.makeRequestForPairValidationSchema),
     PairsController.getAllRetailerPairRequestController
+);
+
+PairsRouter.post(
+    "/retailer-propose-counter-offer",
+    authorizeUser,
+    // validateRequest(PairsValidations.addNewPairsZodSchema),
+    PairsController.retailerProposeCounterOfferToPairRequestController
 );
 
 

@@ -25,8 +25,14 @@ const resellerHomePageStatDataService = async (userDetails: IJwtPayload) => {
     });
 
     return { 
-        activeListingsCount, 
-        // totalListingsCount 
+        activeListing: activeListingsCount || 0, 
+        storeRequest: totalStoreRequestsCount || 0,
+        activeDeals: totalActiveRequestsCount || 0,
+        monthlyRevenue: 0,
+        trustScore: {
+            totalDeal: 43,
+            completedDeal: 25
+        } 
     };
 };
 
@@ -140,6 +146,27 @@ const updateResellerProfileService = async (
     return updatedProfile;
 };
 
+const resellerProfileStatDataService = async (userDetails: IJwtPayload) => {
+
+    const {profileId} = userDetails;
+
+    const myInventory = await PairsModel.find({resellerId: profileId}).sort({createdAt: -1}).select("name images quantity").lean();
+
+    const myCompletedRequests = await PairRequestModel.find({resellerId: profileId, status: ENUM_PAIR_REQUEST_STATUS.ACCEPTED})
+        .populate({path: "pairId", select: "name images"})
+        .select("pairId quantity variant askingPrice createdAt")
+        .sort({createdAt: -1}).lean();
+
+    return{
+        completedDeals: myCompletedRequests.length,
+        responseRatePercentage: 88,
+        totalPairSoldAmount: 5000,
+        averageRating: 4.5,
+        myInventory,
+        myCompletedRequests
+    }
+}
+
 //dashboard
 
 const getAllResellerService = async (query: Record<string,unknown>) => {
@@ -216,6 +243,7 @@ const ResellerServices = {
     resellerHomePageStatDataService,
     makeRequestForPairService,
     updateResellerProfileService,
+    resellerProfileStatDataService
 };
 
 

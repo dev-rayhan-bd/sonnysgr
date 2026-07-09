@@ -8,6 +8,7 @@ const addNewPairsController = catchAsync(async (req, res) => {
     const { user } = req as AuthRequest;
 
     const files = req.files as Express.Multer.File[];
+    // console.log(files);
 
     const result = await PairsServices.addNewPairsToReseller(user,files, req.body);
 
@@ -143,7 +144,7 @@ const rejectPairRequestController = catchAsync(async (req, res) => {
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "P",
+        message: "Pair request rejected successfully.",
         data: result,
     });
 });
@@ -162,6 +163,20 @@ const proposeCounterOfferToPairRequestController = catchAsync(async (req, res) =
     });
 });
 
+const retailerProposeCounterOfferToPairRequestController = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await PairsServices.retailerProposeCounterOfferToPairRequest(user, req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Counter offer proposed successfully.",
+        data: result,
+    });
+});
+
 const PairsController = { 
     addNewPairsController,
     editPairsController,
@@ -170,6 +185,7 @@ const PairsController = {
 
     makeRequestForPairController,
     getAllRetailerPairRequestController,
+    retailerProposeCounterOfferToPairRequestController,
 
     getAllpairRequestController,
     getSinglePairRequestDetails,

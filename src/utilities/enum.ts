@@ -8,9 +8,16 @@ export const ENUM_USER_Type = {
 }
 
 export const ENUM_AUTH_PROVIDER_TYPE = {
-    EMAIL: "Email",
-    GOOGLE: "Google",
-    APPLE: "Apple",
+    EMAIL: "email",
+    GOOGLE: "google",
+    APPLE: "apple",
+   
+}
+
+export const ENUM_GENDER_TYPE = {
+    MEN: "Men",
+    WOMEN: "Women",
+    KIDS: "Kids",
    
 }
 
@@ -102,6 +109,7 @@ export const ENUM_NOTIFICATION_TYPE = {
     ACCEPTED_PAIR_REQUEST: "ACCEPTED_PAIR_REQUEST",
     REJECTED_PAIR_REQUEST: "REJECTED_PAIR_REQUEST",
     STARTED_CONVERSATION: "STARTED_CONVERSATION",
+    COUNTER_OFFER: "COUNTER_OFFER"
 }
 
 export const ENUM_PRODUCT_AVAILABILITY = {

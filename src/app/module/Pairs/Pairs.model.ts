@@ -1,6 +1,6 @@
 import { model, Schema, models } from "mongoose";
 import { IPairRequest, IPairs } from "./Pairs.interface";
-import { ENUM_PAIR_REQUEST_STATUS, ENUM_PRODUCT_TYPE, ENUM_USER_Type } from "../../../utilities/enum";
+import { ENUM_GENDER_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_PRODUCT_TYPE, ENUM_USER_Type } from "../../../utilities/enum";
 
 
 
@@ -15,7 +15,7 @@ const PairsSchema = new Schema<IPairs>({
     details: { type: String, default: "" },
     // color: { type: String, default: "" },
     variant: [{
-        gender: { type: String, required: true },
+        gender: { type: String, enum: Object.values(ENUM_GENDER_TYPE), required: true },
         size: { type: String, required: true },
         stock: { type: Number, required: true },
     }],
@@ -61,8 +61,10 @@ const PairsSchema = new Schema<IPairs>({
     // },
     isVisibleToStore: { type: Boolean, default: true },
     isShowAskingPrice: { type: Boolean, default: true },
-    isAllowDirectRequest: { type: Boolean, default: false },
+    isAllowDirectRequest: { type: Boolean, default: true },
     isSold: { type: Boolean, default: false },
+    pairViewCount: { type: Number, default: 0 },
+    pairRequestCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 
@@ -71,10 +73,10 @@ const pairRequestSchema = new Schema<IPairRequest>({
     retailerId: { type: Schema.Types.ObjectId, ref: "Retailer", required: true },
     pairId: { type: Schema.Types.ObjectId, ref: "Pairs", required: true },
     quantity: { type: Number, default: 1 },
-    variant: [{
-        gender: { type: String, default: "" },
-        size: { type: Number, default: 0 }
-    }],
+    variant: {
+        gender: { type: String, enum: Object.values(ENUM_GENDER_TYPE), default: ENUM_GENDER_TYPE.MEN },
+        size: { type: String, default: "0" }
+    },
     askingPrice: { type: Number, required: true },
     // unitPrice: { type: Number, required: true },
     // totalPrice: { type: Number, required: true },

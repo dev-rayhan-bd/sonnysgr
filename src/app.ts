@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import notFound from './app/middlewares/notFound';
+// import multer from "multer";
 import allRouter from './app/routes';
 // import {webhookRouter} from './app/module/Payment/Payment.routes';
 
@@ -28,6 +29,20 @@ app.get('/', (req, res) => {
   res.send("Sneaker hub server is running ---- Welcome to Sneaker Hub API.");
 });
 
+
+// app.use((err:any, req:any, res:any, next:any) => {
+//   if (err instanceof multer.MulterError) {
+//     console.log(err.code);
+//     console.log(err.field);
+
+//     return res.status(400).json({
+//       message: err.message,
+//       field: err.field,
+//     });
+//   }
+
+//   next(err);
+// });
 
 
 // global error handler

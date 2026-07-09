@@ -23,6 +23,8 @@ export interface IPairs {
     isShowAskingPrice: boolean;
     isAllowDirectRequest: boolean;
     isSold: boolean;
+    pairViewCount: number;
+    pairRequestCount: number;
     createdAt: Date;
 }
 
@@ -40,8 +42,8 @@ export interface IPairRequest {
     quantity: number;
     variant: {
         gender: string;
-        size: number;
-    }[];
+        size: string;
+    };
     askingPrice: number;
      offerHistory: IOfferHistory[];
     // unitPrice: number;

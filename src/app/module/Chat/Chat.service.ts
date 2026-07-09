@@ -16,14 +16,15 @@ export const sendConversationRequest = async (
 
   const existing = await ConversationModel.findOne({
     participants: { $all: [senderId, receiverId] }
-  });
+  }).populate({ path: "participants", select: "name image" });
 
   if (existing) return existing;
 
-  const conversation = await ConversationModel.create({
+  const conversation: any = await ConversationModel.create({
     participants: [senderId, receiverId],
     status: "Accepted"
-  });
+  })
+  // .populate({ path: "participants", select: "name image" }).lean();
 
   const io = getIO();
 
@@ -46,7 +47,7 @@ export const sendConversationRequest = async (
   await notification.createNotification({
       toId: receiverId as string,
       toModel: "Buyer",
-      title: `A reseller started a new conversation.`,
+      title: `A reseller started a new conversation with you.`,
       type: ENUM_NOTIFICATION_TYPE.STARTED_CONVERSATION,
       referenceId: conversation?._id,
       referenceModel: "Conversation",

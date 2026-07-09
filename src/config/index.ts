@@ -32,6 +32,10 @@ export default {
     region: process.env.AWS_REGION,
     bucket_name: process.env.S3_BUCKET_NAME
   },
+  auth:{
+    google_client_id: process.env.GOOGLE_CLIENT_ID,
+    apple_bundle_id: process.env.APPLE_BUNDLE_ID,
+  },
 //   cloudinary: {
 //     cloud_name: process.env.CLOUD_NAME,
 //     api_key: process.env.API_KEY,

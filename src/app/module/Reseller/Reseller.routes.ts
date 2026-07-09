@@ -28,6 +28,12 @@ ResellerRouter.patch(
     ResellerController.updateResellerProfile
 );
 
+ResellerRouter.get(
+    "/reseller-profile-stat-data",
+    authorizeUser,
+    ResellerController.resellerProfileStatData
+);
+
 
 
 export default ResellerRouter;

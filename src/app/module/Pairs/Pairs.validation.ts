@@ -21,7 +21,7 @@ const addnewPairValidationSchema = z.object({
         styleCode: z.string().min(1, "Style code is required"),
         details: z.string().optional(),
         variant: z.array(VariantSchema).min(1, "At least 1 value is required"),
-        askingPrice: z.number().min(0, "Asking price must be a positive number"),
+        askingPrice: z.coerce.number().min(0, "Asking price must be a positive number"),
         condition: z.enum(["New", "Never worn", "Worn once", "Worn few times", "Used - Good condition", "Used - Fair condition"]).optional(),
         isVisibleToStore: z.boolean().optional(),
         isShowAskingPrice: z.boolean().optional(),

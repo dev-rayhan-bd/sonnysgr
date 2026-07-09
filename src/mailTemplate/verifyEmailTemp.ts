@@ -74,7 +74,7 @@ const verifyEmailTemp = (data: any) => `
 
         <p>Hello, ${data.name}</p>
 
-        ${ data?.isResetPassword ? `<p> To verify your email and secure your account, please use the one-time password (OTP) below:</p>` : `<p> To reset your password, please use the one-time password (OTP) below:</p>`}
+        ${ !data?.isResetPassword ? `<p> To verify your email and secure your account, please use the one-time password (OTP) below:</p>` : `<p> To reset your password, please use the one-time password (OTP) below:</p>`}
 
         <h3>Your Otp: ${data.code}</h3>
 

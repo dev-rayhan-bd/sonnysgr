@@ -7,24 +7,49 @@ import AuthController from "./auth.controller";
 
 const authRouter = express.Router();
 
+//register
 authRouter.post("/register-user",
     validateRequest(AuthValidations.registerUserValidationSchema) , 
-    AuthController.registerUser
+    AuthController.registerUserWithEmailPassword
 );
 
+authRouter.post("/register-user-social-account",
+    validateRequest(AuthValidations.registerSocialUserValidationSchema) , 
+    AuthController.registerUserWithSocialAccount
+);
+
+//login
 authRouter.post("/login-user",
     validateRequest(AuthValidations.loginValidationSchema)  ,
-    AuthController.loginUser
+    AuthController.loginUserWithEmailPassword
 );
 
-authRouter.post("/verify-code",
+authRouter.post("/login-user-social-account",
+    validateRequest(AuthValidations.loginSocialUserValidationSchema)  ,
+    AuthController.loginUserWithSocialAccount
+);
+
+//verify code
+authRouter.post("/email-verify-code",
     validateRequest(AuthValidations.verifyCodeValidation)  ,
-    AuthController.verifyCode
+    AuthController.emailVerifyCode
 );
 
-authRouter.post("/send-verify-code",
+authRouter.post("/reset-password-email-verify-code",
+    validateRequest(AuthValidations.verifyCodeValidation)  ,
+    AuthController.resetPasswordEmailVerifyCode
+);
+
+
+//send verify code
+authRouter.post("/send-email-verify-code",
     validateRequest(AuthValidations.sendVerifyCodeValidation)  ,
-    AuthController.sendVerifyCode
+    AuthController.sendEmailVerifyCode
+);
+
+authRouter.post("/send-reset-password-email-verify-code",
+    validateRequest(AuthValidations.sendVerifyCodeValidation)  ,
+    AuthController.sendResetPasswordEmailVerifyCode
 );
 
 authRouter.patch("/reset-password",
