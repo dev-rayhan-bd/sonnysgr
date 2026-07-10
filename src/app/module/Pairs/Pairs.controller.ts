@@ -3,6 +3,8 @@ import catchAsync from "../../../utilities/catchasync";
 import sendResponse from "../../../utilities/sendResponse";
 import PairsServices from "./Pairs.service";
 
+
+
 const addNewPairsController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
@@ -40,13 +42,14 @@ const getAllListedPairsController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result = await PairsServices.getMyListedPairs(user, req.query);
+    const result: any = await PairsServices.getMyListedPairs(user, req.query);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Listed pairs retrieved successfully.",
-        data: result,
+        meta: result.meta,
+        data: result.pairs,
     });
 });
 
@@ -92,18 +95,20 @@ const getAllRetailerPairRequestController = catchAsync(async (req, res) => {
     });
 });
 
+//reseller
 
 const getAllpairRequestController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result = await PairsServices.getAllPairRequestsForReseller(user, req.query);
+    const result:any = await PairsServices.getAllPairRequestsForReseller(user, req.query);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Pair requests retrieved successfully.",
-        data: result,
+        meta: result.meta,
+        data:   result.pairs,
     });
 });
 

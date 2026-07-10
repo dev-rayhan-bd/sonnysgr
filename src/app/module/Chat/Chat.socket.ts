@@ -1,22 +1,3 @@
-// import catchAsync from "../../../utilities/catchasync";
-// import sendResponse from "../../../utilities/sendResponse";
-// import { sendMessage } from "./Chat.service";
-// // import ChatServices from "./Chat.service";
-
-// const sendMessageController = catchAsync(async (req, res) => {
-
-//     const senderId = req.user.profileId;
-//     const { receiverId, text } = req.body;
-
-//     const message = await sendMessage(senderId, receiverId, text);
-
-//     sendResponse(res, {
-//         statusCode: 200,
-//         success: true,
-//         message: "Message sent successfully.",
-//         data: message,
-//     });
-// });
 
 import { Socket } from "socket.io";
 import * as ChatService from "./Chat.service";

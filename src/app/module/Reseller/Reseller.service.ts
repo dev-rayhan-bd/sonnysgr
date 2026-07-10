@@ -3,6 +3,7 @@ import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
 import { ENUM_NOTIFICATION_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
+import AuthModel from "../auth/auth.model";
 import { IPairRequest } from "../Pairs/Pairs.interface";
 import { PairRequestModel, PairsModel } from "../Pairs/Pairs.model";
 import { IReseller } from "./Reseller.interface";
@@ -95,11 +96,13 @@ const updateResellerProfileService = async (
     payload: any
     ) => {
 
-    const { profileId } = userDetails;
+    const { profileId, authId } = userDetails;
     
     let {name,bio,phone,website,address,latitude,longitude} = payload;
 
     // console.log("profileImage, coverImage", profileImage, coverImage);
+
+    const auth: any = await AuthModel.findById(authId);
     
     const profile:any = await ResellerModel.findById(profileId).lean();
     if (!profile) {
@@ -140,6 +143,16 @@ const updateResellerProfileService = async (
             new: true,
         }
     );
+
+
+    if (!updatedProfile) {
+        throw new ApiError(500, "Failed to update profile.");
+    }
+
+    if(!auth.isProfileCompleted){
+        auth.isProfileCompleted = true;
+        await auth.save();
+    }
 
     
 

@@ -140,7 +140,7 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
 
     const { profileId } = userDetails;
 
-    const { visiblityStatus, soldStatus } = query;
+    let { visiblityStatus, soldStatus, type, page,limit } = query;
 
     const filter: Record<string, any> = {
         resellerId: profileId,
@@ -154,12 +154,42 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
         filter.isSold = soldStatus;
     }
 
-    const pairs = await PairsModel.find(filter).lean();
+    page = parseInt(page as any) || 1;
+    limit = parseInt(limit as any) || 10;
+    let skip = (page as number - 1) * (limit as number);
+
+    const [pairs, totalPairs] = await Promise.all([
+
+        PairsModel.find(filter)
+                    .sort({createdAt: -1})
+                        .skip(skip).limit(limit as number)
+                           .lean(),
+    
+        PairsModel.countDocuments(filter)
+    ])
+
+    const totalPage = Math.ceil(totalPairs / (limit as number));
+
+    const hasNextPage = (page as number) < totalPage ? true : false;
 
     return {
+        meta:{
+            page,
+            limit,
+            total: totalPairs, 
+            totalPage,
+            hasNextPage
+        },
         pairs,
         pairCount: pairs.length
     };
+
+    // const pairs = await PairsModel.find(filter).lean();
+
+    // return {
+    //     pairs,
+    //     pairCount: pairs.length
+    // };
 }
 
 const getSinglePairDetails = async (pairId: string) => {
@@ -295,7 +325,7 @@ const getResellerDetailWithShoes = async () => {
 const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
     const {profileId} = userDetails;
 
-    const {status = 'all', type} = query;
+    let {status = 'all', type, page, limit} = query;
 
     let filter: Record<string, any> = { resellerId: profileId };
 
@@ -307,10 +337,40 @@ const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Re
         filter.type  = type;
     }
 
-    const pairRequests = await PairRequestModel.find(filter).lean();
+    page = parseInt(page as any) || 1;
+    limit = parseInt(limit as any) || 10;
+    let skip = (page as number - 1) * (limit as number);
+
+    const [pairs, totalPairs] = await Promise.all([
+
+        PairRequestModel.find(filter)
+                    .sort({createdAt: -1})
+                        .skip(skip).limit(limit as number)
+                           .lean(),
+    
+        PairRequestModel.countDocuments(filter)
+    ])
+
+    const totalPage = Math.ceil(totalPairs / (limit as number));
+
+    const hasNextPage = (page as number) < totalPage ? true : false;
+
+    return {
+        meta:{
+            page,
+            limit,
+            total: totalPairs, 
+            totalPage,
+            hasNextPage
+        },
+        pairs,
+        pairCount: pairs.length
+    };
+
+    // const pairRequests = await PairRequestModel.find(filter).lean();
     
 
-    return pairRequests;
+    // return pairRequests;
 }
 
 const getSInglePairRequestService = async (pairRequestId: string) => {
