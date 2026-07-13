@@ -50,7 +50,7 @@ dashboardRouter.post(
   DashboardController.adminSendVerifyCode,
 );
 
-dashboardRouter.patch(
+dashboardRouter.post(
   "/admin-reset-password",
   authorizeUser,
   validateRequest(AuthValidations.resetPasswordValidation),
