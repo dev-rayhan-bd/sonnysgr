@@ -1,17 +1,17 @@
-import ApiError from "../../../error/ApiError";
-import { TLoginUser } from "../auth/auth.interface";
+import ApiError from "../../../../error/ApiError";
+import { TLoginUser } from "../../auth/auth.interface";
 import AdminModel from "./Admin.model";
 import { IAdmin } from "./Dashboard.interface";
-import config from "../../../config";
+import config from "../../../../config";
 import { JwtPayload,Secret, SignOptions } from "jsonwebtoken";
-import { createToken } from "../../../helper/jwtHelper";
-import { IChangePassword } from "../User/User.interface";
-import generateVerifyCode from "../../../utilities/codeGenerator";
-import { sendVerificationEmail } from "../../../helper/emailHelper";
-import deleteOldFile from "../../../utilities/deleteFile";
-import UserModel from "../User/User.model";
+import { createToken } from "../../../../helper/jwtHelper";
+import { IChangePassword } from "../../User/User.interface";
+import generateVerifyCode from "../../../../utilities/codeGenerator";
+import { sendVerificationEmail } from "../../../../helper/emailHelper";
+import deleteOldFile from "../../../../utilities/deleteFile";
+import UserModel from "../../User/User.model";
 import PostModel from "../Post/Post.model";
-import { ENUM_POST_STATUS } from "../../../utilities/enum";
+import { ENUM_POST_STATUS } from "../../../../utilities/enum";
 
 
 

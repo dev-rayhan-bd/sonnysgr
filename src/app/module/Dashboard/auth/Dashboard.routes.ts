@@ -1,10 +1,10 @@
 import express from "express";
-import validateRequest from "../../middlewares/validateRequest";
-import {auth, authorizeUser} from "../../middlewares/auth";
+import validateRequest from "../../../middlewares/validateRequest";
+import {auth, authorizeUser} from "../../../middlewares/auth";
 import { adminLoginValidation, changeAdminPasswordValidation, createAdminvalidation, editProfilevalidation } from "./Dashboard.validation";
 import DashboardController from "./Dashboard.controller";
-import AuthValidations from "../auth/auth.validation";
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import AuthValidations from "../../auth/auth.validation";
+import { uploadProfile } from "../../../middlewares/multerMiddleware";
 
 
 

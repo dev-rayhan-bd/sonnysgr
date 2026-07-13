@@ -1,6 +1,6 @@
-import { AuthRequest } from "../../../interface/authRequest";
-import catchAsync from "../../../utilities/catchasync";
-import sendResponse from "../../../utilities/sendResponse";
+import { AuthRequest } from "../../../../interface/authRequest";
+import catchAsync from "../../../../utilities/catchasync";
+import sendResponse from "../../../../utilities/sendResponse";
 import DashboardService from "./Dashboard.service";
 
 
