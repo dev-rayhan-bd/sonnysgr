@@ -34,6 +34,12 @@ ResellerRouter.get(
     ResellerController.resellerProfileStatData
 );
 
+ResellerRouter.get(
+    "/get-reseller-profile",
+    authorizeUser,
+    ResellerController.getResellerProfile
+);
+
 
 
 export default ResellerRouter;

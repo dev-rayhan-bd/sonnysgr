@@ -19,9 +19,12 @@ export const registerSocketHandlers = (socket: Socket) => {
   // SEND MESSAGE
   socket.on("send_message", async (data) => {
 
-    const { senderId, receiverId, text } = data;
+    const { receiverId, text, attachments = [] } = data;
+    // console.log("Received message data:", {  receiverId, text, attachments });
 
-    const message = await ChatService.sendMessage(senderId, receiverId, text);
+    const {role, profileId } = socket.data.user;
+
+    const message = await ChatService.sendMessage(role, profileId, receiverId, text, attachments);
 
     // socket.emit("message_sent", message);
 
@@ -30,9 +33,11 @@ export const registerSocketHandlers = (socket: Socket) => {
   // // GET CHAT LIST
   socket.on("get_chat_list", async (data) => {
 
-    const { userId } = data;
+    // const { userId } = data;
 
-    const chats = await ChatService.getChatList(userId);
+    const {role, profileId } = socket.data.user;
+
+    const chats = await ChatService.getChatList(role, profileId);
 
     socket.emit("chat_list", chats);
 

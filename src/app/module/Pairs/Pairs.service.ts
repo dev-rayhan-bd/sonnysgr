@@ -154,6 +154,10 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
         filter.isSold = soldStatus;
     }
 
+    if(type){
+        filter.type = type;
+    }
+
     page = parseInt(page as any) || 1;
     limit = parseInt(limit as any) || 10;
     let skip = (page as number - 1) * (limit as number);
@@ -161,6 +165,7 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
     const [pairs, totalPairs] = await Promise.all([
 
         PairsModel.find(filter)
+                .select("-sneakerAttributes -tshirtAttributes")
                     .sort({createdAt: -1})
                         .skip(skip).limit(limit as number)
                            .lean(),
@@ -344,6 +349,9 @@ const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Re
     const [pairs, totalPairs] = await Promise.all([
 
         PairRequestModel.find(filter)
+            .populate({ path: 'retailerId', select: 'name image address averageRating badge' })
+            .populate({ path: 'pairId', select: 'name images  sneakerAttributes tshirtAttributes' })
+                .select('variant askingPrice  status note createdAt')
                     .sort({createdAt: -1})
                         .skip(skip).limit(limit as number)
                            .lean(),
@@ -470,7 +478,11 @@ const acceptPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
         }),
     ]);
 
-    return null;
+    return {
+        
+        status: pairRequest?.status,
+        price: pairRequest?.askingPrice,
+    };
 };
 
 const rejectPairRequest = async (userDetails: IJwtPayload, pairRequestId: string) => {
@@ -517,7 +529,10 @@ const rejectPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
         }),
     ]);
 
-    return null;
+    return {
+        status: pairRequest?.status,
+        price: pairRequest?.askingPrice,
+    };
 };
 
 const proposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payload: any) => {
@@ -577,7 +592,10 @@ const proposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payloa
         }),
     ]);
 
-    return null;
+    return {
+        status: pairRequest?.status,
+        price: offerPrice,
+    };
 };
 
 const retailerProposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payload: any) => {
@@ -637,7 +655,10 @@ const retailerProposeCounterOfferToPairRequest = async (userDetails: IJwtPayload
         }),
     ]);
 
-    return null;
+    return {
+        status: pairRequest?.status,
+        price: offerPrice,
+    };
 };
 
 

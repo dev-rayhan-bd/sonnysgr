@@ -34,7 +34,7 @@ export interface IProductVariant {
     createdAt: Date;
 }
 
-export type TProductType = "SNEAKER" | "TSHIRT";
+export type TProductType = "Sneaker" | "Clothing";
 
 export type TGender = "MEN" | "WOMEN" | "UNISEX" | "KIDS";
 
@@ -66,12 +66,12 @@ export type TProductVariantPayload = {
 
 export type TAddProductPayload = {
   retailerId: string;
-  productType: TProductType;
+  type: TProductType;
   name: string;
   brand: string;
   description: string;
   // images: string[];
-  basePrice: number;
+  price: number;
   availability: string;
   styleCode: string;
   sneakerAttributes?: TSneakerAttributes;

@@ -1,3 +1,4 @@
+import { get } from "http";
 import ApiError from "../../../error/ApiError";
 import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
@@ -180,6 +181,19 @@ const resellerProfileStatDataService = async (userDetails: IJwtPayload) => {
     }
 }
 
+const getResellerProfileService = async (userDetails: IJwtPayload) => {
+
+    const {profileId} = userDetails;
+
+    const profile: any = await ResellerModel.findById(profileId).lean();
+
+    if (!profile) {
+        throw new ApiError(404, "Reseller not found.");
+    }
+
+    return profile;
+}
+
 //dashboard
 
 const getAllResellerService = async (query: Record<string,unknown>) => {
@@ -256,7 +270,8 @@ const ResellerServices = {
     resellerHomePageStatDataService,
     makeRequestForPairService,
     updateResellerProfileService,
-    resellerProfileStatDataService
+    resellerProfileStatDataService,
+    getResellerProfileService,
 };
 
 
