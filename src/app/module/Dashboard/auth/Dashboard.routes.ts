@@ -11,7 +11,7 @@ import { uploadProfile } from "../../../middlewares/multerMiddleware";
 const dashboardRouter = express.Router();
 
 dashboardRouter.post("/create-admin",
-    // auth(["Super_Admin"]),
+    auth(["Super_Admin"]),
     validateRequest(createAdminvalidation),
     DashboardController.adminRegister
 );
