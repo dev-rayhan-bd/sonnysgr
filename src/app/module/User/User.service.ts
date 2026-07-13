@@ -121,6 +121,7 @@ const getAllUserService = async (query: Record<string,unknown>) => {
 
         BuyerModel.find({})
             .populate({path: "auth", select:"isBlocked"})
+                .select("name image email createdAt")
                 .sort({createdAt: -1})
                     .skip(skip).limit(limit)
                         .lean(),

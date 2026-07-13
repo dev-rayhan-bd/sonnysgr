@@ -30,14 +30,14 @@ const ProductVariantSchema = z.object({
 export const addNewProductValidation = z.object({
   body: z.object({
 
-    productType: z.string().min(1),
+    type: z.string().min(1),
     name: z.string().min(1),
     brand: z.string().min(1),
     description: z.string().min(1),
 
     // images: z.array(z.string()).min(1),
 
-    basePrice: z.number().positive(),
+    price: z.number().positive(),
 
     gender: z.string().min(1).optional(),
 

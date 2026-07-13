@@ -35,12 +35,17 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.893.0",
+    "apple-signin-auth": "^2.0.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+<<<<<<< HEAD
     "http-status-codes": "^2.3.0",
+=======
+    "google-auth-library": "^10.9.0",
+>>>>>>> a5d96492a8dcc93526ecd13e377651ebe9ddc499
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.4",
     "multer": "^2.0.2",

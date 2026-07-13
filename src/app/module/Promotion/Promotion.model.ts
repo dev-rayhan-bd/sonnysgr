@@ -24,11 +24,11 @@ const PromotionSchema = new Schema<IPromotion>({
         enum: Object.values(ENUM_PROMOTION_SEND_METHOD), 
         default: ENUM_PROMOTION_SEND_METHOD.SEND_NOW
     },
-    status: {
-        type: String,
-        enum: Object.values(ENUM_PROMOTION_STATUS),
-        default: "draft"
-    },
+    // status: {
+    //     type: String,
+    //     enum: Object.values(ENUM_PROMOTION_STATUS),
+    //     default: ENUM_PROMOTION_STATUS.DRAFT
+    // },
 
     scheduledAt: {
         type: Date,

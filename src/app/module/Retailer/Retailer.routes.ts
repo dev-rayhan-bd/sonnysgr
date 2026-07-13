@@ -66,6 +66,27 @@ RetailerRouter.patch(
     RetailerController.updateRetailerProfile
 ),
 
+RetailerRouter.post(
+    "/add-verification-info",
+
+    authorizeUser,
+
+    uploadProfile.fields([
+        {
+            name: "retailer-file",
+            maxCount: 1,
+        },
+        {
+            name: "cover-image",
+            maxCount: 1,
+        },
+    ]),
+
+    validateRequest(RetailerValidations.addVerificationInfoValidationSchema),
+
+    RetailerController.addVerificationInfo
+),
+
 
 //branch
 

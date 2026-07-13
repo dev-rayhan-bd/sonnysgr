@@ -71,7 +71,7 @@ const getNearbyCustomers = async ( retailerId: string ) => {
           coordinates:
             retailer.location.coordinates,
         },
-        $maxDistance: 5000,
+        $maxDistance: 10000,
       },
     },
 
@@ -146,7 +146,12 @@ const saveDraftPromotion = async ( payload: IPromotion ) => {
   const promotion = await PromotionModel.create({
     ...payload,
     status: ENUM_PROMOTION_STATUS.DRAFT,
+    isActive: false
   });
+
+  if(!promotion){
+    throw new ApiError(500," failed to create and save promotion draft.");
+  }
 
   return promotion;
 };
@@ -157,7 +162,7 @@ const schedulePromotion = async ( payload: IPromotion ) => {
   const promotion = await PromotionModel.create({
     ...payload,
     status: ENUM_PROMOTION_STATUS.SCHEDULED,
-    scheduledAt: payload.scheduledAt,
+    // scheduledAt: payload.scheduledAt,
   });
 
   //run cron job to check for scheduled promotions and send them at the scheduled time. You can use libraries like node-cron or agenda for this purpose. The cron job will update the promotion status to "sending" when it starts sending and then to "sent" or "failed" based on the result of the sending operation.
@@ -204,8 +209,8 @@ const createNewPromotionService = async (userDetails: IJwtPayload, payload: Part
 
     switch (payload.sendMethod) {
 
-    // case ENUM_PROMOTION_SEND_METHOD.SEND_NOW:
-    //   return sendNowPromotion(payload);
+    case ENUM_PROMOTION_SEND_METHOD.SEND_NOW:
+      return sendNowPromotion(payload as IPromotion);
 
     case ENUM_PROMOTION_SEND_METHOD.SCHEDULED:
       return schedulePromotion(payload as IPromotion);
@@ -228,8 +233,16 @@ const createNewPromotionService = async (userDetails: IJwtPayload, payload: Part
     // return newPromotion;
 };
 
+const editPromotionService = async (
+  userDetails: IJwtPayload,
+  promotionId: string,
+  payload: Partial<IPromotion>
+) => {
+
+}
+
 //get promotion
-const getAllPromotion = async (userDetails: IJwtPayload, query: Record<string,unknown>) => {
+const getAllRetailerPromotion = async (userDetails: IJwtPayload, query: Record<string,unknown>) => {
 
   const {profileId} = userDetails;
   const {isActive} = query;
@@ -248,9 +261,24 @@ const getAllPromotion = async (userDetails: IJwtPayload, query: Record<string,un
 
 }
 
+const getAllBuyerPromotion = async (userDetails: IJwtPayload, query: Record<string,unknown>) => {
+
+  const {profileId} = userDetails;
+  const {latitude,longitude} = query;
+
+  let filter: any = {
+    isActive: true,
+    sendMethod: ENUM_PROMOTION_SEND_METHOD.SEND_NOW
+  }
+
+
+  const allPromotion = await PromotionModel.find(filter).lean();
+
+}
+
 const PromotionServices = { 
     createNewPromotionService,
-    getAllPromotion,
+    getAllRetailerPromotion,
  };
 
 export default PromotionServices;

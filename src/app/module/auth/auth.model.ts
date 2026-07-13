@@ -27,6 +27,7 @@ const AuthSchema = new Schema<IAuth>({
     role: { type: String, required: true , enum: Object.values(ENUM_USER_Type)},
     verificationCode: { type: String, default: "" },
     isEmailVerified: { type: Boolean, default: false },
+    isResetPaswordEmailVerified: { type: Boolean, default: false },
     isProfileCompleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
 }, { timestamps: true });

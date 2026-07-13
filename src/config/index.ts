@@ -32,6 +32,7 @@ export default {
     region: process.env.AWS_REGION,
     bucket_name: process.env.S3_BUCKET_NAME,
   },
+
   //   cloudinary: {
   //     cloud_name: process.env.CLOUD_NAME,
   //     api_key: process.env.API_KEY,
@@ -55,4 +56,31 @@ export default {
 
   password_reset_otp_expires_in_minutes:
     process.env.PASSWORD_RESET_OTP_EXPIRES_IN_MINUTES,
+
+  auth:{
+    google_client_id: process.env.GOOGLE_CLIENT_ID,
+    apple_bundle_id: process.env.APPLE_BUNDLE_ID,
+  },
+//   cloudinary: {
+//     cloud_name: process.env.CLOUD_NAME,
+//     api_key: process.env.API_KEY,
+//     api_secret: process.env.API_SECRET,
+//     cloudinary_url: process.env.CLOUDINARY_URL,
+//   },
+//   stripe: {
+//     stripe_secret_key: process.env.STRIPE_SECRET_KEY,
+//     stripe_webhook_secret_test: process.env.STRIPE_WEBHOOK_SECRET_TEST,
+//     stripe_webhook_secret_production:
+//       process.env.STRIPE_WEBHOOK_SECRET_PRODUCTION,
+//   },
+  // openai: {
+  //   openai_api_key: process.env.OPENAI_API_KEY,
+  // },
+//   variables: {
+//     email_temp_image: process.env.EMAIL_TEMP_IMAGE,
+//     email_temp_text_secondary_color:
+//       process.env.EMAIL_TEMP_TEXT_SECONDARY_COLOR,
+//   },
+  
+
 };

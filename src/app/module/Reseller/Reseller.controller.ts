@@ -45,10 +45,40 @@ const updateResellerProfile = catchAsync(async (req, res) => {
     });
 });
 
+const resellerProfileStatData = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await ResellerServices.resellerProfileStatDataService(user);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Reseller profile stat data fetched successfully.",
+        data: result,
+    });
+});
+
+const getResellerProfile = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await ResellerServices.getResellerProfileService(user);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Reseller profile fetched successfully.",
+        data: result,
+    });
+});
+
 const ResellerController = { 
     resellerHomePageStatDataController,
     proposeAnOfferToResellerForPairRequestController,
     updateResellerProfile,
+    resellerProfileStatData,
+    getResellerProfile
  };
 
 export default ResellerController;

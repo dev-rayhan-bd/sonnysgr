@@ -1,34 +1,140 @@
+import { register } from "module";
+import { verifyAppleToken, verifyGoogleToken } from "../../../helper/authProvider";
 import catchAsync from "../../../utilities/catchasync";
+import { ENUM_AUTH_PROVIDER_TYPE } from "../../../utilities/enum";
 import sendResponse from "../../../utilities/sendResponse";
 import authServices from "./auth.service";
 
-const registerUser = catchAsync(async (req, res) => {
+// const registerUser = catchAsync(async (req, res) => {
     
-    const result = await authServices.registerUserService(req.body);
+//     const result = await authServices.registerUserService(req.body);
+
+//     sendResponse(res, {
+//         statusCode: 201,
+//         success: true,
+//         message: "user registered successfully. Check your email for verification code.",
+//         data: result,
+//     });
+// });
+
+// const loginUser = catchAsync(async (req, res) => {
+    
+//     const result:any = await authServices.loginUserService(req.body);
+
+//     sendResponse(res, {
+//         statusCode: result?.statusCode ? result?.statusCode : 200,
+//         success: true,
+//         message: result?.msg ? result?.msg : "user logged In successfully.",
+//         data: result,
+//     });
+// });
+
+const registerUserWithEmailPassword = catchAsync(async (req, res) => {
+    
+    const result = await authServices.registerWithEmailService(req.body);
 
     sendResponse(res, {
         statusCode: 201,
         success: true,
-        message: "user registered successfully. Check your email for verification code.",
+        message: "user registered successfully. Verify your email.",
         data: result,
     });
 });
 
-const loginUser = catchAsync(async (req, res) => {
+
+const registerUserWithSocialAccount = catchAsync(
+    async (req, res) => {
+
+        // let result;
+
+        const {provider,authToken,userType} = req?.body;
+
+        console.log("register social sign up in body:", req?.body);
+
+        // if (provider === ENUM_AUTH_PROVIDER.GOOGLE || provider === ENUM_AUTH_PROVIDER.APPLE) {
+
+        let authDataPayload: any = { };
+        
+        if(provider === ENUM_AUTH_PROVIDER_TYPE.GOOGLE){
+            authDataPayload = await verifyGoogleToken(authToken);
+        }
     
-    const result = await authServices.loginUserService(req.body);
+        else if(provider === ENUM_AUTH_PROVIDER_TYPE.APPLE){
+            authDataPayload = await verifyAppleToken(authToken);
+        }
+
+        // console.log("register auth data payload:",authDataPayload);
+
+        const result:any = await authServices.registerWithSocialService({userType, provider, providerId: authDataPayload?.sub , ...authDataPayload});
+
+        // } else {
+
+        //     result = await authServices.registerWithEmailService(req.body);
+        // }
+
+        sendResponse(res, {
+            success: !result?.success ? result?.success : true,
+            statusCode: result?.status ? result?.status : 200,
+            message: result?.message ? result?.message : "Registration successful",
+            data: result,
+        });
+    }
+);
+
+//log in
+const loginUserWithEmailPassword = catchAsync(async (req, res) => {
+    
+    const result:any = await authServices.loginWithEmailService(req.body);
 
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: result.statusCode ? result.statusCode : 200,
         success: true,
-        message: "user logged In successfully.",
+        message: result?.msg ? result?.msg : "user logged In successfully.",
         data: result,
     });
 });
 
-const verifyCode = catchAsync(async (req, res) => {
+const loginUserWithSocialAccount = catchAsync(
+    async (req, res) => {
+
+        // let result;
+
+        const {provider,authToken} = req?.body;
+
+        // console.log("Login body:", req.body);
+
+        // if (provider === ENUM_AUTH_PROVIDER.GOOGLE || provider === ENUM_AUTH_PROVIDER.APPLE) {
+
+        let authDataPayload: any = { };
+            
+        if(provider === ENUM_AUTH_PROVIDER_TYPE.GOOGLE){
+            authDataPayload = await verifyGoogleToken(authToken);
+        }
     
-    const result = await authServices.verifyCode(req.body);
+        else if(provider === ENUM_AUTH_PROVIDER_TYPE.APPLE){
+            authDataPayload = await verifyAppleToken(authToken);
+        }
+
+        const result = await authServices.loginWithSocialService({provider, providerId: authDataPayload?.sub , ...authDataPayload});
+
+        // } else {
+
+        //     result = await authServices.loginWithEmailService(req.body);
+        // }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: 200,
+            message: "Login successful",
+            data: result
+        });
+    }
+);
+//verify code
+
+const emailVerifyCode = catchAsync(async (req, res) => {
+    
+    const result = await authServices.emailVerifyCode(req.body);
 
     sendResponse(res, {
         statusCode: 200,
@@ -38,9 +144,35 @@ const verifyCode = catchAsync(async (req, res) => {
     });
 });
 
-const sendVerifyCode = catchAsync(async (req, res) => {
+const resetPasswordEmailVerifyCode = catchAsync(async (req, res) => {
     
-    const result = await authServices.sendVerifyCodeService(req.body);
+    const result = await authServices.resetPasswordEmailVerifyCode(req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Email verified successfully to reset password.",
+        data: result,
+    });
+});
+
+//send verify code
+
+const sendEmailVerifyCode = catchAsync(async (req, res) => {
+    
+    const result = await authServices.sendEmailVerifyCodeService(req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "To verify your email, code sent successfully.",
+        data: result,
+    });
+});
+
+const sendResetPasswordEmailVerifyCode = catchAsync(async (req, res) => {
+    
+    const result = await authServices.sendResetEmailVerifyCodeService(req.body);
 
     sendResponse(res, {
         statusCode: 200,
@@ -63,10 +195,19 @@ const resetPassword = catchAsync(async (req, res) => {
 });
 
 const AuthController = { 
-    registerUser ,
-    loginUser,
-    verifyCode,
-    sendVerifyCode,
+   
+    registerUserWithEmailPassword,
+    registerUserWithSocialAccount,
+
+    loginUserWithEmailPassword,
+    loginUserWithSocialAccount,
+
+    emailVerifyCode,
+    resetPasswordEmailVerifyCode,
+
+    sendEmailVerifyCode,
+    sendResetPasswordEmailVerifyCode,
+    
     resetPassword
 
 };

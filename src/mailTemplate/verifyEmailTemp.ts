@@ -1,6 +1,6 @@
 import { TEmailTemplate } from "../interface/email.interface";
 
-const verifyEmailTemp = (data: TEmailTemplate) => `
+const verifyEmailTemp = (data: any) => `
   <html>
     <head>
       <style>
@@ -69,21 +69,26 @@ const verifyEmailTemp = (data: TEmailTemplate) => `
      
     <body>
       <div class="container">
+
         <h1>Welcome to Sneakershub!</h1>
+
         <p>Hello, ${data.name}</p>
-        <p>Thank you for choosing tow factor authentication. To verify your recovery email and secure your account, please use the one-time password (OTP) below:</p>
+
+        ${ !data?.isResetPassword ? `<p> To verify your email and secure your account, please use the one-time password (OTP) below:</p>` : `<p> To reset your password, please use the one-time password (OTP) below:</p>`}
+
         <h3>Your Otp: ${data.code}</h3>
+
         <p>This code will expire in 10 minutes. If you didnt request this, please ignore this email.</p>
         
         <p>Best Regards,<br>Team Sneakershub</p>
       </div>
       <div class="footer">
-        <a href="https://profitablebusinessesforsale.com/"><img src="https://pbfsimage.s3.eu-north-1.amazonaws.com/Pbfs_logo.png" class="logo-img"/></a>
+        <a href="#"><img src="" class="logo-img"/></a>
         
-       <p> <a href="https://profitablebusinessesforsale.com/">ProfitableBusinessesForSale.com</a> | <a href="info@ProfitableBusinessesForSale.com">info@ProfitableBusinessesForSale.com</a>.</p>
+       <p> <a href="#">sneakerhub.com</a> | <a href="#">info@sneakerhub.com</a>.</p>
         <p> Follow Us on 
-          <a href="https://www.facebook.com/share/1J7PbBaf1G/?mibextid=wwXIfr">Facebook</a> |
-          <a href="https://www.instagram.com/profitablebusinessesforsale?igsh=MTc5bTVrcWJoZHNtbQ%3D%3D&utm_source=…">Instagram</a>
+          <a href="#">Facebook</a> |
+          <a href="#">Instagram</a>
         </p>
       </div>
     </body>

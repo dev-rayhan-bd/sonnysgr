@@ -4,13 +4,16 @@ import { IConversation, IMessage } from "./Chat.interface";
 //conversation model schema
 const conversationSchema = new Schema<IConversation>(
   {
-    participants: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-    ],
+     reseller: {
+    type: Schema.Types.ObjectId,
+    ref: "Reseller",
+    required: true,
+    },
+    retailer: {
+      type: Schema.Types.ObjectId,
+      ref: "Retailer",
+      required: true,
+    },
     lastMessage: {
       type: Schema.Types.ObjectId,
       ref: "Message",
@@ -41,13 +44,21 @@ const messageSchema = new Schema<IMessage>(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    text: {type: String, required: true},
+    text: {
+      type: String, 
+      // required: true,
+      default: ""
+    },
+     attachments: {
+      type: [String],
+      default: []
+     },
     seen: {
       type: Boolean,
       default: false,
     },
-  },
-  { timestamps: true }
+    createdAt: {type: Date, default: Date.now}
+  }
 );
 
 //indexs

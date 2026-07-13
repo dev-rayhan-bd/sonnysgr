@@ -1,22 +1,3 @@
-// import catchAsync from "../../../utilities/catchasync";
-// import sendResponse from "../../../utilities/sendResponse";
-// import { sendMessage } from "./Chat.service";
-// // import ChatServices from "./Chat.service";
-
-// const sendMessageController = catchAsync(async (req, res) => {
-
-//     const senderId = req.user.profileId;
-//     const { receiverId, text } = req.body;
-
-//     const message = await sendMessage(senderId, receiverId, text);
-
-//     sendResponse(res, {
-//         statusCode: 200,
-//         success: true,
-//         message: "Message sent successfully.",
-//         data: message,
-//     });
-// });
 
 import { Socket } from "socket.io";
 import * as ChatService from "./Chat.service";
@@ -38,9 +19,12 @@ export const registerSocketHandlers = (socket: Socket) => {
   // SEND MESSAGE
   socket.on("send_message", async (data) => {
 
-    const { senderId, receiverId, text } = data;
+    const { receiverId, text, attachments = [] } = data;
+    // console.log("Received message data:", {  receiverId, text, attachments });
 
-    const message = await ChatService.sendMessage(senderId, receiverId, text);
+    const {role, profileId } = socket.data.user;
+
+    const message = await ChatService.sendMessage(role, profileId, receiverId, text, attachments);
 
     // socket.emit("message_sent", message);
 
@@ -49,9 +33,11 @@ export const registerSocketHandlers = (socket: Socket) => {
   // // GET CHAT LIST
   socket.on("get_chat_list", async (data) => {
 
-    const { userId } = data;
+    // const { userId } = data;
 
-    const chats = await ChatService.getChatList(userId);
+    const {role, profileId } = socket.data.user;
+
+    const chats = await ChatService.getChatList(role, profileId);
 
     socket.emit("chat_list", chats);
 

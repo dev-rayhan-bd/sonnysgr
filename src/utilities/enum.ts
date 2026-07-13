@@ -8,9 +8,16 @@ export const ENUM_USER_Type = {
 }
 
 export const ENUM_AUTH_PROVIDER_TYPE = {
-    EMAIL: "Email",
-    GOOGLE: "Google",
-    APPLE: "Apple",
+    EMAIL: "email",
+    GOOGLE: "google",
+    APPLE: "apple",
+   
+}
+
+export const ENUM_GENDER_TYPE = {
+    MEN: "Men",
+    WOMEN: "Women",
+    KIDS: "Kids",
    
 }
 
@@ -40,6 +47,7 @@ export const ENUM_ORDER_STATUS = {
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
     PROCESSING: "Processing",
+    PARTIALLY_DELIVERED: "Partially_delivered"
 }
 
 export const ENUM_ORDER_ITEM_STATUS = {
@@ -95,7 +103,14 @@ export const ENUM_NOTIFICATION_TYPE = {
     PAYMENT_COMPLETED : "PAYMENT_COMPLETED",
     PAYMENT_FAILED : "PAYMENT_FAILED",
     NEW_PAIR_REQUEST : "NEW_PAIR_REQUEST",
-    // SYSTEM_ALERT : "SYSTEM_ALERT"
+    MADE_COUNTER_OFFER : "MADE_COUNTER-OFFER",
+    DEAL_CONFIRMED : "DEAL_CONFIRMED",
+    VIEWED_INVENTORY: "VIEWED_INVENTORY",
+    ACCEPTED_PAIR_REQUEST: "ACCEPTED_PAIR_REQUEST",
+    REJECTED_PAIR_REQUEST: "REJECTED_PAIR_REQUEST",
+    STARTED_CONVERSATION: "STARTED_CONVERSATION",
+    COUNTER_OFFER: "COUNTER_OFFER",
+    SENT_MESSAGE: "SENT_MESSAGE",
 }
 
 export const ENUM_PRODUCT_AVAILABILITY = {
@@ -109,16 +124,16 @@ export const ENUM_PRODUCT_AVAILABILITY = {
 }
 
 export const ENUM_PROMOTION_TYPE = {
-    fLASH_SALE : "Flash Sale",
-    NEW_ARRIVALS : "New Arrivals",
+    FLASH_SALE : "Flash Sale",
+    NEW_ARRIVALS : "New Arrival",
     RESTOCK_ALERT : "Restock Alert",
     EXCLUSIVE_DROP : "Exclusive Drop",
     GENERAL_ANNOUNCEMENT : "General Announcement",
 
 }
 export const ENUM_PROMOTION_RECEIVER_TYPE = {
-    ALL_MY_FOLLOWERS : "All My Followers",
-    NEARBY_CUSTOMERS : "Nearby Customers",
+    ALL_MY_FOLLOWERS : "All My Follower",
+    NEARBY_CUSTOMERS : "Nearby Customer",
     MY_SIZE_AUDIENCE : "My Size Audience",
 
 }

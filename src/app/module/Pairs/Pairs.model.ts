@@ -1,29 +1,70 @@
 import { model, Schema, models } from "mongoose";
 import { IPairRequest, IPairs } from "./Pairs.interface";
-import { ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
+import { ENUM_GENDER_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_PRODUCT_TYPE, ENUM_USER_Type } from "../../../utilities/enum";
+
+
 
 const PairsSchema = new Schema<IPairs>({
     resellerId: { type: Schema.Types.ObjectId, ref: "Reseller", required: true },
+    type: { type: String, enum: Object.values(ENUM_PRODUCT_TYPE), default: ENUM_PRODUCT_TYPE.SNEAKERS},
     name: { type: String, required: true },
-    images: { type: String, required: true },
+    images: [{ type: String, default: [] }],
     brand: { type: String, required: true },
-    quantity: { type: String, required: true },
+
+    styleCode: { type: String, default: "" },
     details: { type: String, default: "" },
-    variant: {
-        gender: { type: String, required: true },
-        size: { type: Number, required: true }
+    // color: { type: String, default: "" },
+    variant: [{
+        gender: { type: String, enum: Object.values(ENUM_GENDER_TYPE), required: true },
+        size: { type: String, required: true },
+        stock: { type: Number, required: true },
+    }],
+    sneakerAttributes: {
+      // modelName: String,
+      // releaseYear: Number,
+      color: {type: String, default: ""},
+      condition: {
+        type: String,
+        enum: ["New", "Used", "Deadstock",],
+        default: "New"
+      },
+      // upperMaterial: String,
+      // soleMaterial: String,
+      // closureType: String,
+    },
+
+    tshirtAttributes: {
+      fit: {
+        type: String,
+        enum: ["Regular", "Slim", "Oversized", "Relaxed"],
+        default: "Regular"
+      },
+      material: {type: String, default: ""},
+      care: {
+        type: String,
+        default: ""
+        // enum: ["CREW_NECK", "V_NECK", "POLO", "ROUND_NECK"],
+      },
+      season: {
+        type: String,
+        default: ""
+        // enum: ["SHORT_SLEEVE", "LONG_SLEEVE", "SLEEVELESS"],
+      },
+      // gsm: Number,
     },
     askingPrice: { type: Number, required: true },
     // size: { type: Number, required: true },
-    type: { 
-        type: String, 
-        enum: ["New", "Never worn", "Worn once", "Worn few times", "Used - Good condition", "Used - Fair condition"],
-        default: "New"
-    },
+    // condition: { 
+    //     type: String, 
+    //     enum: ["New", "Never worn", "Worn once", "Worn few times", "Used - Good condition", "Used - Fair condition"],
+    //     default: "New"
+    // },
     isVisibleToStore: { type: Boolean, default: true },
     isShowAskingPrice: { type: Boolean, default: true },
-    isAllowDirectRequest: { type: Boolean, default: false },
+    isAllowDirectRequest: { type: Boolean, default: true },
     isSold: { type: Boolean, default: false },
+    pairViewCount: { type: Number, default: 0 },
+    pairRequestCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 
@@ -32,10 +73,10 @@ const pairRequestSchema = new Schema<IPairRequest>({
     retailerId: { type: Schema.Types.ObjectId, ref: "Retailer", required: true },
     pairId: { type: Schema.Types.ObjectId, ref: "Pairs", required: true },
     quantity: { type: Number, default: 1 },
-    variant: [{
-        gender: { type: String, default: "" },
-        size: { type: Number, default: 0 }
-    }],
+    variant: {
+        gender: { type: String, enum: Object.values(ENUM_GENDER_TYPE), default: ENUM_GENDER_TYPE.MEN },
+        size: { type: String, default: "0" }
+    },
     askingPrice: { type: Number, required: true },
     // unitPrice: { type: Number, required: true },
     // totalPrice: { type: Number, required: true },
@@ -50,7 +91,7 @@ const pairRequestSchema = new Schema<IPairRequest>({
     status: { type: String, enum: Object.values(ENUM_PAIR_REQUEST_STATUS), default: ENUM_PAIR_REQUEST_STATUS.PENDING },
     note: { type: String },
     validity: {
-        validForHours: { type: Number, required: true },
+        validForHours: { type: Number, required: true }, 
         from: { type: Date, required: true },
         to: { type: Date, required: true }
     },

@@ -4,16 +4,18 @@ import PaymentServices from "./Payment.service";
 
 const u = catchAsync(async (req, res) => {
 
-    const result = await PaymentServices.u();
+    // const result = await PaymentServices.u();
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "P",
-        data: result,
+        data: null,
     });
 });
 
-const PaymentController = { u };
+const PaymentController = { 
+
+ };
 
 export default PaymentController;

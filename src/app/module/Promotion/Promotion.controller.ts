@@ -17,8 +17,23 @@ const createNewPromotionController = catchAsync(async (req, res) => {
     });
 });
 
+const getAllPreviousPromotion = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await PromotionServices.getAllRetailerPromotion(user, req.query);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Retrieved all promotion.",
+        data: result,
+    });
+});
+
 const PromotionController = { 
-    createNewPromotionController
+    createNewPromotionController,
+    getAllPreviousPromotion
  };
 
 

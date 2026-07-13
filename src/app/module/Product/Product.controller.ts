@@ -19,6 +19,39 @@ const addProductController = catchAsync(async (req, res) => {
     });
 });
 
+const editProductController = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const files = req.files as Express.Multer.File[];
+    // console.log(req.body);
+    const result = await ProductServices.editProductService(user,req.params.id,files,req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Product updated.",
+        data: result,
+    });
+});
+
+const deleteProductController = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    // console.log(req.body);
+    const result = await ProductServices.deleteProductService(user,req.params.id);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Product deleted.",
+        data: result,
+    });
+});
+
+
+
 const searchProductsController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
@@ -75,6 +108,8 @@ const deleteRecentSearchController = catchAsync(async (req, res) => {
 
 const ProductController = { 
     addProductController,
+    editProductController,
+    deleteProductController,
     searchProductsController,
     getTrendingNowAndRecentSearchesController,
     getProductDetailByIdController,

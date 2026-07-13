@@ -19,12 +19,12 @@ const addProductService = async (
 
   const {
     // retailerId,
-    productType,
+    type,
     name,
     brand,
     description,
     // images,
-    basePrice,
+    price,
     styleCode,
     availability,
     sneakerAttributes,
@@ -32,14 +32,14 @@ const addProductService = async (
     variants,
   } = payload;
 
-  // if (!files || files.length === 0) {
-  //       throw new ApiError(400, "At least one product image is required.");
-  //   }
+  if (!files || files.length === 0) {
+        throw new ApiError(400, "At least one product image is required.");
+    }
 
-    // const imageUrls = files.map(file => {
-    //     // Assuming you have a function to upload the file and get its URL
-    //     return `uploads/product-image/${file.filename}`; // Replace with actual URL generation logic
-    // });
+    const imageUrls = files.map(file => {
+        // Assuming you have a function to upload the file and get its URL
+        return `uploads/product-image/${file.filename}`; // Replace with actual URL generation logic
+    });
 
     // console.log("product images:",imageUrls);
 
@@ -92,24 +92,24 @@ const addProductService = async (
 
     const productPayload: Record<string, unknown> = {
       retailerId: profileId,
-      type: productType,
+      type: type,
       name: name.trim(),
       brand: brand.trim(),
       description: description.trim(),
       styleCode,
-      // images: imageUrls || [],
-      price: basePrice,
+      images: imageUrls || [],
+      price: price,
       // gender,
       availability,
     };
 
-    if (productType === ENUM_PRODUCT_TYPE.SNEAKERS) {
-      productPayload.sneakerAttributes = sneakerAttributes;
+    if (type === ENUM_PRODUCT_TYPE.SNEAKERS) {
+      productPayload.sneakerAttributes = JSON.parse(sneakerAttributes as any);
       productPayload.tshirtAttributes = null;
     }
 
-    if (productType === ENUM_PRODUCT_TYPE.CLOTHING) {
-      productPayload.tshirtAttributes = tshirtAttributes;
+    if (type === ENUM_PRODUCT_TYPE.CLOTHING) {
+      productPayload.tshirtAttributes = JSON.parse(tshirtAttributes as any);
       productPayload.sneakerAttributes = null;
     }
 
@@ -406,6 +406,8 @@ const deleteRecentSearchService = async (userDetails: IJwtPayload, recentSearchI
 
 const ProductServices = { 
     addProductService,
+    editProductService,
+    deleteProductService,
     searchProductsService,
     getTrendingNowAndRecentSearchesSevice,
     getProductDetailsByIdService,

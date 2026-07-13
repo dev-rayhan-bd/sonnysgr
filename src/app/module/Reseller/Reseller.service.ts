@@ -1,8 +1,10 @@
+import { get } from "http";
 import ApiError from "../../../error/ApiError";
 import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
 import { ENUM_NOTIFICATION_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
+import AuthModel from "../auth/auth.model";
 import { IPairRequest } from "../Pairs/Pairs.interface";
 import { PairRequestModel, PairsModel } from "../Pairs/Pairs.model";
 import { IReseller } from "./Reseller.interface";
@@ -25,8 +27,14 @@ const resellerHomePageStatDataService = async (userDetails: IJwtPayload) => {
     });
 
     return { 
-        activeListingsCount, 
-        // totalListingsCount 
+        activeListing: activeListingsCount || 0, 
+        storeRequest: totalStoreRequestsCount || 0,
+        activeDeals: totalActiveRequestsCount || 0,
+        monthlyRevenue: 0,
+        trustScore: {
+            totalDeal: 43,
+            completedDeal: 25
+        } 
     };
 };
 
@@ -89,11 +97,13 @@ const updateResellerProfileService = async (
     payload: any
     ) => {
 
-    const { profileId } = userDetails;
+    const { profileId, authId } = userDetails;
     
     let {name,bio,phone,website,address,latitude,longitude} = payload;
 
     // console.log("profileImage, coverImage", profileImage, coverImage);
+
+    const auth: any = await AuthModel.findById(authId);
     
     const profile:any = await ResellerModel.findById(profileId).lean();
     if (!profile) {
@@ -122,10 +132,7 @@ const updateResellerProfileService = async (
     // }
 
     if (latitude != null && longitude != null) {
-        updateData["location.coordinates"] = [
-            Number(longitude),
-            Number(latitude),
-        ];
+        updateData["location.coordinates"] = [Number(longitude),Number(latitude)];
     }
 
     const updatedProfile = await ResellerModel.findByIdAndUpdate(
@@ -138,10 +145,54 @@ const updateResellerProfileService = async (
         }
     );
 
+
+    if (!updatedProfile) {
+        throw new ApiError(500, "Failed to update profile.");
+    }
+
+    if(!auth.isProfileCompleted){
+        auth.isProfileCompleted = true;
+        await auth.save();
+    }
+
     
 
     return updatedProfile;
 };
+
+const resellerProfileStatDataService = async (userDetails: IJwtPayload) => {
+
+    const {profileId} = userDetails;
+
+    const myInventory = await PairsModel.find({resellerId: profileId}).sort({createdAt: -1}).select("name images quantity").lean();
+
+    const myCompletedRequests = await PairRequestModel.find({resellerId: profileId, status: ENUM_PAIR_REQUEST_STATUS.ACCEPTED})
+        .populate({path: "pairId", select: "name images"})
+        .select("pairId quantity variant askingPrice createdAt")
+        .sort({createdAt: -1}).lean();
+
+    return{
+        completedDeals: myCompletedRequests.length,
+        responseRatePercentage: 88,
+        totalPairSoldAmount: 5000,
+        averageRating: 4.5,
+        myInventory,
+        myCompletedRequests
+    }
+}
+
+const getResellerProfileService = async (userDetails: IJwtPayload) => {
+
+    const {profileId} = userDetails;
+
+    const profile: any = await ResellerModel.findById(profileId).lean();
+
+    if (!profile) {
+        throw new ApiError(404, "Reseller not found.");
+    }
+
+    return profile;
+}
 
 //dashboard
 
@@ -219,6 +270,8 @@ const ResellerServices = {
     resellerHomePageStatDataService,
     makeRequestForPairService,
     updateResellerProfileService,
+    resellerProfileStatDataService,
+    getResellerProfileService,
 };
 
 

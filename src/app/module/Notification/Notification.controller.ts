@@ -6,13 +6,14 @@ import NotificationServices from "./Notification.service";
 const getAllNotification = catchAsync(async (req, res) => {
      const { user } = req as AuthRequest;
 
-     const result = await NotificationServices.getAllNotificationService(user);
+     const result: any = await NotificationServices.getAllNotificationService(user,req.query);
     
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Retrieved all notification.",
-        data: result,
+        meta: result.meta,
+        data: result.notifications,
     });
 });
 

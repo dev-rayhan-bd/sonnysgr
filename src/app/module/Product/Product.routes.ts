@@ -17,6 +17,22 @@ ProductRouter.post(
     ProductController.addProductController
 );
 
+ProductRouter.patch(
+    "/edit-product/:id",
+    authorizeUser,
+    uploadProfile.array("product-image",8),
+    // validateRequest(ProductValidations.addNewProductValidation),
+    ProductController.editProductController
+);
+
+ProductRouter.delete(
+    "/delete-product/:id",
+    authorizeUser,
+    // uploadProfile.array("product-image",8),
+    // validateRequest(ProductValidations.addNewProductValidation),
+    ProductController.deleteProductController
+);
+
 ProductRouter.get(
     "/search-product",
     authorizeUser,

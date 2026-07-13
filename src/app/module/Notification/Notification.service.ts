@@ -3,13 +3,45 @@ import ApiError from "../../../error/ApiError";
 import { INotification } from "./Notification.interface";
 import {AdminNotificationModel, NotificationModel} from "./Notification.model";
 
-const getAllNotificationService = async (userDetails: JwtPayload) => {
+const getAllNotificationService = async (userDetails: JwtPayload,query: Record<string, unknown>) => {
 
     const {profileId} = userDetails;
 
-    const allNotification = await NotificationModel.find({toId: profileId}).sort({createdAt: -1}).lean();
+    let {page, limit} = query;
 
-    return allNotification;
+    page = parseInt(page as any) || 1;
+    limit = parseInt(limit as any) || 10;
+    let skip = (page as number - 1) * (limit as number);
+
+    const [notifications, totalNotifications] = await Promise.all([
+
+        NotificationModel.find({toId: profileId})
+                    .sort({createdAt: -1})
+                        .skip(skip).limit(limit as number)
+                           .lean(),
+    
+        NotificationModel.countDocuments({toId: profileId})
+    ])
+
+    const totalPage = Math.ceil(totalNotifications / (limit as number));
+
+    const hasNextPage = (page as number) < totalPage ? true : false;
+
+    return {
+        meta:{
+            page,
+            limit,
+            total: totalNotifications, 
+            totalPage,
+            hasNextPage
+        },
+        notifications,
+        notificationCount: notifications.length
+    };
+
+    // const allNotification = await NotificationModel.find({toId: profileId}).sort({createdAt: -1}).lean();
+
+    // return allNotification;
     
 };
 

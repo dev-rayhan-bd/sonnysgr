@@ -8,6 +8,7 @@ export interface INotification {
     type: string;
     referenceId?: Types.ObjectId;
     referenceModel?: string;
+    metaData: {};
     isSeen: boolean;
 }
 

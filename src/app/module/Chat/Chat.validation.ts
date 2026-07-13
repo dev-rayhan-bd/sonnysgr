@@ -1,14 +1,14 @@
 import { z } from "zod";
 
         
-const u = z.object({
+const initiateChatZodSchema = z.object({
     body: z.object({
-        name: z.string().optional(),
-        phone: z.string().optional(),
-        address: z.string().optional(),
+        // senderId: z.string().min(24, "Sender ID is required"),
+        receiverId: z.string().min(24, "Receiver ID is required"),
+        // address: z.string().optional(),
     }),
 });
 
-const ChatValidations = { u };
+const ChatValidations = { initiateChatZodSchema };
 
 export default ChatValidations;

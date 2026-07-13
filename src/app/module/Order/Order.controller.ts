@@ -33,9 +33,24 @@ const getOrderDetailController = catchAsync(async (req, res) => {
     });
 });
 
+const retailerAcceptOrder = catchAsync(async (req, res) => {
+
+    const {user} = req as AuthRequest;
+
+    const result = await OrderServices.retailerAcceptOrderService(user,req.params.id);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Order Accepted.",
+        data: result,
+    });
+});
+
 const OrderController = { 
     getRetailerHomePageOrderStatDataController,
     getOrderDetailController,
+    retailerAcceptOrder,
 };
 
 export default OrderController;

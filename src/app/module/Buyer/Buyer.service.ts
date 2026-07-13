@@ -157,7 +157,7 @@ const updateBuyerProfileService = async (
 
 
 
-//buer home page api
+//buyer home page api
 
 const getNearbyProductsForBuyer = async (userDetails: IJwtPayload, query: Record<string,unknown>) => {
     const { productType = 'all' , latitude, longitude } = query; //productType = all,Sneakers,Clothing

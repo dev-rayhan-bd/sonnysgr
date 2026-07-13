@@ -4,16 +4,18 @@ import OldPairServices from "./OldPair.service";
 
 const u = catchAsync(async (req, res) => {
 
-    const result = await OldPairServices.u();
+    // const result = await OldPairServices.u();
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "P",
-        data: result,
+        data: null,
     });
 });
 
-const OldPairController = { u };
+const OldPairController = { 
+
+ };
 
 export default OldPairController;

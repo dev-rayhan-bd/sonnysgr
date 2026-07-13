@@ -3,11 +3,12 @@ import ApiError from "../../../error/ApiError";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import { IOrder, TOrderPayload } from "./Order.interface";
 import {OrderItemModel, OrderModel, SellerSplitOrderModel} from "./Order.model";
-import { ENUM_ORDER_STATUS, ENUM_ORDER_TYPE } from "../../../utilities/enum";
+import { ENUM_NOTIFICATION_TYPE, ENUM_ORDER_STATUS, ENUM_ORDER_TYPE } from "../../../utilities/enum";
 import mongoose from "mongoose";
 import {ProductModel} from "../Product/Product.model";
 import { PaymentModel } from "../Payment/Payment.model";
 import { completeOrderAfterPayment } from "../Payment/PaymentSuccess.service";
+import notification from "../../../helper/notification";
 
 const placeNewOrderService = async (userDetails:IJwtPayload,payload: TOrderPayload) => {
 
@@ -15,6 +16,9 @@ const placeNewOrderService = async (userDetails:IJwtPayload,payload: TOrderPaylo
 
     const { retailerId, productId,orderType, selectedSize, quantity, unitPrice, pickupTime } = payload;
 
+    //  3. create order and orderItem collection
+
+    
     const newOrder = await OrderModel.create({
         buyerId: profileId,
         retailerId,
@@ -27,10 +31,16 @@ const placeNewOrderService = async (userDetails:IJwtPayload,payload: TOrderPaylo
         totalPrice: unitPrice * quantity,
         pickupTime
     });
-
+    
     if(!newOrder){
         throw new ApiError(500, "Failed to place the order.");
     }
+
+    // 4. make payment and create payment schema collection
+
+    // 5. Webhook confirm payment
+    
+    // 5. Adjust inventory
 
     return null;
 
@@ -329,9 +339,9 @@ const getRetailerHomePageOrderStatDataService = async (userDetails: IJwtPayload)
         }
     });
 
-    let revenue ;
+    let revenue = 0 ;
 
-    let runningLowPairCount
+    let runningLowPairCount = 0;
 
     return {
         allOrder,
@@ -344,17 +354,35 @@ const getRetailerHomePageOrderStatDataService = async (userDetails: IJwtPayload)
 
 //order page
 
-const retailerChangeOrderStatusService = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
+const retailerAcceptOrderService = async (userDetails: IJwtPayload, orderId: string) => {
     const {profileId} = userDetails;
 
-    const {orderId,orderStatus} = query;
+    // const {orderId,orderStatus} = query;
 
-    const order = await OrderItemModel.findByIdAndUpdate(
-        orderId,
-        {
-            orderStatus: orderStatus
-        }
-    );
+    const order = await OrderItemModel.findById(orderId);
+
+    if( order.retailerId.toString() !== profileId){
+        throw new ApiError(403,"You can not accept this order.");
+    }
+
+    order.status = ENUM_ORDER_STATUS.ACCEPTED;
+
+    await order.save();
+
+    //adjust inventory
+
+    //send notification
+    await notification.createNotification({
+        toId: order?.buyerId,
+        toModel: "Buyer",
+        title: "Store keeper accepted your order.",
+        description: `Store keeper accepted your order. View the order to check current status.`,
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.ORDER_ACCEPTED,
+        referenceId: order._id,
+        referenceModel: "Order",
+        metadata: {}
+    });
 }
 
 const getOrderDetailsById = async (orderId: string) => {
@@ -373,6 +401,7 @@ const getOrderDetailsById = async (orderId: string) => {
 const OrderServices = { 
     placeNewOrderService,
     getRetailerHomePageOrderStatDataService,
+    retailerAcceptOrderService,
     getOrderDetailsById,
  };
 

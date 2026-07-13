@@ -27,6 +27,7 @@ const adminSchema = new Schema<IAdmin>({
     },
     role:{
         type: String,
+        enum: ["Admin","Super_Admin"],
         default: "Admin"
     },
     phone:{

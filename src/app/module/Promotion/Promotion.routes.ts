@@ -8,10 +8,18 @@ import PromotionController from "./Promotion.controller";
 const PromotionRouter = express.Router();
 
 PromotionRouter.post(
-    "/create-promotion",
+    "/send-new-promotion",
     authorizeUser,
     validateRequest(PromotionValidations.createNewPromotionValidation),
     PromotionController.createNewPromotionController
+);
+
+
+PromotionRouter.get(
+    "/get-all-promotion",
+    authorizeUser,
+    // validateRequest(PromotionValidations.createNewPromotionValidation),
+    PromotionController.getAllPreviousPromotion
 );
 
 

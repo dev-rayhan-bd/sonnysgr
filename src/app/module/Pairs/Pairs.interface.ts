@@ -3,21 +3,28 @@ import { Types } from "mongoose";
 export interface IPairs {
     resellerId: Types.ObjectId;
     name: string;
-    images: string;
+    images: string[];
+    type: string,
     brand: string;
-    quantity: string;
+    styleCode: string;
     details: string;
+    color: string;
     variant: {
         gender: string;
-        size: number;
-    };
+        size: string;
+        stock: number
+    }[];
     askingPrice: number;
     // size: number;
-    type: string;
+    sneakerAttributes?: {};
+    tshirtAttributes?: {};
+    condition?: string;
     isVisibleToStore: boolean;
     isShowAskingPrice: boolean;
     isAllowDirectRequest: boolean;
     isSold: boolean;
+    pairViewCount: number;
+    pairRequestCount: number;
     createdAt: Date;
 }
 
@@ -33,9 +40,9 @@ export interface IPairRequest {
     retailerId: Types.ObjectId;
     pairId: Types.ObjectId;
     quantity: number;
-    variant?: {
+    variant: {
         gender: string;
-        size: number;
+        size: string;
     };
     askingPrice: number;
      offerHistory: IOfferHistory[];

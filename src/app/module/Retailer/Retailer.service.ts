@@ -138,6 +138,9 @@ const getAllNearbyRetailersForMap = async (query: Record<string, unknown>) => {
                 distance: 1,
             },
         },
+        {
+            $limit: 10
+        },
     ]);
 
     return nearbyRetailers;
@@ -404,6 +407,65 @@ const updateRetailerProfileService = async (
     return updatedProfile;
 };
 
+//add rtailer license and store image
+const addRetailerLicense = async (
+    userDetails: IJwtPayload,
+    licenseFile: Express.Multer.File | undefined,
+    coverImage: Express.Multer.File | undefined,
+    payload: any
+    ) => {
+
+    const { profileId } = userDetails;
+    
+    let {address,latitude,longitude} = payload;
+
+    // console.log("profileImage, coverImage", profileImage, coverImage);
+    
+    const profile:any = await RetailerModel.findById(profileId).lean();
+
+    if (!profile) {
+        throw new ApiError(404, "Retailer not found to add info.");
+    }
+
+    
+    const updateData: any = {
+        address,
+    };
+    
+    if(licenseFile){
+        updateData.image = `uploads/retailer-file/${licenseFile?.filename}`;
+
+        // deleteOldFile(profile?.image);
+    }
+
+    if(coverImage){
+        updateData.coverImage = `uploads/cover-image/${coverImage?.filename}`;
+
+        // deleteOldFile(profile?.coverImage);
+    }
+
+    if (latitude != null && longitude != null) {
+        updateData["location.coordinates"] = [
+            Number(longitude),
+            Number(latitude),
+        ];
+    }
+
+    const updatedProfile = await RetailerModel.findByIdAndUpdate(
+        profileId,
+        {
+            $set: updateData,
+        },
+        {
+            new: true,
+        }
+    );
+
+    
+
+    return updatedProfile;
+};
+
 
 //retailer home page
 
@@ -558,6 +620,7 @@ const RetailerServices = {
     getAllBranch,
 
     updateRetailerProfileService,
+    addRetailerLicense,
 };
 
 

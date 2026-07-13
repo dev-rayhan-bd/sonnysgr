@@ -8,7 +8,7 @@ export interface IPromotion {
     content: string;
     recepient: string;
     sendMethod: string;
-    status: string;
+    status?: string;
     scheduledAt?: Date;
     duration: number; //hours
     isActive: boolean;

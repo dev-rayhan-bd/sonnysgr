@@ -1,6 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { INotification,IAdminNotification } from "./Notification.interface";
-import { ENUM_NOTIFICATION_TYPE } from "../../../utilities/enum";
+import { ENUM_NOTIFICATION_TYPE, ENUM_USER_Type } from "../../../utilities/enum";
 
 // const NotificationSchema = new Schema<INotification>({
 //     toId: { type: Schema.Types.ObjectId, required: true, ref: "Customer" },
@@ -14,7 +14,7 @@ const NotificationSchema = new Schema<INotification>({
     toId: { type: Schema.Types.ObjectId, required: true, refPath: "toModel" },
     toModel: {
         type: String,
-        enum: ["Customer", "Supplier", "Admin"],
+        enum: Object.values(ENUM_USER_Type),
         required: true
     },
     title: { type: String, required: true },
@@ -31,6 +31,11 @@ const NotificationSchema = new Schema<INotification>({
 
     referenceModel: {
         type: String
+    },
+
+    metaData: {
+        type: Object,
+        default: {}
     },
     
     isSeen: { type: Boolean, default: false },

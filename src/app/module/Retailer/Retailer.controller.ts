@@ -93,6 +93,33 @@ const updateRetailerProfile = catchAsync(async (req, res) => {
     });
 });
 
+const addVerificationInfo = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    console.log("req.files:",req.files);
+
+    const files = req.files as {
+        [fieldname: string]: Express.Multer.File[];
+    };
+
+    console.log("files:",files)
+
+    const license = files?.["retailer-file"]?.[0];
+    const coverImage = files?.["cover-image"]?.[0];
+
+    const result = await RetailerServices.addRetailerLicense(user,license,coverImage, req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Added verification info.",
+        data: result,
+    });
+});
+
+
+
 //branch
 
 const addNewBranchController = catchAsync(async (req, res) => {
@@ -133,10 +160,13 @@ const getAllBranchController = catchAsync(async (req, res) => {
 const RetailerController = { 
     filterNearbyRetailersController,
     getAllNearbyRetailerForMap,
+
     getRetailerInventoryController,
     getRetailerAllOrdersController,
+
     toggleRetailerOperationHourController,
     updateRetailerProfile,
+    addVerificationInfo,
     
     addNewBranchController,
     getAllBranchController,
