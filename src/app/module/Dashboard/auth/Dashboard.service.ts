@@ -41,7 +41,7 @@ const registerAdminService = async (payload: IAdmin) => {
         phone: admin.phone,
         role: admin.role
     }
-}
+};
 
 const loginAdminService = async (payload: TLoginUser) => {
 
@@ -102,7 +102,20 @@ const loginAdminService = async (payload: TLoginUser) => {
     }
 
     return { newUser,accessToken};
-}
+};
+const getMyProfileService = async (userDetails: JwtPayload) => {
+    const { userId } = userDetails;
+    if (!userId) {
+        throw new ApiError(400, "Admin ID is required");
+    }
+
+    const admin = await AdminModel.findById(userId).select('-password');
+    if (!admin) {
+        throw new ApiError(404, "Admin profile not found");
+    }
+
+    return admin;
+};
 
 const adminVerifyCode = async (payload:{email: string, verifyCode: string}) => {
     const { email, verifyCode } = payload;
@@ -349,24 +362,13 @@ const blockAdminService = async (userId: string) => {
     
 // };
 
-const getMyProfileService = async (userDetails: JwtPayload) => {
-    const { userId } = userDetails;
-    if (!userId) {
-        throw new ApiError(400, "Admin ID is required");
-    }
 
-    const admin = await AdminModel.findById(userId).select('-password');
-    if (!admin) {
-        throw new ApiError(404, "Admin profile not found");
-    }
-
-    return admin;
-};
 
 
 const DashboardService = {
     registerAdminService,
     loginAdminService,
+    // forgotPasswordService,
     adminVerifyCode,
     adminSendVerifyCodeService,
     adminResetPasswordService,
