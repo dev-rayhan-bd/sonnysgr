@@ -125,51 +125,13 @@ const adminVerifyCode = async (payload: {
     throw new ApiError(404, "Admin not found to verify otp");
   }
 
-  // if (user.codeExpireIn < new Date(Date.now())) {
-  //     throw new AppError(httpStatus.BAD_REQUEST, 'Verify code is expired');
-  // }
-
   if (verifyCode !== admin.verificationCode) {
     throw new ApiError(400, "Code doesn't match");
   }
 
-  // const result = await UserModel.findOneAndUpdate(
-  //     { email: email },
-  //     { isVerified: true },
-  //     { new: true, runValidators: true }
-  // );
-
   admin.verificationCode = "";
   admin.isEmailVerified = true;
   await admin.save();
-
-  // if (!result) {
-  //     throw new AppError(
-  //         httpStatus.SERVICE_UNAVAILABLE,
-  //         'Server temporary unable please try again letter'
-  //     );
-  // }
-
-  // Create JWT tokens
-  // const tokenPayload = {
-  //     userId: user?._id,
-  //     profileId: user?.profile,
-  //     email: user?.email,
-  //     role: user?.role,
-  // };
-
-  // const accessToken: string =  createToken(
-  //         tokenPayload,
-  //         config.jwt.secret as Secret,
-  //         config.jwt.expires_in as SignOptions["expiresIn"]
-  //     );
-
-  // const refreshToken = createToken(
-  //     jwtPayload,
-  //     config.jwt_refresh_secret as string,
-  //     config.jwt_refresh_expires_in as string
-  // );
-
   return null;
 };
 const adminResetPasswordService = async (
@@ -189,11 +151,6 @@ const adminResetPasswordService = async (
     throw new ApiError(403, "This user is blocked. Cannot reset password");
   }
 
-  //hash new password
-  // const newHashedPassword = await bcrypt.hash(
-  //     payload.password,
-  //     Number(config.bcrypt_salt_rounds)
-  // );
 
   const hashedPassword = await bcrypt.hash(
     newPassword,
@@ -221,17 +178,20 @@ const adminResetPasswordService = async (
     config.jwt.expires_in as SignOptions["expiresIn"],
   );
 
-  // const refreshToken = createToken(
-  //     jwtPayload,
-  //     config.jwt_refresh_secret as string,
-  //     config.jwt_refresh_expires_in as string
-  // );
+
 
   return {
     user: { name: admin.name, email: admin.email, role: admin.role },
     accessToken,
   };
 };
+
+
+
+
+
+
+
 const adminSendVerifyCodeService = async (payload: { email: string }) => {
   const { email } = payload;
 
