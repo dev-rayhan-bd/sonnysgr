@@ -36,6 +36,7 @@ export interface IChangePassword {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
+    oldPassword: string
 }
 
 export type TaddDate = {

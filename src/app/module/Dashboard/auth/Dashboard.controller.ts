@@ -115,12 +115,26 @@ const deleteAdminAccount = catchAsync(
 
 const dashboardStat = catchAsync(
     async (req,res) => {
-        const result = await DashboardService.loginAdminService(req.body);
+        // const result = await DashboardService.dashboardStatService();
 
-        sendResponse(res,{
-            statusCode: 201,
+        // sendResponse(res,{
+        //     statusCode: 200,
+        //     success: true,
+        //     message: "Got website stat",
+        //     data: result
+        // });
+    }
+);
+
+const getMyProfile = catchAsync(
+    async (req, res) => {
+        const { user } = req as AuthRequest;
+        const result = await DashboardService.getMyProfileService(user);
+
+        sendResponse(res, {
+            statusCode: 200,
             success: true,
-            message: "Got website stat",
+            message: "Admin profile retrieved successfully",
             data: result
         });
     }
@@ -150,6 +164,7 @@ const DashboardController = {
     changeAdminPassword,
     deleteAdminAccount,
     dashboardStat,
+    getMyProfile,
     blockAdmin
 }
 

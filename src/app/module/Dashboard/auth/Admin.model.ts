@@ -29,6 +29,14 @@ const adminSchema = new Schema<IAdmin>({
         type: String,
         default: "Admin"
     },
+    phone:{
+        type: String,
+        default: ''
+    },
+    image:{
+        type: String,
+        default: ''
+    },
     verificationCode: {
         type: String,
         default: ''

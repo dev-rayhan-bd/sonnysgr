@@ -3,6 +3,7 @@ import { TLoginUser } from "../../auth/auth.interface";
 import AdminModel from "./Admin.model";
 import { IAdmin } from "./Dashboard.interface";
 import config from "../../../../config";
+import bcrypt from "bcrypt";
 import { JwtPayload,Secret, SignOptions } from "jsonwebtoken";
 import { createToken } from "../../../../helper/jwtHelper";
 import { IChangePassword } from "../../User/User.interface";
@@ -10,18 +11,23 @@ import generateVerifyCode from "../../../../utilities/codeGenerator";
 import { sendVerificationEmail } from "../../../../helper/emailHelper";
 import deleteOldFile from "../../../../utilities/deleteFile";
 import UserModel from "../../User/User.model";
-import PostModel from "../Post/Post.model";
-import { ENUM_POST_STATUS } from "../../../../utilities/enum";
+// import PostModel from "../Post/Post.model";
+// import { ENUM_POST_STATUS } from "../../../../utilities/enum";
 
 
 
 const registerAdminService = async (payload: IAdmin) => {
     const {name, email,password,phone} = payload;
 
+    const hashedPassword = await bcrypt.hash(
+        password,
+        Number(config.bcrypt.salt_round || 10)
+    );
+
     const admin = await AdminModel.create({
         name: name,
         email: email.toLowerCase(),
-        password: password,
+        password: hashedPassword,
         phone: phone
     });
 
@@ -67,8 +73,9 @@ const loginAdminService = async (payload: TLoginUser) => {
     //     throw new ApiError(403,'Password do not match');
     // }
 
-    if(password !== admin.password){
-        throw new ApiError(403,'Password do not match');
+    const isPasswordMatched = await bcrypt.compare(password, admin.password);
+    if (!isPasswordMatched) {
+        throw new ApiError(403, 'Password does not match');
     }
 
 
@@ -201,7 +208,12 @@ const adminResetPasswordService = async (userDetails: JwtPayload,payload: {newPa
     //     Number(config.bcrypt_salt_rounds)
     // );
 
-    admin.password = newPassword;
+    const hashedPassword = await bcrypt.hash(
+        newPassword,
+        Number(config.bcrypt.salt_round || 10)
+    );
+
+    admin.password = hashedPassword;
     await admin.save();
 
     //generate new token after password reset
@@ -267,11 +279,17 @@ const changeAdminPasswordService = async (userDetails: JwtPayload, payload: ICha
     //     throw new ApiError(400,'Old password is incorrect');
     // }
 
-    if(admin.password !== oldPassword){
-        throw new ApiError(400,'Old password is incorrect');
+    const isPasswordMatched = await bcrypt.compare(oldPassword, admin.password);
+    if (!isPasswordMatched) {
+        throw new ApiError(400, 'Old password is incorrect');
     }
 
-    admin.password = newPassword;
+    const hashedPassword = await bcrypt.hash(
+        newPassword,
+        Number(config.bcrypt.salt_round || 10)
+    );
+
+    admin.password = hashedPassword;
 
     await admin.save();
 
@@ -305,30 +323,44 @@ const blockAdminService = async (userId: string) => {
     const admin = await AdminModel.findById(userId);
 
     //block unblock admin
-    admin.isBlockd = !admin.isBlockd;
+    admin.isBlocked = !admin.isBlocked;
     await admin.save();
 
     let msg;
-    if(admin.isBlockd) msg = 'Admin is blocked successfully.';
+    if(admin.isBlocked) msg = 'Admin is blocked successfully.';
     else msg = 'Admin is unblocked.';
 
     return {admin:{name: admin.name}, msg };
 }
 
-const dashboardStatService = async () => {
+// const dashboardStatService = async () => {
 
-    const [totalUsers,totalPosts,activePost] = await Promise.all([
-        UserModel.countDocuments(),
-        PostModel.countDocuments(),
-        PostModel.countDocuments({status: { $ne: ENUM_POST_STATUS.DELIVERED}})
-    ]);
+//     const [totalUsers,totalPosts,activePost] = await Promise.all([
+//         UserModel.countDocuments(),
+//         PostModel.countDocuments(),
+//         PostModel.countDocuments({status: { $ne: ENUM_POST_STATUS.DELIVERED}})
+//     ]);
 
-    return {
-        totalUsers,
-        totalPosts,
-        activePost
-    }
+//     return {
+//         totalUsers,
+//         totalPosts,
+//         activePost
+//     }
     
+// };
+
+const getMyProfileService = async (userDetails: JwtPayload) => {
+    const { userId } = userDetails;
+    if (!userId) {
+        throw new ApiError(400, "Admin ID is required");
+    }
+
+    const admin = await AdminModel.findById(userId).select('-password');
+    if (!admin) {
+        throw new ApiError(404, "Admin profile not found");
+    }
+
+    return admin;
 };
 
 
@@ -342,7 +374,8 @@ const DashboardService = {
     changeAdminPasswordService,
     deleteAdminService,
     blockAdminService,
-    dashboardStatService,
+    // dashboardStatService,
+    getMyProfileService,
     // salesActivityService
 }
 

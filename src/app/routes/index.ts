@@ -9,6 +9,7 @@ import ProductRouter from "../module/Product/Product.routes";
 import CartRouter from "../module/Cart/Cart.routes";
 import OrderRouter from "../module/Order/Order.routes";
 import ReportRouter from "../module/Report/Report.routes";
+import dashboardRouter from "../module/Dashboard/auth/Dashboard.routes";
 
 
 const allRouter = Router();
@@ -55,6 +56,10 @@ const moduleRoutes = [
         path: '/report',
         router: ReportRouter,
     },
+    {
+        path: '/dashboard',
+        router: dashboardRouter,
+    }
   
 ];
 

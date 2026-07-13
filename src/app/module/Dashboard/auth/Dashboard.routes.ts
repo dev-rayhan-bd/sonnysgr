@@ -38,6 +38,11 @@ dashboardRouter.patch("/admin-reset-password",
     DashboardController.adminResetPassword
 );
 
+dashboardRouter.get("/profile",
+    authorizeUser,
+    DashboardController.getMyProfile
+);
+
 dashboardRouter.patch("/edit-admin-profile",
     // auth(["Super_Admin"]),
     authorizeUser,
