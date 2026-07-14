@@ -30,7 +30,7 @@ const OrderSchema = new Schema<IOrder>({
     },
 
     holdingTime: { type: Number, default: 0 },
-    holdingStartTime: { type: Date , default: null },
+    holdingStartTime: { type: Date, default: null },
     holdingEndTime: { type: Date, default: null },
 
     pickupTime: { type: Date, required: true },
@@ -56,15 +56,15 @@ const OrderItemSchema = new Schema<IOrderItem>({
 }, { timestamps: true });
 
 //seller split order model schema
-const SellerSplitOrderSchema = new Schema<ISellerSplitOrder>({
-    buyerId: { type: Schema.Types.ObjectId, ref: "Buyer", required: true },
-    retailerId: { type: Schema.Types.ObjectId, ref: "Retailer", required: true },
-    // productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-    orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
-    totalItems: { type: Number, required: true },
-    totalAmount: { type: Number, required: true },
-    status: { type: String, enum: Object.values(ENUM_SELLER_SPLIT_ORDER_STATUS), default: ENUM_SELLER_SPLIT_ORDER_STATUS.PLACED },
-}, { timestamps: true });
+// const SellerSplitOrderSchema = new Schema<ISellerSplitOrder>({
+//     buyerId: { type: Schema.Types.ObjectId, ref: "Buyer", required: true },
+//     retailerId: { type: Schema.Types.ObjectId, ref: "Retailer", required: true },
+//     // productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+//     orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
+//     totalItems: { type: Number, required: true },
+//     totalAmount: { type: Number, required: true },
+//     status: { type: String, enum: Object.values(ENUM_SELLER_SPLIT_ORDER_STATUS), default: ENUM_SELLER_SPLIT_ORDER_STATUS.PLACED },
+// }, { timestamps: true });
 
 
 
@@ -72,8 +72,12 @@ const OrderModel = models.Order || model<IOrder>("Order", OrderSchema);
 
 const OrderItemModel = models.OrderItem || model<IOrderItem>("OrderItem", OrderItemSchema);
 
-const SellerSplitOrderModel = models.SellerSplitOrder || model<ISellerSplitOrder>("SellerSplitOrder", SellerSplitOrderSchema);
+// const SellerSplitOrderModel = models.SellerSplitOrder || model<ISellerSplitOrder>("SellerSplitOrder", SellerSplitOrderSchema);
 
-export { OrderModel, OrderItemModel, SellerSplitOrderModel };
+export {
+    OrderModel,
+    OrderItemModel,
+    // SellerSplitOrderModel 
+};
 
 // export default OrderModel;

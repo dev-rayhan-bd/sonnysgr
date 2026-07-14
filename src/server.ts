@@ -28,7 +28,7 @@ async function main() {
     await mongoDBConnection();
 
     // ✅ Run cron job
-    runCronJobEverydatAtNight();
+    // runCronJobEverydatAtNight();
     // console.log("Cron job scheduled.");
 
     // ✅ Initialize socket with HTTP server

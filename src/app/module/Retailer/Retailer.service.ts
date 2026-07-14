@@ -11,9 +11,9 @@ import deleteOldFile from "../../../utilities/deleteFile";
 
 //get all nearby retailer for buyer 
 const filterNearbyRetailers = async (query: Record<string, unknown>) => {
-    const { latitude, longitude} = query;
+    const { latitude, longitude } = query;
 
-    if (typeof latitude !== "number" || typeof longitude !== "number" ) {
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
         throw new ApiError(400, "Invalid query parameters. Latitude, longitude");
     }
 
@@ -161,75 +161,75 @@ const getRetailerDetailWithProduct = async (retailerId: string) => {
 
 
     const result = await ReviewModel.aggregate([
-    {
-        $match: {
-            retailerObjectId,
+        {
+            $match: {
+                retailerObjectId,
+            },
         },
-    },
 
-    {
-        $facet: {
-        // Total review count
-        reviewSummary: [
-            {
-            $group: {
-                _id: null,
-                totalReviews: { $sum: 1 },
+        {
+            $facet: {
+                // Total review count
+                reviewSummary: [
+                    {
+                        $group: {
+                            _id: null,
+                            totalReviews: { $sum: 1 },
 
-                averageOverallRating: {
-                $avg: "$overallrating",
-                },
+                            averageOverallRating: {
+                                $avg: "$overallrating",
+                            },
 
-                averageCustomerServiceRating: {
-                $avg: "$customerServiceRating",
-                },
+                            averageCustomerServiceRating: {
+                                $avg: "$customerServiceRating",
+                            },
 
-                averageAuthenticityRating: {
-                $avg: "$authenticityRating",
-                },
+                            averageAuthenticityRating: {
+                                $avg: "$authenticityRating",
+                            },
 
-                averagePickupSpeedRating: {
-                $avg: "$pickupSpeedRating",
-                },
+                            averagePickupSpeedRating: {
+                                $avg: "$pickupSpeedRating",
+                            },
 
-                averagePriceRating: {
-                $avg: "$priceRating",
-                },
+                            averagePriceRating: {
+                                $avg: "$priceRating",
+                            },
 
-                averageStoreExperienceRating: {
-                $avg: "$storeExperienceRating",
-                },
+                            averageStoreExperienceRating: {
+                                $avg: "$storeExperienceRating",
+                            },
 
-                averageStaffHelpfulnessRating: {
-                $avg: "$staffHelpfulnessRating",
-                },
+                            averageStaffHelpfulnessRating: {
+                                $avg: "$staffHelpfulnessRating",
+                            },
+                        },
+                    },
+                ],
+
+                // Star-wise distribution
+                ratingDistribution: [
+                    {
+                        $group: {
+                            _id: "$overallrating",
+                            count: {
+                                $sum: 1,
+                            },
+                        },
+                    },
+                    {
+                        $sort: {
+                            _id: -1,
+                        },
+                    },
+                ],
             },
-            },
-        ],
-
-        // Star-wise distribution
-        ratingDistribution: [
-            {
-            $group: {
-                _id: "$overallrating",
-                count: {
-                $sum: 1,
-                },
-            },
-            },
-            {
-            $sort: {
-                _id: -1,
-            },
-            },
-        ],
         },
-    },
     ]);
 
     const summary = result[0]?.reviewSummary?.[0];
 
-    const distribution:any = {
+    const distribution: any = {
         1: 0,
         2: 0,
         3: 0,
@@ -237,7 +237,7 @@ const getRetailerDetailWithProduct = async (retailerId: string) => {
         5: 0,
     };
 
-    result[0]?.ratingDistribution?.forEach((item:any) => {
+    result[0]?.ratingDistribution?.forEach((item: any) => {
         distribution[item._id] = item.count;
     });
 
@@ -286,15 +286,58 @@ const getRetailerDetailWithProduct = async (retailerId: string) => {
 }
 
 //get inventory of a retailer
-const getRetailerInventory = async (userDetails: IJwtPayload,query: Record<string, unknown>) => {
-    const {profileId} = userDetails;
+const getRetailerInventory = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
+    const { profileId } = userDetails;
 
-    const {inventoryType} = query
+    let { type, availability, page, limit } = query
+
+    let filter: any = {
+        retailerId: profileId
+    };
+
+    if (availability) {
+        filter.availability = availability
+    }
+
+    if (type) {
+        filter.type = type
+    }
+
+    page = parseInt(page as any) || 1;
+    limit = parseInt(limit as any) || 10;
+    let skip = (page as number - 1) * (limit as number);
+
+    const [products, totalProducts] = await Promise.all([
+
+        ProductModel.find(filter)
+            .select("-sneakerAttributes -tshirtAttributes")
+            .sort({ createdAt: -1 })
+            .skip(skip).limit(limit as number)
+            .lean(),
+
+        ProductModel.countDocuments(filter)
+    ])
+
+    const totalPage = Math.ceil(totalProducts / (limit as number));
+
+    const hasNextPage = (page as number) < totalPage ? true : false;
+
+    return {
+        meta: {
+            page,
+            limit,
+            total: totalProducts,
+            totalPage,
+            hasNextPage
+        },
+        products,
+        // productCount: products.length
+    };
 
 
-    const inventory = await ProductModel.find({ retailerId: profileId, availability: inventoryType }).sort({ createdAt: -1 }).lean();
+    const inventory = await ProductModel.find(filter).sort({ createdAt: -1 }).lean();
 
-    if(!inventory){
+    if (!inventory) {
         throw new ApiError(404, "Retailer not found.");
     }
 
@@ -303,13 +346,13 @@ const getRetailerInventory = async (userDetails: IJwtPayload,query: Record<strin
 }
 
 const getAllOrdersOfRetailer = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
-    const {orderStatus} = query;
+    const { orderStatus } = query;
 
     const orders = await OrderItemModel.find({ retailerId: profileId, status: orderStatus }).sort({ createdAt: -1 }).lean();
 
-    if(!orders){
+    if (!orders) {
         throw new ApiError(404, "No orders found for this retailer.");
     }
 
@@ -322,19 +365,19 @@ const getAllOrdersOfRetailer = async (userDetails: IJwtPayload, query: Record<st
 //update retailer operation hours
 
 const toggleOperationHour = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
     const { day } = query;
 
 
-    const retailer:any = await RetailerModel.findOne({
+    const retailer: any = await RetailerModel.findOne({
         _id: profileId,
         // "operationHour.day": day
     });
 
     // console.log("retailer:", retailer);
 
-    const operationHour = retailer?.operationHour.find( (item:IOperationHour) => item?.day === day);
+    const operationHour = retailer?.operationHour.find((item: IOperationHour) => item?.day === day);
 
     // console.log("operation hour:", operationHour);
 
@@ -351,20 +394,20 @@ const updateRetailerProfileService = async (
     profileImage: Express.Multer.File | undefined,
     coverImage: Express.Multer.File | undefined,
     payload: any
-    ) => {
+) => {
 
     const { profileId } = userDetails;
-    
-    let {name,details,phone,website,address,latitude,longitude} = payload;
+
+    let { name, details, phone, website, address, latitude, longitude } = payload;
 
     console.log("profileImage, coverImage", profileImage, coverImage);
-    
-    const profile:any = await RetailerModel.findById(profileId).lean();
+
+    const profile: any = await RetailerModel.findById(profileId).lean();
     if (!profile) {
         throw new ApiError(404, "Buyer not found to update.");
     }
 
-    
+
     const updateData: any = {
         name,
         details,
@@ -372,14 +415,14 @@ const updateRetailerProfileService = async (
         website,
         address,
     };
-    
-    if(profileImage){
+
+    if (profileImage) {
         updateData.image = `uploads/profile-image/${profileImage?.filename}`;
 
         deleteOldFile(profile?.image);
     }
 
-    if(coverImage){
+    if (coverImage) {
         updateData.coverImage = `uploads/cover-image/${coverImage?.filename}`;
 
         deleteOldFile(profile?.coverImage);
@@ -402,7 +445,7 @@ const updateRetailerProfileService = async (
         }
     );
 
-    
+
 
     return updatedProfile;
 };
@@ -413,32 +456,32 @@ const addRetailerLicense = async (
     licenseFile: Express.Multer.File | undefined,
     coverImage: Express.Multer.File | undefined,
     payload: any
-    ) => {
+) => {
 
     const { profileId } = userDetails;
-    
-    let {address,latitude,longitude} = payload;
+
+    let { address, latitude, longitude } = payload;
 
     // console.log("profileImage, coverImage", profileImage, coverImage);
-    
-    const profile:any = await RetailerModel.findById(profileId).lean();
+
+    const profile: any = await RetailerModel.findById(profileId).lean();
 
     if (!profile) {
         throw new ApiError(404, "Retailer not found to add info.");
     }
 
-    
+
     const updateData: any = {
         address,
     };
-    
-    if(licenseFile){
+
+    if (licenseFile) {
         updateData.image = `uploads/retailer-file/${licenseFile?.filename}`;
 
         // deleteOldFile(profile?.image);
     }
 
-    if(coverImage){
+    if (coverImage) {
         updateData.coverImage = `uploads/cover-image/${coverImage?.filename}`;
 
         // deleteOldFile(profile?.coverImage);
@@ -461,7 +504,7 @@ const addRetailerLicense = async (
         }
     );
 
-    
+
 
     return updatedProfile;
 };
@@ -475,29 +518,29 @@ const addNewBranch = async (
     userDetails: IJwtPayload,
     profileImage: Express.Multer.File,
     coverImage: Express.Multer.File,
-     payload: Partial<IRetailer>
+    payload: Partial<IRetailer>
 ) => {
 
-    const {authId,profileId} = userDetails;
+    const { authId, profileId } = userDetails;
 
     // console.log("Retailer branch cover and profile image:",profileImage,coverImage);
 
-    const parentStore:any = await RetailerModel.findById(profileId).select("email").lean();
+    const parentStore: any = await RetailerModel.findById(profileId).select("email").lean();
 
     const branchPayload: any = {
         parentStore: profileId,
         authId,
         email: parentStore?.email,
-       ...payload 
+        ...payload
     }
 
-    if(profileImage){
+    if (profileImage) {
         branchPayload.image = `uploads/profile-image/${profileImage?.filename}`;
 
         // deleteOldFile(profile?.image);
     }
 
-    if(coverImage){
+    if (coverImage) {
         branchPayload.coverImage = `uploads/cover-image/${coverImage?.filename}`;
 
         // deleteOldFile(profile?.coverImage);
@@ -506,8 +549,8 @@ const addNewBranch = async (
 
     const branch = await RetailerModel.create(branchPayload);
 
-    if(!branch){
-        throw new ApiError(500,"Failed to create new branch store.");
+    if (!branch) {
+        throw new ApiError(500, "Failed to create new branch store.");
     }
 
     return null;
@@ -515,9 +558,9 @@ const addNewBranch = async (
 
 const getAllBranch = async (userDetails: IJwtPayload) => {
 
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
-    const branches = await RetailerModel.find({parentStore: profileId}).lean();
+    const branches = await RetailerModel.find({ parentStore: profileId }).lean();
 
     return branches;
 
@@ -529,26 +572,26 @@ const getAllBranch = async (userDetails: IJwtPayload) => {
 
 //dashboard
 
-const getAllRetailerStoreService = async (query: Record<string,unknown>) => {
+const getAllRetailerStoreService = async (query: Record<string, unknown>) => {
 
-    let {page, searchText, approvalStatus} = query;
+    let { page, searchText, approvalStatus } = query;
 
-    let filter: any= {};
+    let filter: any = {};
 
     //if approvalStatus is true
-    if(approvalStatus){
+    if (approvalStatus) {
         filter.isApproved = approvalStatus === "true" ? true : false;
     }
 
     //if searchText is true
-    if(searchText){
+    if (searchText) {
         const users = await RetailerModel.find({
             ...filter,
-             $or: [
-                    { name: { $regex: searchText, $options: "i" } },
-                    { email: { $regex: searchText, $options: "i" } },
-                ]
-        }) .populate({path: "auth", select:"isBlocked"}).lean();
+            $or: [
+                { name: { $regex: searchText, $options: "i" } },
+                { email: { $regex: searchText, $options: "i" } },
+            ]
+        }).populate({ path: "auth", select: "isBlocked" }).lean();
 
         return users;
 
@@ -564,18 +607,18 @@ const getAllRetailerStoreService = async (query: Record<string,unknown>) => {
     const [users, totalUser] = await Promise.all([
 
         RetailerModel.find(filter)
-            .populate({path: "auth", select:"isBlocked"})
-                .sort({createdAt: -1})
-                    .skip(skip).limit(limit)
-                        .lean(),
-    
+            .populate({ path: "auth", select: "isBlocked" })
+            .sort({ createdAt: -1 })
+            .skip(skip).limit(limit)
+            .lean(),
+
         RetailerModel.countDocuments({})
     ])
 
     const totalPage = Math.ceil(totalUser / limit);
 
     return {
-        meta:{page,limit: 10,total: totalUser, totalPage},
+        meta: { page, limit: 10, total: totalUser, totalPage },
         stores: users
     };
 }
@@ -584,7 +627,7 @@ const approveRetailerService = async (id: string) => {
 
     const approvedRetailer = await RetailerModel.findById(id).select("name isApproved");
 
-    if(!approvedRetailer){
+    if (!approvedRetailer) {
         throw new ApiError(404, "Retailer not found to approve.");
     }
 
@@ -609,7 +652,7 @@ const approveRetailerService = async (id: string) => {
 
 
 
-const RetailerServices = { 
+const RetailerServices = {
     filterNearbyRetailers,
     getAllNearbyRetailersForMap,
     getRetailerInventory,

@@ -7,12 +7,26 @@ const createNewPromotionController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result = await PromotionServices.createNewPromotionService(user, req.body);
+    const result = await PromotionServices.createNewPromotionService(user,req.file, req.body);
 
     sendResponse(res, {
         statusCode: 201,
         success: true,
         message: "Promotion created successfully",
+        data: result,
+    });
+});
+
+const editPromotion = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await PromotionServices.editPromotionService(user,req.file,req.params.id, req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Promotion updated successfully.",
         data: result,
     });
 });
@@ -31,9 +45,25 @@ const getAllPreviousPromotion = catchAsync(async (req, res) => {
     });
 });
 
+const getBuyerPromotion = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await PromotionServices.getAllRetailerPromotion(user, req.query);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Retrieved all promotion.",
+        data: result,
+    });
+});
+
 const PromotionController = { 
     createNewPromotionController,
-    getAllPreviousPromotion
+    editPromotion,
+    getAllPreviousPromotion,
+    getBuyerPromotion,
  };
 
 

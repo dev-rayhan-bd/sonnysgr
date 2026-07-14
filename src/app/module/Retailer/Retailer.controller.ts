@@ -30,13 +30,14 @@ const getAllNearbyRetailerForMap = catchAsync(async (req, res) => {
 const getRetailerInventoryController = catchAsync(async (req, res) => {
     const { user } = req as AuthRequest;
 
-    const result = await RetailerServices.getRetailerInventory(user,req.query);
+    const result: any = await RetailerServices.getRetailerInventory(user, req.query);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Retailer inventory retrieved successfully.",
-        data: result,
+        meta: result.meta,
+        data: result.products,
     });
 });
 
@@ -72,18 +73,18 @@ const updateRetailerProfile = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    console.log("req.files:",req.files);
+    console.log("req.files:", req.files);
 
     const files = req.files as {
         [fieldname: string]: Express.Multer.File[];
     };
 
-    console.log("files:",files)
+    console.log("files:", files)
 
     const profileImage = files?.["profile-image"]?.[0];
     const coverImage = files?.["cover-image"]?.[0];
 
-    const result = await RetailerServices.updateRetailerProfileService(user,profileImage,coverImage, req.body);
+    const result = await RetailerServices.updateRetailerProfileService(user, profileImage, coverImage, req.body);
 
     sendResponse(res, {
         statusCode: 200,
@@ -97,18 +98,18 @@ const addVerificationInfo = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    console.log("req.files:",req.files);
+    console.log("req.files:", req.files);
 
     const files = req.files as {
         [fieldname: string]: Express.Multer.File[];
     };
 
-    console.log("files:",files)
+    console.log("files:", files)
 
     const license = files?.["retailer-file"]?.[0];
     const coverImage = files?.["cover-image"]?.[0];
 
-    const result = await RetailerServices.addRetailerLicense(user,license,coverImage, req.body);
+    const result = await RetailerServices.addRetailerLicense(user, license, coverImage, req.body);
 
     sendResponse(res, {
         statusCode: 200,
@@ -133,7 +134,7 @@ const addNewBranchController = catchAsync(async (req, res) => {
     const profileImage = files?.["profile-image"]?.[0];
     const coverImage = files?.["cover-image"]?.[0];
 
-    const result = await RetailerServices.addNewBranch(user,profileImage,coverImage, req.query);
+    const result = await RetailerServices.addNewBranch(user, profileImage, coverImage, req.query);
 
     sendResponse(res, {
         statusCode: 201,
@@ -157,7 +158,7 @@ const getAllBranchController = catchAsync(async (req, res) => {
     });
 });
 
-const RetailerController = { 
+const RetailerController = {
     filterNearbyRetailersController,
     getAllNearbyRetailerForMap,
 
@@ -167,7 +168,7 @@ const RetailerController = {
     toggleRetailerOperationHourController,
     updateRetailerProfile,
     addVerificationInfo,
-    
+
     addNewBranchController,
     getAllBranchController,
 };

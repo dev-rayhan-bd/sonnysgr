@@ -16,11 +16,26 @@ PromotionRouter.post(
     PromotionController.createNewPromotionController
 );
 
+PromotionRouter.patch(
+    "/edit-promotion",
+    authorizeUser,
+    uploadProfile.single("promotion-image"),
+    // validateRequest(PromotionValidations.createNewPromotionValidation),
+    PromotionController.createNewPromotionController
+);
+
 
 PromotionRouter.get(
     "/get-all-promotion",
     authorizeUser,
     // validateRequest(PromotionValidations.createNewPromotionValidation),
+    PromotionController.getAllPreviousPromotion
+);
+
+PromotionRouter.get(
+    "/get-buyer-promotion",
+    authorizeUser,
+    validateRequest(PromotionValidations.validateLatLongSchema),
     PromotionController.getAllPreviousPromotion
 );
 

@@ -106,11 +106,19 @@ const sendNowPromotion = async ( payload: IPromotion ) => {
 };
 
 //create promotion
-const createNewPromotionService = async (userDetails: IJwtPayload, payload: Partial<IPromotion>) => {
+const createNewPromotionService = async (
+  userDetails: IJwtPayload,
+  file: Express.Multer.File | undefined, 
+  payload: Partial<IPromotion>
+) => {
 
     const { profileId } = userDetails;
 
     payload.retailerID = new mongoose.Types.ObjectId(profileId);
+
+    if(file){
+      payload.image = `uploads/promotion-image/${file.filename}`;
+    }
 
     switch (payload.sendMethod) {
 
@@ -140,9 +148,30 @@ const createNewPromotionService = async (userDetails: IJwtPayload, payload: Part
 
 const editPromotionService = async (
   userDetails: IJwtPayload,
+  file: Express.Multer.File | undefined,
   promotionId: string,
   payload: Partial<IPromotion>
 ) => {
+
+  const {profileId} = userDetails;
+
+  let updateData: any = {
+    ...payload
+  }
+
+  if (file) {
+    updateData.image = `uploads/promotion-image/${file.filename}`;
+  }
+
+  const updatedPromotion = await PromotionModel.findByIdAndUpdate(promotionId,{
+    $set: {...updateData}
+  });
+
+  if(!updatedPromotion){
+    throw new ApiError(500,"Failed to update promotion.");
+  }
+
+  return updatedPromotion;
 
 }
 
@@ -150,19 +179,53 @@ const editPromotionService = async (
 const getAllRetailerPromotion = async (userDetails: IJwtPayload, query: Record<string,unknown>) => {
 
   const {profileId} = userDetails;
-  const {isActive} = query;
+  let {isActive,status,page ,limit} = query;
 
   let filter : any = {
     retailerId: profileId,
   }
 
-  if(isActive || !isActive){
+  if(isActive !== undefined){
     filter.isActive = isActive
   }
 
-  const allPromotion = await PromotionModel.find(filter).lean();
+  if(status){
+    filter.status = status
+  }
 
-  return allPromotion;
+  page = parseInt(page as any) || 1;
+  limit = parseInt(limit as any) || 10;
+  let skip = (page as number - 1) * (limit as number);
+
+  const [promotions, totalPromotion] = await Promise.all([
+
+      PromotionModel.find(filter)
+                  .sort({createdAt: -1})
+                      .skip(skip).limit(limit as number)
+                          .lean(),
+  
+      PromotionModel.countDocuments(filter)
+  ])
+
+  const totalPage = Math.ceil(totalPromotion / (limit as number));
+
+  const hasNextPage = (page as number) < totalPage ? true : false;
+
+  return {
+      meta:{
+          page,
+          limit,
+          total: totalPromotion, 
+          totalPage,
+          hasNextPage
+      },
+      promotions,
+      // pairCount: pairs.length
+  };
+
+  // const allPromotion = await PromotionModel.find(filter).lean();
+
+  // return allPromotion;
 
 }
 
@@ -171,19 +234,141 @@ const getAllBuyerPromotion = async (userDetails: IJwtPayload, query: Record<stri
   const {profileId} = userDetails;
   const {latitude,longitude} = query;
 
-  let filter: any = {
-    isActive: true,
-    sendMethod: ENUM_PROMOTION_SEND_METHOD.SEND_NOW
-  }
+  const profileObjectId = new mongoose.Schema.ObjectId(profileId);
 
+   const nearbyRetailers = await RetailerModel.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [Number(longitude), Number(latitude)],
+        },
+        distanceField: "distance",
+        maxDistance: 20 * 1000, // 20 km
+        spherical: true,
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+      },
+    },
+  ]);
 
-  const allPromotion = await PromotionModel.find(filter).lean();
+  const nearbyRetailerIds = nearbyRetailers.map((r) => r._id);
+
+    const buyerFeed = await PromotionModel.aggregate([
+
+        {
+            $match:{
+                status:"Active",
+                isActive:true
+            }
+        },
+
+        {
+            $lookup:{
+                from:"follows",
+                let:{
+                    retailerId:"$retailerID"
+                },
+                pipeline:[
+                    {
+                        $match:{
+                            $expr:{
+                                $and:[
+                                    {
+                                        $eq:[
+                                            "$buyerId",
+                                            profileObjectId
+                                        ]
+                                    },
+                                    {
+                                        $eq:[
+                                            "$retailerId",
+                                            "$$retailerId"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as:"follow"
+            }
+        },
+
+        {
+            $addFields:{
+                isFollower:{
+                    $gt:[
+                        {
+                            $size:"$follow"
+                        },
+                        0
+                    ]
+                },
+
+                isNearby:{
+                    $in:[
+                        "$retailerID",
+                        nearbyRetailerIds
+                    ]
+                }
+            }
+        },
+
+        {
+            $match:{
+                $or:[
+
+                    {
+                        $and:[
+                            {
+                                recepient:"All My Follower"
+                            },
+                            {
+                                isFollower:true
+                            }
+                        ]
+                    },
+
+                    {
+                        $and:[
+                            {
+                                recepient:"Nearby Customer"
+                            },
+                            {
+                                isNearby:true
+                            }
+                        ]
+                    }
+
+                ]
+            }
+        },
+
+        {
+            $project:{
+                follow:0
+            }
+        },
+
+        {
+            $sort:{
+                createdAt:-1
+            }
+        }
+
+    ]);
 
 }
 
 const PromotionServices = { 
     createNewPromotionService,
+    editPromotionService,
     getAllRetailerPromotion,
+    getAllBuyerPromotion,
  };
 
 export default PromotionServices;
