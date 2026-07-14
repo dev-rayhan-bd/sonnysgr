@@ -1,7 +1,7 @@
 // checkout.service.ts
 import mongoose, { Types } from "mongoose";
 import CartModel from "../Cart/Cart.model";
-import { OrderItemModel, OrderModel, SellerSplitOrderModel } from "./Order.model";
+import { OrderItemModel, OrderModel } from "./Order.model";
 import { PaymentModel } from "../Payment/Payment.model";
 import { completeOrderAfterPayment } from "../Payment/PaymentSuccess.service";
 
@@ -9,10 +9,10 @@ interface CheckoutPayload {
     buyerId: string;
 
     paymentMethod:
-        | "STRIPE"
-        | "SSL_COMMERZ"
-        | "BKASH"
-        | "COD";
+    | "STRIPE"
+    | "SSL_COMMERZ"
+    | "BKASH"
+    | "COD";
 
     shippingAddress: {
         name: string;
@@ -212,10 +212,10 @@ export const checkoutService = async (
             status: "PLACED",
         }));
 
-        await SellerSplitOrderModel.insertMany(
-            sellerSplitOrders,
-            { session }
-        );
+        // await SellerSplitOrderModel.insertMany(
+        //     sellerSplitOrders,
+        //     { session }
+        // );
 
         // =====================================================
         // 7. CREATE PAYMENT RECORD

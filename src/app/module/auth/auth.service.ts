@@ -7,7 +7,7 @@ import { createToken } from "../../../helper/jwtHelper";
 import generateVerifyCode from "../../../utilities/codeGenerator";
 import { IUser } from "../User/User.interface";
 // import UserModel from "../User/User.model";
-import { JwtPayload, Secret,SignOptions } from "jsonwebtoken";
+import { JwtPayload, Secret, SignOptions } from "jsonwebtoken";
 import { IAuth, IResetPassword, TLoginUser, TRegisterUser } from "./auth.interface";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import AuthModel from "./auth.model";
@@ -51,7 +51,7 @@ const registerWithEmailService = async (payload: any) => {
 
     try {
 
-        const { email, password,name, userType } = payload;
+        const { email, password, name, userType } = payload;
         // console.log("Payload received in service:", payload);
 
         let UserModel: any;
@@ -91,10 +91,10 @@ const registerWithEmailService = async (payload: any) => {
             email: email.toLowerCase(),
             password: hashedPassword,
             role: userType,
-            authProviders:[{
+            authProviders: [{
                 provider: ENUM_AUTH_PROVIDER_TYPE.EMAIL,
                 providerId: email.toLowerCase()
-            }] ,
+            }],
             verificationCode: code,
         };
         // console.log("User data payload prepared:", userDataPayload);
@@ -105,7 +105,7 @@ const registerWithEmailService = async (payload: any) => {
 
         const createdUser = user[0];
 
-        
+
 
         // Create Profile
         const profile = await UserModel.create(
@@ -154,7 +154,7 @@ const registerWithEmailService = async (payload: any) => {
         session.endSession();
 
         throw error;
-    } 
+    }
     // finally {
     //     // Commit transaction
     //     await session.commitTransaction();
@@ -162,7 +162,7 @@ const registerWithEmailService = async (payload: any) => {
     // }
 };
 
-const registerWithSocialService = async ( payload: any ) => {
+const registerWithSocialService = async (payload: any) => {
 
     console.log("register social payload:", payload);
 
@@ -190,7 +190,7 @@ const registerWithSocialService = async ( payload: any ) => {
 
             const providerExists =
                 existingUser.authProviders.some(
-                   ( item: any) =>
+                    (item: any) =>
                         item?.provider === payload?.provider &&
                         item?.providerId === payload?.providerId
                 );
@@ -244,7 +244,7 @@ const registerWithSocialService = async ( payload: any ) => {
         }
         // console.log("Selected UserModel:", UserModel.modelName);
 
-    
+
         // Generate verification code
         const { code, expiredAt } = generateVerifyCode(10);
 
@@ -253,10 +253,10 @@ const registerWithSocialService = async ( payload: any ) => {
             email,
             // password,
             role: payload?.userType,
-            authProviders:[{
+            authProviders: [{
                 provider: payload?.provider,
                 providerId: payload?.providerId
-            }] ,
+            }],
             verificationCode: code,
         };
         // console.log("User data payload prepared:", userDataPayload);
@@ -295,7 +295,7 @@ const registerWithSocialService = async ( payload: any ) => {
         await session.commitTransaction();
         session.endSession();
 
-        return  generateLoginResponse(createdUser);
+        return generateLoginResponse(createdUser);
 
     } catch (error) {
 
@@ -316,7 +316,7 @@ const registerUserService = async (payload: TRegisterUser) => {
 
     try {
 
-        const { email, password,name, userType, shoeSize, latitude, longitude } = payload;
+        const { email, password, name, userType, shoeSize, latitude, longitude } = payload;
         // console.log("Payload received in service:", payload);
 
         let UserModel: any;
@@ -354,10 +354,10 @@ const registerUserService = async (payload: TRegisterUser) => {
             email: email.toLowerCase(),
             password,
             role: userType,
-            authProviders:[{
+            authProviders: [{
                 provider: ENUM_AUTH_PROVIDER_TYPE.EMAIL,
                 providerId: email.toLowerCase()
-            }] ,
+            }],
             verificationCode: code,
         };
         // console.log("User data payload prepared:", userDataPayload);
@@ -368,7 +368,7 @@ const registerUserService = async (payload: TRegisterUser) => {
 
         const createdUser = user[0];
 
-        
+
 
         // Create Profile
         const profile = await UserModel.create(
@@ -417,7 +417,7 @@ const registerUserService = async (payload: TRegisterUser) => {
         session.endSession();
 
         throw error;
-    } 
+    }
     // finally {
     //     // Commit transaction
     //     await session.commitTransaction();
@@ -428,7 +428,7 @@ const registerUserService = async (payload: TRegisterUser) => {
 
 //login service
 
-const loginWithSocialService = async ( payload: any ) => {
+const loginWithSocialService = async (payload: any) => {
 
     // console.log("social login payload", payload);
 
@@ -442,7 +442,7 @@ const loginWithSocialService = async ( payload: any ) => {
     }).lean();
 
     if (!user) {
-        throw new ApiError(404,"No account found.");
+        throw new ApiError(404, "No account found.");
     }
 
     if (user?.isBlocked) {
@@ -475,7 +475,7 @@ const loginWithSocialService = async ( payload: any ) => {
     return generateLoginResponse(user);
 };
 
-const loginWithEmailService = async ( payload: {email: string; password: string;} ) => {
+const loginWithEmailService = async (payload: { email: string; password: string; }) => {
 
     const user: any = await AuthModel.findOne({
         email: payload.email.toLowerCase()
@@ -523,9 +523,9 @@ const loginWithEmailService = async ( payload: {email: string; password: string;
     //     );
     // }
 
-    const checkPassword = await comparePassword(payload?.password,user?.password)
+    const checkPassword = await comparePassword(payload?.password, user?.password)
 
-    console.log(checkPassword);
+    // console.log(checkPassword);
 
     if (!checkPassword) {
         throw new ApiError(
@@ -563,7 +563,7 @@ const loginWithEmailService = async ( payload: {email: string; password: string;
 
 const loginUserService = async (payload: TLoginUser) => {
 
-     const {email,password} = payload;
+    const { email, password } = payload;
 
     // Service logic goes here
     const user = await AuthModel.findOne({ email: email.toLowerCase() });
@@ -571,21 +571,21 @@ const loginUserService = async (payload: TLoginUser) => {
     if (!user) {
         throw new ApiError(404, 'This user does not exist');
     }
-    
+
     if (user.isBlocked) {
         throw new ApiError(403, 'This user is blocked');
     }
 
     //check whether user email is verified or not
-    if(!user.isEmailVerified){
-        
-        return { 
+    if (!user.isEmailVerified) {
+
+        return {
             // expert: emailExist,
-            statusCode: 403 ,
+            statusCode: 403,
             isEmailVerified: false,
             msg: "Your email is not verified yet. Please verify your email.",
         }
-            
+
     }
 
     // checking if the password is correct ----
@@ -597,8 +597,8 @@ const loginUserService = async (payload: TLoginUser) => {
     //     throw new ApiError(403,'Password do not match');
     // }
 
-    if(password !== user.password){
-        throw new ApiError(403,'Password do not match.');
+    if (password !== user.password) {
+        throw new ApiError(403, 'Password do not match.');
     }
 
     //generate token
@@ -609,29 +609,29 @@ const loginUserService = async (payload: TLoginUser) => {
         role: user?.role as string
     };
 
-    const accessToken: string =  createToken(
+    const accessToken: string = createToken(
         tokenPayload,
         config.jwt.secret as Secret,
         config.jwt.expires_in as SignOptions["expiresIn"]
     );
 
 
-    const newUser : object = {
+    const newUser: object = {
         // name: user?.name,
         email: user?.email,
         // phone: user?.phone,
         // role: user.role,
-        
+
     }
 
-    return {user: newUser,accessToken};
+    return { user: newUser, accessToken };
 }
 
 
 
 //verification code service
 
-const emailVerifyCode = async (payload:{email: string, verifyCode: string}) => {
+const emailVerifyCode = async (payload: { email: string, verifyCode: string }) => {
     const { email, verifyCode } = payload;
 
     const user = await AuthModel.findOne({ email: email }).select("profile email role verificationCode isEmailVerified");
@@ -657,11 +657,11 @@ const emailVerifyCode = async (payload:{email: string, verifyCode: string}) => {
 
     user.verificationCode = '';
     user.isEmailVerified = true;
-   
+
 
     await user.save();
 
-    
+
 
     // if (!result) {
     //     throw new AppError(
@@ -678,11 +678,11 @@ const emailVerifyCode = async (payload:{email: string, verifyCode: string}) => {
         role: user?.role
     };
 
-    const accessToken: string =  createToken(
-            tokenPayload,
-            config.jwt.secret as Secret,
-            config.jwt.expires_in as SignOptions["expiresIn"]
-        );
+    const accessToken: string = createToken(
+        tokenPayload,
+        config.jwt.secret as Secret,
+        config.jwt.expires_in as SignOptions["expiresIn"]
+    );
 
     // const refreshToken = createToken(
     //     jwtPayload,
@@ -690,10 +690,10 @@ const emailVerifyCode = async (payload:{email: string, verifyCode: string}) => {
     //     config.jwt_refresh_expires_in as string
     // );
 
-    return  {user,accessToken};
+    return { user, accessToken };
 };
 
-const resetPasswordEmailVerifyCode = async (payload:{email: string, verifyCode: string}) => {
+const resetPasswordEmailVerifyCode = async (payload: { email: string, verifyCode: string }) => {
     const { email, verifyCode } = payload;
 
     const user = await AuthModel.findOne({ email: email }).select("profile email role verificationCode isEmailVerified isResetPaswordEmailVerified");
@@ -722,7 +722,7 @@ const resetPasswordEmailVerifyCode = async (payload:{email: string, verifyCode: 
 
     await user.save();
 
-    
+
 
     // if (!result) {
     //     throw new AppError(
@@ -739,11 +739,11 @@ const resetPasswordEmailVerifyCode = async (payload:{email: string, verifyCode: 
         role: user?.role
     };
 
-    const accessToken: string =  createToken(
-            tokenPayload,
-            config.jwt.secret as Secret,
-            config.jwt.expires_in as SignOptions["expiresIn"]
-        );
+    const accessToken: string = createToken(
+        tokenPayload,
+        config.jwt.secret as Secret,
+        config.jwt.expires_in as SignOptions["expiresIn"]
+    );
 
     // const refreshToken = createToken(
     //     jwtPayload,
@@ -751,28 +751,28 @@ const resetPasswordEmailVerifyCode = async (payload:{email: string, verifyCode: 
     //     config.jwt_refresh_expires_in as string
     // );
 
-    return  {user,accessToken};
+    return { user, accessToken };
 };
 
 //send email verification code service
-const sendEmailVerifyCodeService = async (payload:{email: string}) => {
+const sendEmailVerifyCodeService = async (payload: { email: string }) => {
     const { email } = payload;
 
-    const user = await AuthModel.findOne({ email: email }).populate({path: "profile", select: "name"});
+    const user = await AuthModel.findOne({ email: email }).populate({ path: "profile", select: "name" });
 
     if (!user) {
         throw new ApiError(404, 'User not found to send otp');
     }
 
-    const {code, expiredAt} = generateVerifyCode(10);
+    const { code, expiredAt } = generateVerifyCode(10);
 
-    
+
     user.verificationCode = code;
 
     await user.save();
 
-    await sendVerificationEmail(email,{
-        name:  user?.profile?.name || "User",
+    await sendVerificationEmail(email, {
+        name: user?.profile?.name || "User",
         code: code,
         isResetPassword: false
     });
@@ -780,24 +780,24 @@ const sendEmailVerifyCodeService = async (payload:{email: string}) => {
     return null;
 }
 
-const sendResetEmailVerifyCodeService = async (payload:{email: string}) => {
+const sendResetEmailVerifyCodeService = async (payload: { email: string }) => {
     const { email } = payload;
 
-    const user = await AuthModel.findOne({ email: email }).populate({path: "profile", select: "name"});
+    const user = await AuthModel.findOne({ email: email }).populate({ path: "profile", select: "name" });
 
     if (!user) {
         throw new ApiError(404, 'User not found to send otp');
     }
 
-    const {code, expiredAt} = generateVerifyCode(10);
+    const { code, expiredAt } = generateVerifyCode(10);
 
-    
+
     user.verificationCode = code;
 
     await user.save();
 
-    await sendVerificationEmail(email,{
-        name:  user?.profile?.name || "User",
+    await sendVerificationEmail(email, {
+        name: user?.profile?.name || "User",
         code: code,
         isResetPassword: true
     });
@@ -841,7 +841,7 @@ const resetPasswordService = async (payload: IResetPassword) => {
         role: user?.role as string
     };
 
-    const accessToken: string =  createToken(
+    const accessToken: string = createToken(
         tokenPayload,
         config.jwt.secret as Secret,
         config.jwt.expires_in as SignOptions["expiresIn"]
@@ -853,13 +853,13 @@ const resetPasswordService = async (payload: IResetPassword) => {
     //     config.jwt_refresh_expires_in as string
     // );
 
-    return {user:{name:user.name,email:user.email}, accessToken };
+    return { user: { name: user.name, email: user.email }, accessToken };
 };
 
 
 
-const AuthServices = { 
-    
+const AuthServices = {
+
     registerWithEmailService,
     registerWithSocialService,
 

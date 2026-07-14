@@ -1,22 +1,22 @@
 import ApiError from "../../../error/ApiError";
 import { TLoginUser } from "../auth/auth.interface";
-import AdminModel from "./Admin.model";
-import { IAdmin } from "./Dashboard.interface";
 import config from "../../../config";
-import { JwtPayload,Secret, SignOptions } from "jsonwebtoken";
+import { JwtPayload, Secret, SignOptions } from "jsonwebtoken";
 import { createToken } from "../../../helper/jwtHelper";
 import { IChangePassword } from "../User/User.interface";
 import generateVerifyCode from "../../../utilities/codeGenerator";
 import { sendVerificationEmail } from "../../../helper/emailHelper";
 import deleteOldFile from "../../../utilities/deleteFile";
 import UserModel from "../User/User.model";
+import AdminModel from "./auth/Admin.model";
+import { IAdmin } from "./auth/Dashboard.interface";
 // import PostModel from "../Post/Post.model";
 // import { ENUM_POST_STATUS } from "../../../utilities/enum";
 
 
 
 const registerAdminService = async (payload: IAdmin) => {
-    const {name, email,password,role} = payload;
+    const { name, email, password, role } = payload;
 
     const admin = await AdminModel.create({
         name: name,
@@ -25,8 +25,8 @@ const registerAdminService = async (payload: IAdmin) => {
         role: role
     });
 
-    if(!admin){
-        throw new ApiError(500,"Failed to create new Admin");
+    if (!admin) {
+        throw new ApiError(500, "Failed to create new Admin");
     }
 
     return {
@@ -39,7 +39,7 @@ const registerAdminService = async (payload: IAdmin) => {
 
 const loginAdminService = async (payload: TLoginUser) => {
 
-    const {email,password} = payload;
+    const { email, password } = payload;
 
     // Service logic goes here
     const admin = await AdminModel.findOne({ email: email });
@@ -47,7 +47,7 @@ const loginAdminService = async (payload: TLoginUser) => {
     if (!admin) {
         throw new ApiError(404, 'This admin does not exist');
     }
-    
+
     if (admin.isBlocked) {
         throw new ApiError(403, 'This admin is blocked');
     }
@@ -67,8 +67,8 @@ const loginAdminService = async (payload: TLoginUser) => {
     //     throw new ApiError(403,'Password do not match');
     // }
 
-    if(password !== admin.password){
-        throw new ApiError(403,'Password do not match');
+    if (password !== admin.password) {
+        throw new ApiError(403, 'Password do not match');
     }
 
 
@@ -79,25 +79,25 @@ const loginAdminService = async (payload: TLoginUser) => {
         email: admin?.email
     };
 
-    const accessToken: string =  createToken(
+    const accessToken: string = createToken(
         tokenPayload,
         config.jwt.secret as Secret,
         config.jwt.expires_in as SignOptions["expiresIn"]
     );
 
 
-    const newUser : object = {
+    const newUser: object = {
         name: admin?.name,
         email: admin?.email,
         phone: admin?.phone,
         role: admin.role,
-        
+
     }
 
-    return { newUser,accessToken};
+    return { newUser, accessToken };
 }
 
-const adminVerifyCode = async (payload:{email: string, verifyCode: string}) => {
+const adminVerifyCode = async (payload: { email: string, verifyCode: string }) => {
     const { email, verifyCode } = payload;
 
     const admin = await AdminModel.findOne({ email: email }).select("profile email role verificationCode isEmailVerified");
@@ -124,7 +124,7 @@ const adminVerifyCode = async (payload:{email: string, verifyCode: string}) => {
     admin.isEmailVerified = true;
     await admin.save();
 
-    
+
 
     // if (!result) {
     //     throw new AppError(
@@ -153,10 +153,10 @@ const adminVerifyCode = async (payload:{email: string, verifyCode: string}) => {
     //     config.jwt_refresh_expires_in as string
     // );
 
-    return  null;
+    return null;
 };
 
-const adminSendVerifyCodeService = async (payload:{email: string}) => {
+const adminSendVerifyCodeService = async (payload: { email: string }) => {
     const { email } = payload;
 
     const admin = await AdminModel.findOne({ email: email });
@@ -165,14 +165,14 @@ const adminSendVerifyCodeService = async (payload:{email: string}) => {
         throw new ApiError(404, 'Admin not found to send otp');
     }
 
-    const {code, expiredAt} = generateVerifyCode(10);
+    const { code, expiredAt } = generateVerifyCode(10);
 
-    
+
     admin.verificationCode = code;
 
     await admin.save();
 
-    await sendVerificationEmail(email,{
+    await sendVerificationEmail(email, {
         name: admin.name,
         code: code
     });
@@ -181,9 +181,9 @@ const adminSendVerifyCodeService = async (payload:{email: string}) => {
 }
 
 
-const adminResetPasswordService = async (userDetails: JwtPayload,payload: {newPassword: string,confirmPassword: string}) => {
+const adminResetPasswordService = async (userDetails: JwtPayload, payload: { newPassword: string, confirmPassword: string }) => {
     const { newPassword } = payload;
-    const {email} = userDetails;
+    const { email } = userDetails;
 
     const admin = await AdminModel.findOne({ email: email });
 
@@ -211,7 +211,7 @@ const adminResetPasswordService = async (userDetails: JwtPayload,payload: {newPa
         email: admin?.email
     };
 
-    const accessToken: string =  createToken(
+    const accessToken: string = createToken(
         tokenPayload,
         config.jwt.secret as Secret,
         config.jwt.expires_in as SignOptions["expiresIn"]
@@ -223,14 +223,14 @@ const adminResetPasswordService = async (userDetails: JwtPayload,payload: {newPa
     //     config.jwt_refresh_expires_in as string
     // );
 
-    return {user:{name:admin.name,email:admin.email,role:admin.role}, accessToken };
+    return { user: { name: admin.name, email: admin.email, role: admin.role }, accessToken };
 };
 
-const editProfileService = async (userDetails: JwtPayload,file: Express.Multer.File | undefined, payload: Partial<IAdmin>) => {
-    const {userId} = userDetails;
+const editProfileService = async (userDetails: JwtPayload, file: Express.Multer.File | undefined, payload: Partial<IAdmin>) => {
+    const { userId } = userDetails;
 
-    if(!userId){
-        throw new ApiError(400,"Admin id is required to edit admin profile");
+    if (!userId) {
+        throw new ApiError(400, "Admin id is required to edit admin profile");
     }
 
     const admin = await AdminModel.findById(userId);
@@ -242,14 +242,14 @@ const editProfileService = async (userDetails: JwtPayload,file: Express.Multer.F
         admin.image = `uploads/admin-image/${file.filename}`;
     }
 
-    if(payload.name) admin.name = payload.name;
-    if(payload.contact) admin.contact = payload.contact;
-    if(payload.address) admin.address = payload.address;
+    if (payload.name) admin.name = payload.name;
+    if (payload.contact) admin.contact = payload.contact;
+    if (payload.address) admin.address = payload.address;
 
     await admin.save();
-    
+
     return null;
-    
+
 }
 
 const changeAdminPasswordService = async (userDetails: JwtPayload, payload: IChangePassword) => {
@@ -257,9 +257,9 @@ const changeAdminPasswordService = async (userDetails: JwtPayload, payload: ICha
     const { userId } = userDetails;
     const { currentPassword, newPassword } = payload;
 
-    const admin =  await AdminModel.findById(userId).select('+password');
-    if(!admin){
-        throw new ApiError(404,'Admin not found to change password');
+    const admin = await AdminModel.findById(userId).select('+password');
+    if (!admin) {
+        throw new ApiError(404, 'Admin not found to change password');
     }
 
     // const isPasswordMatched = await user.isPasswordMatched(oldPassword);
@@ -267,8 +267,8 @@ const changeAdminPasswordService = async (userDetails: JwtPayload, payload: ICha
     //     throw new ApiError(400,'Old password is incorrect');
     // }
 
-    if(admin.password !== currentPassword){
-        throw new ApiError(400,'Old password is incorrect');
+    if (admin.password !== currentPassword) {
+        throw new ApiError(400, 'Old password is incorrect');
     }
 
     admin.password = newPassword;
@@ -279,15 +279,15 @@ const changeAdminPasswordService = async (userDetails: JwtPayload, payload: ICha
 }
 
 const deleteAdminService = async (userDetails: JwtPayload) => {
-    const {userId} = userDetails;
-    if(!userId){
-        throw new ApiError(400,"User id is required to delete account");
+    const { userId } = userDetails;
+    if (!userId) {
+        throw new ApiError(400, "User id is required to delete account");
     }
 
     const deletedAccount = await AdminModel.findByIdAndDelete(userId);
 
-    if(!deletedAccount){
-        throw new ApiError(500,"Failed to delete admin account.");
+    if (!deletedAccount) {
+        throw new ApiError(500, "Failed to delete admin account.");
     }
 
     deleteOldFile(deletedAccount.image);
@@ -297,9 +297,9 @@ const deleteAdminService = async (userDetails: JwtPayload) => {
 
 const blockAdminService = async (userId: string) => {
     // const {userId} = query;
-    
-    if(!userId){
-        throw new ApiError(400,"Admin id is required to block a admin");
+
+    if (!userId) {
+        throw new ApiError(400, "Admin id is required to block a admin");
     }
 
     const admin = await AdminModel.findById(userId);
@@ -309,10 +309,10 @@ const blockAdminService = async (userId: string) => {
     await admin.save();
 
     let msg;
-    if(admin.isBlockd) msg = 'Admin is blocked successfully.';
+    if (admin.isBlockd) msg = 'Admin is blocked successfully.';
     else msg = 'Admin is unblocked.';
 
-    return {admin:{name: admin.name}, msg };
+    return { admin: { name: admin.name }, msg };
 }
 
 const dashboardStatService = async () => {
@@ -328,7 +328,7 @@ const dashboardStatService = async () => {
     //     totalPosts,
     //     activePost
     // }
-    
+
 };
 
 
