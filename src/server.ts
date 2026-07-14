@@ -5,9 +5,9 @@ import app from './app';
 import { errorLogger, logger } from './shared/logger';
 import config from './config';
 import mongoDBConnection from './config/mongoDB';
-// import runCronJobEverydatAtNight from './helper/cronHelper';
 import { initSocket } from './socket/socket.connection';
 import 'dotenv/config';
+import runCronJobEverydatAtNight from './helper/cron';
 
 
 
@@ -28,7 +28,7 @@ async function main() {
     await mongoDBConnection();
 
     // ✅ Run cron job
-    // runCronJobEverydatAtNight();
+    runCronJobEverydatAtNight();
     // console.log("Cron job scheduled.");
 
     // ✅ Initialize socket with HTTP server

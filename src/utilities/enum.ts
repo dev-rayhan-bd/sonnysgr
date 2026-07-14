@@ -145,12 +145,12 @@ export const ENUM_PROMOTION_SEND_METHOD = {
 }
 
 export const ENUM_PROMOTION_STATUS = {
-    DRAFT : "Draft",
-    SCHEDULED : "Scheduled",
-    SENDING : "Sending",
-    SENT : "Sent",
-    FAILED : "Failed",
-}
+    DRAFT: "Draft",
+    SCHEDULED: "Scheduled",
+    ACTIVE: "Active",
+    EXPIRED: "Expired",
+    FAILED: "Failed",
+};
 
 export const ENUM_PAIR_REQUEST_STATUS = {
     ACCEPTED : "Accepted",

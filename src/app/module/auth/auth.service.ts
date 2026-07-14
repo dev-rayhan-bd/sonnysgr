@@ -15,6 +15,7 @@ import { ENUM_AUTH_PROVIDER_TYPE, ENUM_USER_Type } from "../../../utilities/enum
 import ResellerModel from "../Reseller/Reseller.model";
 import RetailerModel from "../Retailer/Retailer.model";
 import BuyerModel from "../Buyer/Buyer.model";
+import { comparePassword, hashPassword } from "../../../helper/bcryptHelper";
 
 
 //utility function to generate token
@@ -83,10 +84,12 @@ const registerWithEmailService = async (payload: any) => {
         // Generate verification code
         const { code, expiredAt } = generateVerifyCode(10);
 
+        const hashedPassword = await hashPassword(password);
+
         const userDataPayload: any = {
             refModel: UserModel.modelName,
             email: email.toLowerCase(),
-            password,
+            password: hashedPassword,
             role: userType,
             authProviders:[{
                 provider: ENUM_AUTH_PROVIDER_TYPE.EMAIL,
@@ -513,7 +516,18 @@ const loginWithEmailService = async ( payload: {email: string; password: string;
         };
     }
 
-    if (payload.password !== user.password) {
+    // if (payload.password !== user.password) {
+    //     throw new ApiError(
+    //         403,
+    //         "Password does not match."
+    //     );
+    // }
+
+    const checkPassword = await comparePassword(payload?.password,user?.password)
+
+    console.log(checkPassword);
+
+    if (!checkPassword) {
         throw new ApiError(
             403,
             "Password does not match."

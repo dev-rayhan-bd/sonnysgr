@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
-// import config from '../../config';
+import config from '../config';
 
 
-export const hashPassword = async (password: string, saltRounds: number): Promise<string> => {
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+export const hashPassword = async (password: string): Promise<string> => {
+    const hashedPassword = await bcrypt.hash(password,  Number(config.bcrypt.salt_round || 10));
     return hashedPassword;
 }
 

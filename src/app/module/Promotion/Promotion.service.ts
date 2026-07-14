@@ -10,135 +10,46 @@ import BuyerModel from "../Buyer/Buyer.model";
 import cron from "node-cron";
 
 
-//set a corn job for everyminute to check for scheduled promotions and send them at the scheduled time. You can use libraries like node-cron or agenda for this purpose. The cron job will update the promotion status to "sending" when it starts sending and then to "sent" or "failed" based on the result of the sending operation.
-cron.schedule("* * * * *", 
-    async () => {
+//cron function
 
-        const promotions = await PromotionModel.find({
-            sendMethod:
-                ENUM_PROMOTION_SEND_METHOD.SCHEDULED,
-            scheduledAt: {
-                $lte: new Date(),
-            },
-            status: "scheduled",
-        });
+export const handleActivePromotion = async () => {
 
-        for (const promotion of promotions) {
-            await sendNowPromotion(promotion);
+  const now = new Date();
 
-            promotion.status = "sent";
-
-            await promotion.save();
+    await PromotionModel.updateMany(
+        {
+            status: ENUM_PROMOTION_STATUS.SCHEDULED,
+            startAt: {
+                $lte: now
+            }
+        },
+        {
+            $set: {
+                status: ENUM_PROMOTION_STATUS.ACTIVE
+            }
         }
-    }
-);
+    );
+}
 
-// Mock function to get followers of a retailer. You can replace this with actual implementation based on your application's data models and logic.
-const getFollowers = async ( retailerId: string ) => {
+export const handleExpiredPromotion = async () => {
 
-  const followers = await FollowModel.find({
-    retailerId: retailerId,
-  })
-    .populate({
-      path: "buyerId",
-      populate: {
-        path: "auth",
-      },
-    });
+   const now = new Date();
 
-  return followers.map(
-    (item: any) => item.buyerId
-  );
-};
-
-// Mock function to get "My Size Audience". You can replace this with actual implementation based on your application's data models and logic.
-const getNearbyCustomers = async ( retailerId: string ) => {
-
-  const retailer = await RetailerModel.findById(
-    retailerId
-  );
-
-  if (!retailer) {
-    return [];
-  }
-
-  const buyers = await BuyerModel.find({
-
-    location: {
-      $near: {
-        $geometry: {
-          type: "Point",
-          coordinates:
-            retailer.location.coordinates,
+  await PromotionModel.updateMany(
+        {
+            status: ENUM_PROMOTION_STATUS.ACTIVE,
+            expiresAt: {
+                $lte: now
+            }
         },
-        $maxDistance: 10000,
-      },
-    },
-
-    "notification.isNearbyStoreAlert": true,
-  })
-    .populate("auth");
-
-  return buyers;
-};
-
-// Mock function to get "My Size Audience". You can replace this with actual implementation based on your application's data models and logic.
-const getMySizeAudience = async ( retailerId: string) => {
-
-  const retailer = await RetailerModel.findById(
-    retailerId
-  );
-
-  if (!retailer) {
-    return [];
-  }
-
-  const buyers = await BuyerModel.find({
-
-    $or: [
-
-      {
-        shoeSize: retailer.shoeSize,
-      },
-
-      {
-        selectedShoeSize: {
-          $elemMatch: {
-            size: retailer.shoeSize,
-          },
-        },
-      },
-    ],
-
-    "notification.isRestockInMyShoeSize": true,
-
-  })
-    .populate("auth");
-
-  return buyers;
-};
-
-// Mock functions to get target audience based on recipient type. You can replace these with actual implementations based on your application's data models and logic.
-const getTargetAudience = async (
-  retailerId: string,
-  recipientType: string
-) => {
-
-  switch (recipientType) {
-
-    case ENUM_PROMOTION_RECEIVER_TYPE.ALL_MY_FOLLOWERS:
-      return getFollowers(retailerId);
-
-    case ENUM_PROMOTION_RECEIVER_TYPE.NEARBY_CUSTOMERS:
-      return getNearbyCustomers(retailerId);
-
-    case ENUM_PROMOTION_RECEIVER_TYPE.MY_SIZE_AUDIENCE:
-      return getMySizeAudience(retailerId);
-
-    default:
-      return [];
-  }
-};
+        {
+            $set: {
+                status: ENUM_PROMOTION_STATUS.EXPIRED,
+                isActive: false
+            }
+        }
+    );
+}
 
 //save draft promotion
 const saveDraftPromotion = async ( payload: IPromotion ) => {
@@ -161,8 +72,12 @@ const schedulePromotion = async ( payload: IPromotion ) => {
 
   const promotion = await PromotionModel.create({
     ...payload,
+    startAt : payload.scheduledAt,
+
+    expiresAt : new Date( payload?.scheduledAt.getTime() + payload.duration * 60 * 60 * 1000 ),
+
     status: ENUM_PROMOTION_STATUS.SCHEDULED,
-    // scheduledAt: payload.scheduledAt,
+    isActive: false,
   });
 
   //run cron job to check for scheduled promotions and send them at the scheduled time. You can use libraries like node-cron or agenda for this purpose. The cron job will update the promotion status to "sending" when it starts sending and then to "sent" or "failed" based on the result of the sending operation.
@@ -173,29 +88,19 @@ const schedulePromotion = async ( payload: IPromotion ) => {
 //send now promotion (you can implement the logic to send the promotion immediately based on your application's architecture, such as sending notifications or emails to the recipients)
 const sendNowPromotion = async ( payload: IPromotion ) => {
 
-  const promotion = await PromotionModel.create(payload);
+  const now = new Date();
 
-  const buyers = await getTargetAudience(
-    payload.retailerID.toString(),
-    payload.recepient
-  );
+  
+  const promotion = await PromotionModel.create({
+    ...payload,
+    startAt : now,
+    
+    expiresAt : new Date( now.getTime() + payload.duration * 60 * 60 * 1000 ),
+    
+    status : ENUM_PROMOTION_STATUS.ACTIVE
+  });
 
-//   const fcmTokens = buyers
-//     .map((buyer: any) => buyer.auth?.fcmToken)
-//     .filter(Boolean);
-
-//   if (fcmTokens.length) {
-
-//     await sendBulkPushNotification({
-//       tokens: fcmTokens,
-//       title: payload.title,
-//       body: payload.content,
-//       data: {
-//         promotionId: promotion._id.toString(),
-//         type: payload.type,
-//       }
-//     });
-//   }
+  
 
   return promotion;
 };
