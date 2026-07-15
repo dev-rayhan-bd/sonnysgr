@@ -1,4 +1,5 @@
 import jwt, { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
+import ApiError from '../error/ApiError';
 
 //create token
 export const createToken = (
@@ -12,7 +13,21 @@ export const createToken = (
 
 //verify token
 export const verifyToken = (token: string, secret: Secret) => {
-  return jwt.verify(token, secret) as JwtPayload;
+  // return jwt.verify(token, secret) as JwtPayload;
+  try {
+
+    return jwt.verify(token, secret) as JwtPayload;
+    // return decoded;
+  } catch (err: any) {
+
+    if (err.name === "TokenExpiredError") {
+
+      throw new ApiError(401, "Access token expired");
+    }
+
+
+    throw new ApiError(401, "Invalid token");
+  }
 };
 
 

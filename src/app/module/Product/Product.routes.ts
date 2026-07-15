@@ -1,5 +1,5 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
+import { auth, authorizeUser } from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import ProductValidations from "./Product.validation";
 import ProductController from "./Product.controller";
@@ -12,16 +12,15 @@ const ProductRouter = express.Router();
 ProductRouter.post(
     "/add-new-product",
     authorizeUser,
-    // uploadProfile.array("product-image",8),
-    validateRequest(ProductValidations.addNewProductValidation),
+    uploadProfile.array("product-image", 8),
+    // validateRequest(ProductValidations.addNewProductValidation),
     ProductController.addProductController
 );
 
 ProductRouter.patch(
     "/edit-product/:id",
     authorizeUser,
-    uploadProfile.array("product-image",8),
-    // validateRequest(ProductValidations.addNewProductValidation),
+    uploadProfile.array("product-image", 8),
     ProductController.editProductController
 );
 
@@ -64,9 +63,9 @@ export default ProductRouter;
 
 // Today worked on new feature development scope and also attended meeting for clarification.
 
-// Also checked Binksanders(micro learning platform) project’s working flow and attended meeting to clarify client's recent feedback. 
+// Also checked Binksanders(micro learning platform) project’s working flow and attended meeting to clarify client's recent feedback.
 
-// project : Sneaker Hub 
+// project : Sneaker Hub
 // git: https://github.com/SoubirSaian/sneaker-hub-backend
 // Today checked some already build api in postman
 

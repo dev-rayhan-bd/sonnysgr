@@ -36,7 +36,8 @@ const generateLoginResponse = async (user: any) => {
 
     return {
         user: {
-            email: user.email
+            email: user.email,
+            role: user.role
         },
         accessToken
     };

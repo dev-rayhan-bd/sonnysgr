@@ -12,7 +12,7 @@ const addNewPairsController = catchAsync(async (req, res) => {
     const files = req.files as Express.Multer.File[];
     // console.log(files);
 
-    const result = await PairsServices.addNewPairsToReseller(user,files, req.body);
+    const result = await PairsServices.addNewPairsToReseller(user, files, req.body);
 
     sendResponse(res, {
         statusCode: 201,
@@ -101,14 +101,14 @@ const getAllpairRequestController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result:any = await PairsServices.getAllPairRequestsForReseller(user, req.query);
+    const result: any = await PairsServices.getAllPairRequestsForReseller(user, req.query);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Pair requests retrieved successfully.",
         meta: result.meta,
-        data:   result.pairs,
+        data: result.pairs,
     });
 });
 
@@ -136,6 +136,20 @@ const acceptPairRequestController = catchAsync(async (req, res) => {
         statusCode: 200,
         success: true,
         message: "Pair request accepted successfully.",
+        data: result,
+    });
+});
+
+const cancelPairRequestController = catchAsync(async (req, res) => {
+
+    const { user } = req as AuthRequest;
+
+    const result = await PairsServices.cancelPairRequest(user, req.params.id);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Pair request cancelled successfully.",
         data: result,
     });
 });
@@ -182,7 +196,7 @@ const retailerProposeCounterOfferToPairRequestController = catchAsync(async (req
     });
 });
 
-const PairsController = { 
+const PairsController = {
     addNewPairsController,
     editPairsController,
     getAllListedPairsController,
@@ -195,8 +209,9 @@ const PairsController = {
     getAllpairRequestController,
     getSinglePairRequestDetails,
     acceptPairRequestController,
+    cancelPairRequestController,
     rejectPairRequestController,
     proposeCounterOfferToPairRequestController
- };
+};
 
 export default PairsController;

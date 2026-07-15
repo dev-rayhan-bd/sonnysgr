@@ -1,42 +1,43 @@
 import { Types } from "mongoose";
 
 export interface IProduct {
-    retailerId: Types.ObjectId;
-    type: string;
-    name: string;
-    description: string;
-    price: number;
-    images: string[];
-    brand: string;
-    // color?: string;
-    styleCode?: string;
-    // variant?: {
-    //     size: string,
-    //     stock: number
-    // }[];
-    sneakerAttributes?: {};
-    tshirtAttributes?: {};
-    availability: string;
-    totalSearchCount: number;
-    createdAt: Date;
+  retailerId: Types.ObjectId;
+  type: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  brand: string;
+  // color?: string;
+  styleCode?: string;
+  variant: {
+    gender: TGender,
+    size: string,
+    stock: number
+  }[];
+  sneakerAttributes?: {};
+  tshirtAttributes?: {};
+  availability: string;
+  totalSearchCount: number;
+  createdAt: Date;
 }
 
 export interface IProductVariant {
-    retailerId: Types.ObjectId;
-    productId: Types.ObjectId;
-    size: string;
-    color: string;
-    sku: string;
-    price: number;
-    stock: number;
-    reservedStock: number;
-    isActive: boolean;
-    createdAt: Date;
+  retailerId: Types.ObjectId;
+  productId: Types.ObjectId;
+  size: string;
+  color: string;
+  sku: string;
+  price: number;
+  stock: number;
+  reservedStock: number;
+  isActive: boolean;
+  createdAt: Date;
 }
 
 export type TProductType = "Sneaker" | "Clothing";
 
-export type TGender = "MEN" | "WOMEN" | "UNISEX" | "KIDS";
+export type TGender = "Men" | "Women" | "Kids";
 
 export type TSneakerAttributes = {
   modelName: string;
@@ -76,7 +77,7 @@ export type TAddProductPayload = {
   styleCode: string;
   sneakerAttributes?: TSneakerAttributes;
   tshirtAttributes?: TTshirtAttributes;
-  variants: TProductVariantPayload[];
+  variant: object[];
 };
 
 export interface IRecentSearch extends Document {

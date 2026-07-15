@@ -5,7 +5,7 @@ import deleteOldFile from "../../../utilities/deleteFile";
 import { ENUM_NOTIFICATION_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_PRODUCT_TYPE, ENUM_USER_Type } from "../../../utilities/enum";
 import AuthModel from "../auth/auth.model";
 import { IPairs } from "./Pairs.interface";
-import {PairRequestModel, PairsModel} from "./Pairs.model";
+import { PairRequestModel, PairsModel } from "./Pairs.model";
 
 
 //add new pairs to the reseller's listing
@@ -15,7 +15,7 @@ const addNewPairsToReseller = async (
     payload: Partial<IPairs>
 ) => {
 
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
     if (!files || files.length === 0) {
         throw new ApiError(400, "At least one pair image is required.");
@@ -26,9 +26,9 @@ const addNewPairsToReseller = async (
         return `uploads/pair-image/${file.filename}`; // Replace with actual URL generation logic
     });
 
-    console.log("product images:",imageUrls);
+    console.log("product images:", imageUrls);
 
-    const { name, type, brand, details, variant,styleCode,askingPrice, sneakerAttributes, tshirtAttributes} = payload;
+    const { name, type, brand, details, variant, styleCode, askingPrice, sneakerAttributes, tshirtAttributes } = payload;
 
     // console.log("sneakerAttributes:",sneakerAttributes);
     // console.log("tshirtAttributes:",tshirtAttributes);
@@ -50,14 +50,14 @@ const addNewPairsToReseller = async (
 
     if (type === ENUM_PRODUCT_TYPE.SNEAKERS) {
         //  console.log("entered 1");
-      pairPayload.sneakerAttributes = JSON.parse(sneakerAttributes as any);
-      pairPayload.tshirtAttributes = null;
+        pairPayload.sneakerAttributes = JSON.parse(sneakerAttributes as any);
+        pairPayload.tshirtAttributes = null;
     }
 
     if (type === ENUM_PRODUCT_TYPE.CLOTHING) {
         //  console.log("entered 2");
-      pairPayload.tshirtAttributes = JSON.parse(tshirtAttributes as any);
-      pairPayload.sneakerAttributes = null;
+        pairPayload.tshirtAttributes = JSON.parse(tshirtAttributes as any);
+        pairPayload.sneakerAttributes = null;
     }
 
     //  console.log("payload after:", pairPayload);
@@ -65,7 +65,7 @@ const addNewPairsToReseller = async (
 
     const newPairs = new PairsModel({
         resellerId: profileId,
-        images:  imageUrls || [],
+        images: imageUrls || [],
         ...pairPayload,
     });
 
@@ -77,13 +77,13 @@ const addNewPairsToReseller = async (
 
 //edit pairs details by the reseller
 const editPairsDetails = async (
-    userDetails: IJwtPayload, 
+    userDetails: IJwtPayload,
     pairId: string,
     files: Express.Multer.File[],
-     payload: Partial<IPairs>
-    ) => {
+    payload: Partial<IPairs>
+) => {
 
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
     const product = await PairsModel.findOne({ _id: pairId, resellerId: profileId });
 
@@ -101,33 +101,33 @@ const editPairsDetails = async (
         product.images = imageUrls;
     }
 
-    if(payload?.sneakerAttributes){
+    if (payload?.sneakerAttributes) {
         payload.sneakerAttributes = JSON.parse(payload.sneakerAttributes as any);
     }
 
-    if(payload?.tshirtAttributes){
+    if (payload?.tshirtAttributes) {
         payload.tshirtAttributes = JSON.parse(payload.tshirtAttributes as any);
     }
 
-    if(payload?.variant){
+    if (payload?.variant) {
         payload.variant = JSON.parse(payload.variant as any);
     }
 
-    console.log("edit pair payload",payload);
+    console.log("edit pair payload", payload);
 
     Object.assign(product, payload);
 
     await product.save();
 
-    if(!product){
-        throw new ApiError(500,"Failed to edit product.");
+    if (!product) {
+        throw new ApiError(500, "Failed to edit product.");
     }
 
     //delete old images from server if new images are uploaded
     if (files && files.length > 0 && existingImages.length > 0) {
-        existingImages.forEach( (imageUrl:any) => {
+        existingImages.forEach((imageUrl: any) => {
             // Implement your logic to delete the image file from the server
-           deleteOldFile(imageUrl);
+            deleteOldFile(imageUrl);
         });
     }
 
@@ -136,11 +136,11 @@ const editPairsDetails = async (
 
 
 
-const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,unknown>) => {
+const getMyListedPairs = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
 
     const { profileId } = userDetails;
 
-    let { visiblityStatus, soldStatus, type, page,limit } = query;
+    let { visiblityStatus, soldStatus, type, page, limit } = query;
 
     const filter: Record<string, any> = {
         resellerId: profileId,
@@ -154,7 +154,7 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
         filter.isSold = soldStatus;
     }
 
-    if(type){
+    if (type) {
         filter.type = type;
     }
 
@@ -165,11 +165,11 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
     const [pairs, totalPairs] = await Promise.all([
 
         PairsModel.find(filter)
-                .select("-sneakerAttributes -tshirtAttributes")
-                    .sort({createdAt: -1})
-                        .skip(skip).limit(limit as number)
-                           .lean(),
-    
+            .select("-sneakerAttributes -tshirtAttributes")
+            .sort({ createdAt: -1 })
+            .skip(skip).limit(limit as number)
+            .lean(),
+
         PairsModel.countDocuments(filter)
     ])
 
@@ -178,10 +178,10 @@ const getMyListedPairs = async (userDetails: IJwtPayload,query: Record<string,un
     const hasNextPage = (page as number) < totalPage ? true : false;
 
     return {
-        meta:{
+        meta: {
             page,
             limit,
-            total: totalPairs, 
+            total: totalPairs,
             totalPage,
             hasNextPage
         },
@@ -205,12 +205,12 @@ const getSinglePairDetails = async (pairId: string) => {
 
     // console.log(pair);
 
-    if(!pair){
-        throw new ApiError(404,"Pair detail not found.");
+    if (!pair) {
+        throw new ApiError(404, "Pair detail not found.");
     }
 
     return pair;
-    
+
 }
 
 
@@ -218,11 +218,11 @@ const getSinglePairDetails = async (pairId: string) => {
 
 //retailer makes request for a pair to the reseller
 const makeRequestForPairService = async (userDetails: IJwtPayload, payload: any) => {
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
-    const {pairId, quantity, variant, askingPrice,offerPrice, validityHours, note, dealCompletionType} = payload;
+    const { pairId, quantity, variant, askingPrice, offerPrice, validityHours, note, dealCompletionType } = payload;
 
-    console.log("make request payload:",payload);
+    console.log("make request payload:", payload);
 
     const pair: any = await PairsModel.findById(pairId);
 
@@ -234,17 +234,17 @@ const makeRequestForPairService = async (userDetails: IJwtPayload, payload: any)
         throw new ApiError(400, "You cannot make a request for your own pairs.");
     }
 
-    console.log("pair variant:",pair?.variant);
+    console.log("pair variant:", pair?.variant);
 
     //check if the quantity is valid or not
-    const pairStock = pair.variant.find( (item:any) =>  item?.size == variant?.size.toString() && item?.gender == variant?.gender );
+    const pairStock = pair.variant.find((item: any) => item?.size == variant?.size.toString() && item?.gender == variant?.gender);
 
     if (!pairStock) {
-        throw new ApiError( 404, "Selected variant not found to request pair." );
+        throw new ApiError(404, "Selected variant not found to request pair.");
     }
 
-    if(pairStock?.stock < quantity){
-        throw new ApiError(400,"Your selected quantity exceeds pair's current stock.");
+    if (pairStock?.stock < quantity) {
+        throw new ApiError(400, "Your selected quantity exceeds pair's current stock.");
     }
 
     const newPairRequest = new PairRequestModel({
@@ -295,9 +295,9 @@ const makeRequestForPairService = async (userDetails: IJwtPayload, payload: any)
 };
 
 const getAllPairRequestsForRetailer = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
-    const {status = 'all'} = query;
+    const { status = 'all' } = query;
 
     let filter: Record<string, any> = { retailerId: profileId };
 
@@ -306,7 +306,7 @@ const getAllPairRequestsForRetailer = async (userDetails: IJwtPayload, query: Re
     }
 
     const pairRequests = await PairRequestModel.find(filter).lean();
-    
+
 
     return pairRequests;
 }
@@ -321,16 +321,16 @@ const getResellerDetailWithShoes = async () => {
     //when this api is being called 
     //analytics model will be excuted here.
 
-    
+
 }
 
 //reseller
 
 //get all pair requests for the reseller
 const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Record<string, unknown>) => {
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
-    let {status = 'all', type, page, limit} = query;
+    let { status = 'all', type, page, limit } = query;
 
     let filter: Record<string, any> = { resellerId: profileId };
 
@@ -338,8 +338,8 @@ const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Re
         filter.status = status;
     }
 
-    if(type){
-        filter.type  = type;
+    if (type) {
+        filter.type = type;
     }
 
     page = parseInt(page as any) || 1;
@@ -351,11 +351,11 @@ const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Re
         PairRequestModel.find(filter)
             .populate({ path: 'retailerId', select: 'name image address averageRating badge' })
             .populate({ path: 'pairId', select: 'name images  sneakerAttributes tshirtAttributes' })
-                .select('variant askingPrice  status note createdAt')
-                    .sort({createdAt: -1})
-                        .skip(skip).limit(limit as number)
-                           .lean(),
-    
+            .select('variant askingPrice  status note createdAt')
+            .sort({ createdAt: -1 })
+            .skip(skip).limit(limit as number)
+            .lean(),
+
         PairRequestModel.countDocuments(filter)
     ])
 
@@ -364,10 +364,10 @@ const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Re
     const hasNextPage = (page as number) < totalPage ? true : false;
 
     return {
-        meta:{
+        meta: {
             page,
             limit,
-            total: totalPairs, 
+            total: totalPairs,
             totalPage,
             hasNextPage
         },
@@ -376,7 +376,7 @@ const getAllPairRequestsForReseller = async (userDetails: IJwtPayload, query: Re
     };
 
     // const pairRequests = await PairRequestModel.find(filter).lean();
-    
+
 
     // return pairRequests;
 }
@@ -385,17 +385,17 @@ const getSInglePairRequestService = async (pairRequestId: string) => {
 
     const pairRequest = await PairRequestModel.findById(pairRequestId).lean();
 
-    if(!pairRequest){
-        throw new ApiError(404,"Pair request not found.");
+    if (!pairRequest) {
+        throw new ApiError(404, "Pair request not found.");
     }
 
     return pairRequest;
 }
 
 const acceptPairRequest = async (userDetails: IJwtPayload, pairRequestId: string) => {
-    const {profileId} = userDetails;
+    const { profileId } = userDetails;
 
-    const pairRequest:any = await PairRequestModel.findById(pairRequestId);
+    const pairRequest: any = await PairRequestModel.findById(pairRequestId);
 
     // console.log("pair request:",pairRequest);
 
@@ -407,20 +407,39 @@ const acceptPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
         throw new ApiError(403, "You can not accept this pair request.");
     }
 
-    
+    //check already accepted or rejected
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
+        throw new ApiError(400, "You have already accepted the pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+        throw new ApiError(400, "You can not accept a already rejected request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+        throw new ApiError(400, "You can not accept a already cancelled request.");
+    }
+
+
+    //check before accept that the stock is available
+    const pair = await PairsModel.findById(pairRequest?.pairId);
+
+    if (!pair) {
+        throw new ApiError(404, "Pair not found.");
+    }
+
+    //check pair stock is available
+    const variant = pair.variant.find((item: any) => item?.size == pairRequest?.variant?.size.toString() && item?.gender == pairRequest?.variant?.gender);
+
+    if (!variant) {
+        throw new ApiError(404, "Pair stock not found.");
+    }
+
+    if (variant?.stock < pairRequest?.quantity) {
+        throw new ApiError(400, "Pair stock is not available.");
+    }
+
     //adjust the quantity of the pairs based on the accepted request
-//    const adjustPairStock = await PairsModel.updateOne(
-//         {
-//                 _id: pairRequest?.pairId,
-//                 "variant.gender": pairRequest?.variant?.gender,
-//                 "variant.size": pairRequest?.variant?.size,
-//             },
-//             {
-//             $inc: {
-//                     "variant.$.stock": -pairRequest?.quantity,
-//                 },
-//             }
-//     );
     const adjustPairStock = await PairsModel.findOneAndUpdate(
         {
             _id: pairRequest?.pairId,
@@ -441,11 +460,11 @@ const acceptPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
     );
 
     // console.log("adjusted pair stock:",adjustPairStock);
-    
+
     if (!adjustPairStock) {
-        throw new ApiError( 400,"You do not have enough stock for this request.");
+        throw new ApiError(400, "You do not have enough stock for this request.");
     }
-    
+
     pairRequest.status = ENUM_PAIR_REQUEST_STATUS.ACCEPTED;
     await pairRequest.save();
 
@@ -479,14 +498,14 @@ const acceptPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
     ]);
 
     return {
-        
+
         status: pairRequest?.status,
         price: pairRequest?.askingPrice,
     };
 };
 
-const rejectPairRequest = async (userDetails: IJwtPayload, pairRequestId: string) => {
-    const {profileId} = userDetails;
+const cancelPairRequest = async (userDetails: IJwtPayload, pairRequestId: string) => {
+    const { profileId } = userDetails;
 
     const pairRequest = await PairRequestModel.findById(pairRequestId);
 
@@ -496,6 +515,102 @@ const rejectPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
 
     if (pairRequest.resellerId.toString() !== profileId) {
         throw new ApiError(403, "You can not reject this pair request.");
+    }
+
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+        throw new ApiError(400, "You have already cancelled the pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+        throw new ApiError(400, "You can not cancel a already rejected request.");
+    }
+
+
+    pairRequest.status = ENUM_PAIR_REQUEST_STATUS.CANCELLED;
+    await pairRequest.save();
+
+    //add stock back to the pair
+    const addStockBack = await PairsModel.findOneAndUpdate(
+        {
+            _id: pairRequest?.pairId,
+            variant: {
+                $elemMatch: {
+                    gender: pairRequest?.variant?.gender,
+                    size: pairRequest?.variant?.size,
+                },
+            },
+        },
+        {
+            $inc: {
+                "variant.$.stock": pairRequest?.quantity,
+            },
+        },
+        { new: true }
+    );
+
+    if (!addStockBack) {
+        throw new ApiError(400, "Failed to add stock back to the pair");
+    }
+
+    //notification to reseller
+    await Promise.all([
+        notification.createNotification({
+            toId: profileId,
+            toModel: "Reseller",
+            title: "You have cancelled a pair request.",
+            description: "You have cancelled a pair request offer",
+            // message?: string;
+            type: ENUM_NOTIFICATION_TYPE.CANCELLED_PAIR_REQUEST,
+            referenceId: pairRequest._id,
+            referenceModel: "PairRequestModel",
+            metadata: {}
+        }),
+
+        //notification to retailer
+        notification.createNotification({
+            toId: pairRequest?.retailerId,
+            toModel: "Retailer",
+            title: "Your requested pair is cancelled.",
+            description: "Reseller has cancelled your pair request offer.",
+            // message?: string;
+            type: ENUM_NOTIFICATION_TYPE.CANCELLED_PAIR_REQUEST,
+            referenceId: pairRequest._id,
+            referenceModel: "PairRequestModel",
+            metadata: {}
+        }),
+    ]);
+
+    return {
+        status: pairRequest?.status,
+        price: pairRequest?.askingPrice,
+    };
+};
+
+const rejectPairRequest = async (userDetails: IJwtPayload, pairRequestId: string) => {
+    const { profileId } = userDetails;
+
+    const pairRequest = await PairRequestModel.findById(pairRequestId);
+
+    if (!pairRequest) {
+        throw new ApiError(404, "Pair request not found to cancel.");
+    }
+
+    if (pairRequest.resellerId.toString() !== profileId) {
+        throw new ApiError(403, "You can not reject this pair request.");
+    }
+
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+        throw new ApiError(400, "You have already rejected the pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
+        throw new ApiError(400, "You can not reject a already accepted request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+        throw new ApiError(400, "You can not reject a already cancelled request.");
     }
 
     pairRequest.status = ENUM_PAIR_REQUEST_STATUS.REJECTED;
@@ -535,12 +650,13 @@ const rejectPairRequest = async (userDetails: IJwtPayload, pairRequestId: string
     };
 };
 
+
 const proposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payload: any) => {
-    const {profileId,authId} = userDetails;
+    const { profileId, authId } = userDetails;
 
     // const auth:any = AuthModel.findById(authId).select("role").lean();
 
-    const {pairRequestId, offerPrice,  dealCompletionType} = payload;
+    const { pairRequestId, offerPrice, dealCompletionType } = payload;
 
     const pairRequest = await PairRequestModel.findById(pairRequestId);
 
@@ -548,8 +664,20 @@ const proposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payloa
         throw new ApiError(404, "Pair request not found to propose counter offer.");
     }
 
-    if ( pairRequest?.resellerId.toString() !== profileId) {
+    if (pairRequest?.resellerId.toString() !== profileId) {
         throw new ApiError(403, "You can not make counter offer of this pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
+        throw new ApiError(400, "You can not make counter offer of this accepted pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+        throw new ApiError(400, "You can not make counter offer of this rejected pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+        throw new ApiError(400, "You can not make counter offer of this cancelled pair request.");
     }
 
     pairRequest.status = ENUM_PAIR_REQUEST_STATUS.COUNTER;
@@ -560,7 +688,7 @@ const proposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payloa
         // note: payload.note || ""
     });
 
-    if(dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
+    if (dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
 
     await pairRequest.save();
 
@@ -599,11 +727,11 @@ const proposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payloa
 };
 
 const retailerProposeCounterOfferToPairRequest = async (userDetails: IJwtPayload, payload: any) => {
-    const {profileId,authId} = userDetails;
+    const { profileId, authId } = userDetails;
 
     // const auth:any = AuthModel.findById(authId).select("role").lean();
 
-    const {pairRequestId, offerPrice,  dealCompletionType} = payload;
+    const { pairRequestId, offerPrice, dealCompletionType } = payload;
 
     const pairRequest = await PairRequestModel.findById(pairRequestId);
 
@@ -611,7 +739,7 @@ const retailerProposeCounterOfferToPairRequest = async (userDetails: IJwtPayload
         throw new ApiError(404, "Pair request not found to propose counter offer.");
     }
 
-    if ( pairRequest?.retailerId.toString() !== profileId) {
+    if (pairRequest?.retailerId.toString() !== profileId) {
         throw new ApiError(403, "You can not make counter offer of this pair request.");
     }
 
@@ -623,7 +751,7 @@ const retailerProposeCounterOfferToPairRequest = async (userDetails: IJwtPayload
         // note: payload.note || ""
     });
 
-    if(dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
+    if (dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
 
     await pairRequest.save();
 
@@ -662,7 +790,7 @@ const retailerProposeCounterOfferToPairRequest = async (userDetails: IJwtPayload
 };
 
 
-const PairsServices = { 
+const PairsServices = {
     addNewPairsToReseller,
     editPairsDetails,
     getMyListedPairs,
@@ -675,6 +803,7 @@ const PairsServices = {
     getAllPairRequestsForReseller,
     getSInglePairRequestService,
     acceptPairRequest,
+    cancelPairRequest,
     rejectPairRequest,
     proposeCounterOfferToPairRequest
 };
