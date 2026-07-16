@@ -27,51 +27,52 @@ export const auth =
     
     try {
 
-      if (tokenWithBearer.startsWith("Bearer")) {
-
-        const token = tokenWithBearer.split(" ")[1];
-        // let decoded;
- 
-            // try {
-            //     decoded = jwt.verify(
-            //         token,
-            //         config.jwt.secret as string
-            //     ) as JwtPayload;
-            // } catch (err) {
-            //     throw new ApiError(401, 'Token is expired');
-            // }
-
-        const decoded = verifyToken(token, config.jwt.secret as Secret);
-        if(!decoded){
-          throw new ApiError(404,"No user found after jwt verification.");
-        }
-
-
-        (req as AuthRequest).user = decoded as IJwtPayload;
-        // (req as AuthRequest).user = {
-        //   userId: decoded.userId,
-        //   profileId: decoded.profileId,
-        //   role: decoded.role,
-        //   email: decoded.email,
-        // };
-        // console.log(decoded);
-
-        // const isExist = await userModel.findById(decoded?.userId);
-
-        // if (!Object.values(ENUM_USER_ROLE).includes(decoded.role) ) {
-
-        //   throw new ApiError(401, "You are not authorized");
-        // }
-
-        // console.log(roles.length);
-
-        if (roles.length && !roles.includes(decoded.role)){
-
-          throw new ApiError(403,"Access Forbidden: You do not have permission to perform this action");
-        }
-
-        next();
+      if (!tokenWithBearer.startsWith("Bearer ")) {
+        throw new ApiError(401, "Invalid token format. Bearer token required.");
       }
+
+      const token = tokenWithBearer.split(" ")[1];
+      // let decoded;
+
+          // try {
+          //     decoded = jwt.verify(
+          //         token,
+          //         config.jwt.secret as string
+          //     ) as JwtPayload;
+          // } catch (err) {
+          //     throw new ApiError(401, 'Token is expired');
+          // }
+
+      const decoded = verifyToken(token, config.jwt.secret as Secret);
+      if(!decoded){
+        throw new ApiError(404,"No user found after jwt verification.");
+      }
+
+
+      (req as AuthRequest).user = decoded as IJwtPayload;
+      // (req as AuthRequest).user = {
+      //   userId: decoded.userId,
+      //   profileId: decoded.profileId,
+      //   role: decoded.role,
+      //   email: decoded.email,
+      // };
+      // console.log(decoded);
+
+      // const isExist = await userModel.findById(decoded?.userId);
+
+      // if (!Object.values(ENUM_USER_ROLE).includes(decoded.role) ) {
+
+      //   throw new ApiError(401, "You are not authorized");
+      // }
+
+      // console.log(roles.length);
+
+      if (roles.length && !roles.includes(decoded.role)){
+
+        throw new ApiError(403,"Access Forbidden: You do not have permission to perform this action");
+      }
+
+      next();
     } catch (error) {
       next(error);
     }
@@ -91,20 +92,21 @@ export const authorizeUser = async (req: Request, res: Response, next: NextFunct
     
     try {
 
-      if (tokenWithBearer.startsWith("Bearer")) {
-
-        const token = tokenWithBearer.split(" ")[1];
-
-        const decoded = verifyToken(token, config.jwt.secret as Secret);
-        if(!decoded){
-          throw new ApiError(404,"No user found after jwt verification.");
-        }
-
-
-        (req as AuthRequest).user = decoded as IJwtPayload;
-
-        next();
+      if (!tokenWithBearer.startsWith("Bearer ")) {
+        throw new ApiError(401, "Invalid token format. Bearer token required.");
       }
+
+      const token = tokenWithBearer.split(" ")[1];
+
+      const decoded = verifyToken(token, config.jwt.secret as Secret);
+      if(!decoded){
+        throw new ApiError(404,"No user found after jwt verification.");
+      }
+
+
+      (req as AuthRequest).user = decoded as IJwtPayload;
+
+      next();
     } catch (error) {
       next(error);
     }
