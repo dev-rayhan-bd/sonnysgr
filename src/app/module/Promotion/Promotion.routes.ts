@@ -3,7 +3,7 @@ import {auth, authorizeUser} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import PromotionValidations from "./Promotion.validation";
 import PromotionController from "./Promotion.controller";
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import { uploadPromotionalImage } from "../../middlewares/multerMiddleware";
 
 
 const PromotionRouter = express.Router();
@@ -11,7 +11,7 @@ const PromotionRouter = express.Router();
 PromotionRouter.post(
     "/send-new-promotion",
     authorizeUser,
-    uploadProfile.single("promotion-image"),
+    uploadPromotionalImage.single("promotion-image"),
     validateRequest(PromotionValidations.createNewPromotionValidation),
     PromotionController.createNewPromotionController
 );
@@ -19,7 +19,7 @@ PromotionRouter.post(
 PromotionRouter.patch(
     "/edit-promotion",
     authorizeUser,
-    uploadProfile.single("promotion-image"),
+    uploadPromotionalImage.single("promotion-image"),
     // validateRequest(PromotionValidations.createNewPromotionValidation),
     PromotionController.createNewPromotionController
 );

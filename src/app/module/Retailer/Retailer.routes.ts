@@ -3,7 +3,7 @@ import {auth, authorizeUser} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import RetailerValidations from "./Retailer.validation";
 import RetailerController from "./Retailer.controller";
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import { uploadRetailerFields } from "../../middlewares/multerMiddleware";
 
 
 const RetailerRouter = express.Router();
@@ -50,7 +50,7 @@ RetailerRouter.patch(
 
     authorizeUser,
 
-    uploadProfile.fields([
+    uploadRetailerFields.fields([
         {
             name: "profile-image",
             maxCount: 1,
@@ -71,7 +71,7 @@ RetailerRouter.post(
 
     authorizeUser,
 
-    uploadProfile.fields([
+    uploadRetailerFields.fields([
         {
             name: "retailer-file",
             maxCount: 1,
@@ -96,7 +96,7 @@ RetailerRouter.post(
 
     authorizeUser,
 
-    uploadProfile.fields([
+    uploadRetailerFields.fields([
         {
             name: "profile-image",
             maxCount: 1,

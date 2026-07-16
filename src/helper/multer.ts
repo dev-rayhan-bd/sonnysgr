@@ -5,26 +5,30 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 
- // define storage for images
- export const profileStorage = multer.diskStorage({
-   // destination: (req, file, cb) => {
-   //   cb(null, "uploads/profile-image");
-   // },
-   destination: function (req: Request, file, cb) {
-       let uploadPath = `uploads/${file.fieldname}`;
- 
-       cb(null, uploadPath);
-   },
- 
-   filename: (req, file, cb) => {
-     //extract the file extension from filename
-     const fileExtension = path.extname(file.originalname);
- 
-     const fileName = file.originalname.replace(fileExtension, "").toLowerCase().split(" ").join("-") +"-" + Date.now();
- 
-     cb(null, fileName + fileExtension);
-   },
- });
+export const createDiskStorage = (folderName: string) => {
+  const uploadPath = path.join("uploads", folderName);
+
+  return multer.diskStorage({
+    destination: function (req: Request, file, cb) {
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+      cb(null, uploadPath);
+    },
+
+    filename: (req, file, cb) => {
+      //extract the file extension from filename
+      const fileExtension = path.extname(file.originalname);
+
+      const fileName = file.originalname.replace(fileExtension, "").toLowerCase().split(" ").join("-") +"-" + Date.now();
+
+      cb(null, fileName + fileExtension);
+    },
+  });
+};
+
+// Keep profileStorage for backward compatibility, mapped to profile-image folder
+export const profileStorage = createDiskStorage("profile-image");
  
  
 

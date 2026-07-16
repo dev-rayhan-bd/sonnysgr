@@ -1,43 +1,33 @@
 import multer from "multer";
-import { profileStorage } from "../../helper/multer";
+import { createDiskStorage } from "../../helper/multer";
 import { multerS3Storage } from "../../helper/multerS3";
 
+const imageFileFilter = (req: any, file: any, cb: any) => {
+  const allowedMimeTypes = ["image/png", "image/jpg", "image/jpeg"];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only .jpg, .png or .jpeg format allowed!"));
+  }
+};
 
 //multer configuration for local storage
 
 // upload user image
  export const uploadProfile = multer({
-   storage: profileStorage,
+   storage: createDiskStorage("profile-image"),
  
    limits: {
      fileSize: 5 * 1024 * 1024, // 5MB . less than 5mb file allowed
     //  fieldSize: 3 * 1024 *1024
    },
 
-  
- 
-   fileFilter: (req, file, cb) => {
-
-      const allowedMimeTypes = [
-        "image/png",
-        "image/jpg",
-        "image/jpeg",
-      ];
-    
-       if ( allowedMimeTypes.includes(file.mimetype) ) {
- 
-         cb(null, true);
- 
-       } else {
-         cb(new Error("Only .jpg, .png or .jpeg format allowed!"));
-       }
-     
-   },
+   fileFilter: imageFileFilter,
  });
 
  // upload post image
  export const uploadPostImage = multer({
-   storage: profileStorage,
+   storage: createDiskStorage("post-image"),
  
    limits: {
      fileSize: 3145728, // 3MB . less than 3mb file allowed
@@ -59,7 +49,7 @@ import { multerS3Storage } from "../../helper/multerS3";
 
  // upload category image
  export const uploadCategoryImage = multer({
-   storage: profileStorage,
+   storage: createDiskStorage("category-image"),
  
    limits: {
      fileSize: 3145728, // 3MB . less than 3mb file allowed
@@ -79,9 +69,9 @@ import { multerS3Storage } from "../../helper/multerS3";
    },
  });
 
- // upload category image
+ // upload promotional image
  export const uploadPromotionalImage = multer({
-   storage: profileStorage,
+   storage: createDiskStorage("promotional-image"),
  
    limits: {
      fileSize: 3145728, // 3MB . less than 3mb file allowed
@@ -103,7 +93,7 @@ import { multerS3Storage } from "../../helper/multerS3";
 
 // upload promotional video
 export const uploadPromotionalVideo = multer({
-  storage: profileStorage,
+  storage: createDiskStorage("promotional-video"),
 
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB max
@@ -133,6 +123,75 @@ export const uploadPromotionalVideo = multer({
       );
     }
   },
+});
+
+// Dedicated uploaders for other entities to preserve directory structure without relying on file.fieldname
+export const uploadPairImage = multer({
+  storage: createDiskStorage("pair-image"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadProductImage = multer({
+  storage: createDiskStorage("product-image"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadChatFiles = multer({
+  storage: createDiskStorage("chat-files"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadAdminImage = multer({
+  storage: createDiskStorage("admin-image"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadReportImage = multer({
+  storage: createDiskStorage("report-image"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadRetailerFile = multer({
+  storage: createDiskStorage("retailer-file"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadCoverImage = multer({
+  storage: createDiskStorage("cover-image"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
+});
+
+export const uploadRetailerFields = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      let folder = "profile-image";
+      if (file.fieldname === "cover-image") folder = "cover-image";
+      else if (file.fieldname === "retailer-file") folder = "retailer-file";
+      
+      const fs = require('fs');
+      const path = require('path');
+      const uploadPath = path.join("uploads", folder);
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+      cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+      const path = require('path');
+      const fileExtension = path.extname(file.originalname);
+      const fileName = file.originalname.replace(fileExtension, "").toLowerCase().split(" ").join("-") + "-" + Date.now();
+      cb(null, fileName + fileExtension);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFileFilter,
 });
 
 

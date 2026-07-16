@@ -208,8 +208,7 @@ const updateMyProfile = catchAsync(async (req, res) => {
   let imagePath: string | undefined;
 
   if (req.file) {
-    // uploadProfile saves to `uploads/${file.fieldname}`
-    imagePath = `uploads/${req.file.fieldname}/${req.file.filename}`;
+    imagePath = `uploads/profile-image/${req.file.filename}`;
   }
 
   const result = await authServices.updateMyProfileService(user, req.body, imagePath);

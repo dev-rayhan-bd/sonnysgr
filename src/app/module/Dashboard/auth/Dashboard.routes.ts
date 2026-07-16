@@ -9,7 +9,7 @@ import {
 } from "./Dashboard.validation";
 import DashboardController from "./Dashboard.controller";
 import AuthValidations from "../../auth/auth.validation";
-import { uploadProfile } from "../../../middlewares/multerMiddleware";
+import { uploadAdminImage } from "../../../middlewares/multerMiddleware";
 
 const dashboardRouter = express.Router();
 
@@ -32,6 +32,7 @@ dashboardRouter.get(
   authorizeUser,
   DashboardController.getMyProfile,
 );
+
 dashboardRouter.post(
   "/forgot-password",
   validateRequest(AuthValidations.sendVerifyCodeValidation),
@@ -46,6 +47,7 @@ dashboardRouter.post(
 
 dashboardRouter.post(
   "/admin-send-verify-code",
+  // authorizeUser,
   validateRequest(AuthValidations.sendVerifyCodeValidation),
   DashboardController.adminSendVerifyCode,
 );
@@ -61,7 +63,7 @@ dashboardRouter.patch(
   "/edit-admin-profile",
   // auth(["Super_Admin"]),
   authorizeUser,
-  uploadProfile.single("admin-image"),
+  uploadAdminImage.single("admin-image"),
   validateRequest(editProfilevalidation),
   DashboardController.editAdminProfile,
 );
