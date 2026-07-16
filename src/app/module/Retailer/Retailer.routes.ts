@@ -1,5 +1,5 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
+import {auth} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import RetailerValidations from "./Retailer.validation";
 import RetailerController from "./Retailer.controller";
@@ -27,7 +27,7 @@ RetailerRouter.get(
 
 RetailerRouter.get(
     "/get-retailer-inventory",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.getRetailerInventoryController
 );
 
@@ -35,20 +35,20 @@ RetailerRouter.get(
 
 RetailerRouter.get(
     "/get-retailer-order",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.getRetailerAllOrdersController
 );
 
 RetailerRouter.post(
     "/toggle-retailer-operation-hour",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.toggleRetailerOperationHourController
 );
 
 RetailerRouter.patch(
     "/update-retailer-profile",
 
-    authorizeUser,
+    auth(["Retailer"]),
 
     uploadRetailerFields.fields([
         {
@@ -69,7 +69,7 @@ RetailerRouter.patch(
 RetailerRouter.post(
     "/add-verification-info",
 
-    authorizeUser,
+    auth(["Retailer"]),
 
     uploadRetailerFields.fields([
         {
@@ -94,7 +94,7 @@ RetailerRouter.post(
 RetailerRouter.post(
     "/add-new-branch",
 
-    authorizeUser,
+    auth(["Retailer"]),
 
     uploadRetailerFields.fields([
         {
@@ -114,7 +114,7 @@ RetailerRouter.post(
 
 RetailerRouter.get(
     "/get-all-branch",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.getAllBranchController
 );
 

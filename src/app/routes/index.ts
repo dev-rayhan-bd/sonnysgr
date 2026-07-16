@@ -14,6 +14,7 @@ import PairsRouter from "../module/Pairs/Pairs.routes";
 import PromotionRouter from "../module/Promotion/Promotion.routes";
 import notificationRouter from "../module/Notification/Notification.routes";
 import ChatRouter from "../module/Chat/Chat.routes";
+import settingsRouter from "../module/Settings/Settings.routes";
 
 
 
@@ -87,6 +88,11 @@ const moduleRoutes = [
         path: '/notification',
         router: notificationRouter,
     },
+    {
+        path: '/settings',
+        router: settingsRouter,
+    },
+
 
   
 ];

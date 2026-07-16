@@ -12,7 +12,7 @@ import runCronJobEverydatAtNight from './helper/cron';
 
 
 //to connect database perfectly
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+dns.setServers(["1.1.1.1"]);
 
 let myServer: HTTPServer | undefined;
 

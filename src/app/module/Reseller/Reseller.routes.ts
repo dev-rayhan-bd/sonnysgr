@@ -1,5 +1,5 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
+import {auth} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import ResellerValidations from "./Reseller.validation";
 import ResellerController from "./Reseller.controller";
@@ -10,33 +10,33 @@ const ResellerRouter = express.Router();
 
 ResellerRouter.get(
     "/reseller-homepage-stat-data",
-    authorizeUser,
+    auth(["Reseller"]),
     ResellerController.resellerHomePageStatDataController
 );
 
 ResellerRouter.post(
     "/make-pair-request",
-    authorizeUser,
+    auth(["Reseller"]),
     validateRequest(ResellerValidations.makeRequestForPairValidationSchema),
     ResellerController.proposeAnOfferToResellerForPairRequestController
 );
 
 ResellerRouter.patch(
     "/update-reseller-profile",
-    authorizeUser,
+    auth(["Reseller"]),
     uploadProfile.single("profile-image"),
     ResellerController.updateResellerProfile
 );
 
 ResellerRouter.get(
     "/reseller-profile-stat-data",
-    authorizeUser,
+    auth(["Reseller"]),
     ResellerController.resellerProfileStatData
 );
 
 ResellerRouter.get(
     "/get-reseller-profile",
-    authorizeUser,
+    auth(["Reseller"]),
     ResellerController.getResellerProfile
 );
 
