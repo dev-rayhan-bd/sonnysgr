@@ -59,6 +59,10 @@ RetailerRouter.patch(
             name: "cover-image",
             maxCount: 1,
         },
+        {
+            name: "licence",
+            maxCount: 1,
+        },
     ]),
 
     // validateRequest(RetailerValidations.addNewBranchValidationSchema),

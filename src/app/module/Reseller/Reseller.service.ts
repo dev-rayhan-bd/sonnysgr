@@ -157,7 +157,10 @@ const updateResellerProfileService = async (
 
     
 
-    return updatedProfile;
+    return {
+        isProfileCompleted: true,
+        profile: updatedProfile
+    };
 };
 
 const resellerProfileStatDataService = async (userDetails: IJwtPayload) => {

@@ -893,6 +893,11 @@ const updateMyProfileService = async (
     throw new ApiError(404, "Profile not found to update");
   }
 
+  if (!authUser.isProfileCompleted) {
+    authUser.isProfileCompleted = true;
+    await authUser.save();
+  }
+
   const updatedUser = await AuthModel.findById(authId)
     .select("-password")
     .populate("profile");

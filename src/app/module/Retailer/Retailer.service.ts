@@ -8,6 +8,7 @@ import { IOperationHour, IRetailer } from "./Retailer.interface";
 import RetailerModel from "./Retailer.model";
 import { ReviewModel } from "../Engagement/Engagement.model";
 import deleteOldFile from "../../../utilities/deleteFile";
+import AuthModel from "../auth/auth.model";
 
 //get all nearby retailer for buyer 
 const filterNearbyRetailers = async (query: Record<string, unknown>) => {
@@ -393,18 +394,19 @@ const updateRetailerProfileService = async (
     userDetails: IJwtPayload,
     profileImage: Express.Multer.File | undefined,
     coverImage: Express.Multer.File | undefined,
+    licence: Express.Multer.File | undefined,
     payload: any
 ) => {
 
-    const { profileId } = userDetails;
+    const { profileId, authId } = userDetails;
 
     let { name, details, phone, website, address, latitude, longitude } = payload;
 
-    console.log("profileImage, coverImage", profileImage, coverImage);
+    console.log("profileImage, coverImage, licence", profileImage, coverImage, licence);
 
     const profile: any = await RetailerModel.findById(profileId).lean();
     if (!profile) {
-        throw new ApiError(404, "Buyer not found to update.");
+        throw new ApiError(404, "Retailer not found to update.");
     }
 
 
@@ -428,6 +430,12 @@ const updateRetailerProfileService = async (
         deleteOldFile(profile?.coverImage);
     }
 
+    if (licence) {
+        updateData.license = `uploads/retailer-file/${licence?.filename}`;
+
+        deleteOldFile(profile?.license);
+    }
+
     if (latitude != null && longitude != null) {
         updateData["location.coordinates"] = [
             Number(longitude),
@@ -445,9 +453,22 @@ const updateRetailerProfileService = async (
         }
     );
 
+    if (!updatedProfile) {
+        throw new ApiError(500, "Failed to update profile.");
+    }
 
+    if (authId) {
+        const auth = await AuthModel.findById(authId);
+        if (auth && !auth.isProfileCompleted) {
+            auth.isProfileCompleted = true;
+            await auth.save();
+        }
+    }
 
-    return updatedProfile;
+    return {
+        isProfileCompleted: true,
+        profile: updatedProfile
+    };
 };
 
 //add rtailer license and store image

@@ -8,6 +8,7 @@ import RetailerModel from "../Retailer/Retailer.model";
 import { IBuyer, IBuyerNotification } from "./Buyer.interface";
 import BuyerModel from "./Buyer.model";
 import { ProductModel } from "../Product/Product.model";
+import AuthModel from "../auth/auth.model";
 
 const setBuyerNotificationAlerts = async (userDetails: IJwtPayload, payload: IBuyerNotification) => {
 
@@ -95,16 +96,9 @@ const updateBuyerProfileService = async (
     payload: any
     ) => {
 
-    const { profileId } = userDetails;
+    const { profileId, authId } = userDetails;
     
     let {name,bio,shoeSize,selectedShoeSize,brands,privacy,address,latitude,longitude} = payload;
-
-    // let lat,long;
-
-    // if(latitude && longitude){
-    //     lat = Number(latitude);
-    //     long = Number(longitude);
-    // }
     
     const profile:any = await BuyerModel.findById(profileId).lean();
     if (!profile) {
@@ -119,15 +113,102 @@ const updateBuyerProfileService = async (
         deleteOldFile(profile?.image);
     }
 
+    // Parse nearby store IDs
+    let parsedNearbyStoreIds: string[] = [];
+    if (payload["nearby-stores-ids"]) {
+        try {
+            if (typeof payload["nearby-stores-ids"] === "string") {
+                const cleaned = payload["nearby-stores-ids"].trim();
+                if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
+                    parsedNearbyStoreIds = JSON.parse(cleaned);
+                } else {
+                    parsedNearbyStoreIds = cleaned.split(",").map((s: string) => s.trim()).filter(Boolean);
+                }
+            } else if (Array.isArray(payload["nearby-stores-ids"])) {
+                parsedNearbyStoreIds = payload["nearby-stores-ids"];
+            }
+        } catch (e) {
+            console.error("Error parsing nearby-stores-ids:", e);
+        }
+    }
+
+    // Parse selected brands
+    let parsedBrands: string[] = [];
+    if (payload["selected-brands"]) {
+        try {
+            if (typeof payload["selected-brands"] === "string") {
+                const cleaned = payload["selected-brands"].trim();
+                const jsonLike = cleaned.replace(/^[{\[]+/, "[").replace(/[}\]]+$/, "]");
+                if (jsonLike.startsWith("[") && jsonLike.endsWith("]")) {
+                    try {
+                        parsedBrands = JSON.parse(jsonLike);
+                    } catch {
+                        parsedBrands = jsonLike.slice(1, -1).split(",").map((s: string) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
+                    }
+                } else {
+                    parsedBrands = cleaned.split(",").map((s: string) => s.trim()).filter(Boolean);
+                }
+            } else if (Array.isArray(payload["selected-brands"])) {
+                parsedBrands = payload["selected-brands"];
+            }
+        } catch (e) {
+            console.error("Error parsing selected-brands:", e);
+        }
+    }
+
+    // Parse notification preferences
+    let parsedNotification: any = {};
+    if (payload["notification preference"]) {
+        try {
+            if (typeof payload["notification preference"] === "string") {
+                parsedNotification = JSON.parse(payload["notification preference"]);
+            } else if (typeof payload["notification preference"] === "object") {
+                parsedNotification = payload["notification preference"];
+            }
+        } catch (e) {
+            console.error("Error parsing notification preference:", e);
+        }
+    }
+
     const updateData: any = {
         name,
         bio,
-        shoeSize,
-        selectedShoeSize,
-        brands,
         address,
         privacy,
     };
+
+    if (shoeSize !== undefined) {
+        updateData.shoeSize = Number(shoeSize);
+    }
+
+    if (selectedShoeSize !== undefined) {
+        try {
+            updateData.selectedShoeSize = typeof selectedShoeSize === "string" ? JSON.parse(selectedShoeSize) : selectedShoeSize;
+        } catch {
+            updateData.selectedShoeSize = selectedShoeSize;
+        }
+    }
+
+    if (payload.type !== undefined) {
+        updateData.type = payload.type;
+    }
+
+    if (parsedBrands.length > 0) {
+        updateData.brands = parsedBrands;
+    } else if (brands !== undefined) {
+        try {
+            updateData.brands = typeof brands === "string" ? JSON.parse(brands) : brands;
+        } catch {
+            updateData.brands = brands;
+        }
+    }
+
+    if (Object.keys(parsedNotification).length > 0) {
+        updateData.notification = {
+            ...profile?.notification,
+            ...parsedNotification,
+        };
+    }
 
     if (buyerProfileImage) {
         updateData.image = buyerProfileImage;
@@ -140,6 +221,7 @@ const updateBuyerProfileService = async (
         ];
     }
 
+    // Update Buyer profile
     const updatedProfile = await BuyerModel.findByIdAndUpdate(
         profileId,
         {
@@ -150,9 +232,36 @@ const updateBuyerProfileService = async (
         }
     );
 
-    
+    if (!updatedProfile) {
+        throw new ApiError(500, "Failed to update profile.");
+    }
 
-    return updatedProfile;
+    // Insert follow records for nearby stores
+    if (parsedNearbyStoreIds.length > 0) {
+        for (const storeId of parsedNearbyStoreIds) {
+            if (mongoose.Types.ObjectId.isValid(storeId)) {
+                await FollowModel.findOneAndUpdate(
+                    { buyerId: profileId, retailerId: storeId },
+                    { buyerId: profileId, retailerId: storeId },
+                    { upsert: true, new: true }
+                );
+            }
+        }
+    }
+
+    // Set auth isProfileCompleted to true
+    if (authId) {
+        const auth = await AuthModel.findById(authId);
+        if (auth && !auth.isProfileCompleted) {
+            auth.isProfileCompleted = true;
+            await auth.save();
+        }
+    }
+
+    return {
+        isProfileCompleted: true,
+        profile: updatedProfile
+    };
 };
 
 

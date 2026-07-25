@@ -83,8 +83,9 @@ const updateRetailerProfile = catchAsync(async (req, res) => {
 
     const profileImage = files?.["profile-image"]?.[0];
     const coverImage = files?.["cover-image"]?.[0];
+    const licence = files?.["licence"]?.[0];
 
-    const result = await RetailerServices.updateRetailerProfileService(user, profileImage, coverImage, req.body);
+    const result = await RetailerServices.updateRetailerProfileService(user, profileImage, coverImage, licence, req.body);
 
     sendResponse(res, {
         statusCode: 200,

@@ -173,7 +173,7 @@ export const uploadRetailerFields = multer({
     destination: function (req, file, cb) {
       let folder = "profile-image";
       if (file.fieldname === "cover-image") folder = "cover-image";
-      else if (file.fieldname === "retailer-file") folder = "retailer-file";
+      else if (file.fieldname === "retailer-file" || file.fieldname === "licence") folder = "retailer-file";
       
       const fs = require('fs');
       const path = require('path');

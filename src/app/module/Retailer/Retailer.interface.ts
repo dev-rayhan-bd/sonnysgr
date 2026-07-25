@@ -17,6 +17,7 @@ export interface IRetailer {
   email: string;
   coverImage: string;
   image: string;
+  license: string;
   shoeSize: number;
   type: string;
   details: string;

@@ -15,6 +15,7 @@ export interface IBuyer {
     size: number;
   }[];
   brands: string[];
+  type: "man" | "woman" | "kid" | "";
   location: {
     type: string;
     coordinates: number[];

@@ -15,6 +15,7 @@ const BuyerSchema = new Schema<IBuyer>({
         size: { type: Number, default: 0 }
     }],
     brands: { type: [String], default: [] },
+    type: { type: String, enum: ["man", "woman", "kid", ""], default: "" },
     location: {
         type: {
             type: String,
