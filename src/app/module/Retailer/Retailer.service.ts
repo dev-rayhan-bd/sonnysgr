@@ -671,7 +671,88 @@ const approveRetailerService = async (id: string) => {
     return msg;
 }
 
+const completeRetailerProfileService = async (
+    userDetails?: IJwtPayload,
+    email?: string,
+    files?: {
+        "profile-image"?: Express.Multer.File[];
+        "cover-image"?: Express.Multer.File[];
+        "licence"?: Express.Multer.File[];
+    },
+    payload?: any
+) => {
+    let retailerProfile: any;
+    let authRecord: any;
 
+    if (userDetails && userDetails.profileId) {
+        retailerProfile = await RetailerModel.findById(userDetails.profileId);
+        if (userDetails.authId) {
+            authRecord = await AuthModel.findById(userDetails.authId);
+        }
+    } else if (email) {
+        retailerProfile = await RetailerModel.findOne({ email: email.toLowerCase() });
+        authRecord = await AuthModel.findOne({ email: email.toLowerCase() });
+    }
+
+    if (!retailerProfile) {
+        throw new ApiError(404, "Retailer profile not found.");
+    }
+
+    if (!authRecord) {
+        authRecord = await AuthModel.findOne({ email: retailerProfile.email.toLowerCase() });
+    }
+
+    if (!authRecord) {
+        throw new ApiError(404, "Auth user not found.");
+    }
+
+    if (authRecord.role !== "Retailer") {
+        throw new ApiError(403, "Access Forbidden: User is not a Retailer.");
+    }
+
+    if (authRecord.isProfileCompleted) {
+        throw new ApiError(400, "Profile is already completed.");
+    }
+
+    // Validate and extract files
+    const profileImage = files?.["profile-image"]?.[0];
+    const coverImage = files?.["cover-image"]?.[0];
+    const licence = files?.["licence"]?.[0];
+
+    if (!licence) {
+        throw new ApiError(400, "Business license file (licence) is required.");
+    }
+
+    if (!profileImage) {
+        throw new ApiError(400, "Profile image (profile-image) is required.");
+    }
+
+    if (!coverImage) {
+        throw new ApiError(400, "Cover image (cover-image) is required.");
+    }
+
+    const { latitude, longitude } = payload;
+
+    // Update coordinates and files
+    retailerProfile.location = {
+        type: "Point",
+        coordinates: [Number(longitude), Number(latitude)]
+    };
+
+    retailerProfile.image = `uploads/profile-image/${profileImage.filename}`;
+    retailerProfile.coverImage = `uploads/profile-image/${coverImage.filename}`;
+    retailerProfile.license = `uploads/profile-image/${licence.filename}`;
+    
+    await retailerProfile.save();
+
+    authRecord.isProfileCompleted = true;
+    await authRecord.save();
+
+    return {
+        isProfileCompleted: true,
+        profile: retailerProfile
+    };
+};
 
 const RetailerServices = {
     filterNearbyRetailers,
@@ -685,6 +766,7 @@ const RetailerServices = {
 
     updateRetailerProfileService,
     addRetailerLicense,
+    completeRetailerProfileService,
 };
 
 

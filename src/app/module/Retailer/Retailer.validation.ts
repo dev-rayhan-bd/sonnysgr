@@ -64,10 +64,27 @@ const addVerificationInfoValidationSchema = z.object({
 
 
 
+const completeRetailerProfileValidation = z.object({
+    body: z.object({
+        latitude: z.coerce
+            .number()
+            .refine((value) => value >= -90 && value <= 90, {
+                message: "Latitude must be between -90 and 90",
+            }),
+        longitude: z.coerce
+            .number()
+            .refine((value) => value >= -180 && value <= 180, {
+                message: "Longitude must be between -180 and 180",
+            }),
+        email: z.string().email().optional(),
+    }),
+});
+
 const RetailerValidations = { 
     validateLatLongTofilterNearbyRetailers ,
     addNewBranchValidationSchema,
-    addVerificationInfoValidationSchema
+    addVerificationInfoValidationSchema,
+    completeRetailerProfileValidation
 };
 
 export default RetailerValidations;

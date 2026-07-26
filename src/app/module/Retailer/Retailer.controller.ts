@@ -159,6 +159,24 @@ const getAllBranchController = catchAsync(async (req, res) => {
     });
 });
 
+const completeRetailerProfileController = catchAsync(async (req, res) => {
+    const user = (req as AuthRequest).user;
+    const { email } = req.body;
+
+    const files = req.files as {
+        [fieldname: string]: Express.Multer.File[];
+    };
+
+    const result = await RetailerServices.completeRetailerProfileService(user, email, files, req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Retailer profile completed successfully.",
+        data: result,
+    });
+});
+
 const RetailerController = {
     filterNearbyRetailersController,
     getAllNearbyRetailerForMap,
@@ -172,6 +190,7 @@ const RetailerController = {
 
     addNewBranchController,
     getAllBranchController,
+    completeRetailerProfileController,
 };
 
 export default RetailerController;

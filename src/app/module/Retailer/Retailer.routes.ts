@@ -123,6 +123,25 @@ RetailerRouter.get(
 );
 
 
+RetailerRouter.patch("/complete-retailer-profile",
+    auth(["Retailer"], false),
+    uploadRetailerFields.fields([
+        {
+            name: "profile-image",
+            maxCount: 1,
+        },
+        {
+            name: "cover-image",
+            maxCount: 1,
+        },
+        {
+            name: "licence",
+            maxCount: 1,
+        },
+    ]),
+    validateRequest(RetailerValidations.completeRetailerProfileValidation),
+    RetailerController.completeRetailerProfileController
+);
 
 
 export default RetailerRouter;
