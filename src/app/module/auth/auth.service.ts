@@ -139,11 +139,11 @@ const registerWithEmailService = async (payload: any) => {
     session.endSession();
 
     // Send email AFTER commit
-    // await sendVerificationEmail(email, {
-    //     name: name,
-    //     code: code,
-    //     isResetPassword: false
-    // });
+    await sendVerificationEmail(email, {
+        name: name,
+        code: code,
+        isResetPassword: false
+    });
 
     const newUser = {
       name: name,
