@@ -70,6 +70,13 @@ BuyerRouter.get(
     BuyerController.getBuyerFollowedBrandStoreWishlistData
 );
 
+// Rabeyas code:
 
+BuyerRouter.patch(
+    "/complete-buyer-profile",
+    auth(["Buyer"], false),
+    validateRequest(BuyerValidations.completeBuyerProfileValidation),
+    BuyerController.completeBuyerProfileController
+);
 
 export default BuyerRouter;

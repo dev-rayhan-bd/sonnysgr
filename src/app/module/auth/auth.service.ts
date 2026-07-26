@@ -813,7 +813,8 @@ const resetPasswordService = async (payload: IResetPassword) => {
   //     Number(config.bcrypt_salt_rounds)
   // );
 
-  user.password = newPassword;
+  // user.password = newPassword;
+  user.password = await hashPassword(newPassword);
   user.isResetPaswordEmailVerified = false;
   await user.save();
 
@@ -821,7 +822,8 @@ const resetPasswordService = async (payload: IResetPassword) => {
   const tokenPayload: IJwtPayload = {
     authId: user?._id as string,
     email: user?.email,
-    profileId: user?.name,
+    // profileId: user?.name,
+    profileId: user?.profile as string,
     role: user?.role as string,
   };
 

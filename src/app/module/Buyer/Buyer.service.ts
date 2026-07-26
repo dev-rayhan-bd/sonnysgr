@@ -502,12 +502,99 @@ const getBuyerFollowedRetailersProducts = async (userDetails: IJwtPayload) => {
     
 }
 
+// Complete Buyer Profile:
+const completeBuyerProfileService = async (
+    userDetails?: IJwtPayload,
+    email?: string,
+    payload?: any
+) => {
+    let buyerProfile: any;
+    let authRecord: any;
+
+    if (userDetails && userDetails.profileId) {
+        buyerProfile = await BuyerModel.findById(userDetails.profileId);
+        if (userDetails.authId) {
+            authRecord = await AuthModel.findById(userDetails.authId);
+        }
+    } else if (email) {
+        buyerProfile = await BuyerModel.findOne({ email: email.toLowerCase() });
+        authRecord = await AuthModel.findOne({ email: email.toLowerCase() });
+    }
+
+    if (!buyerProfile) {
+        throw new ApiError(404, "Buyer profile not found.");
+    }
+
+    if (!authRecord) {
+        authRecord = await AuthModel.findOne({ email: buyerProfile.email.toLowerCase() });
+    }
+
+    if (!authRecord) {
+        throw new ApiError(404, "Auth user not found.");
+    }
+
+    if (authRecord.role !== "Buyer") {
+        throw new ApiError(403, "Access Forbidden: User is not a Buyer.");
+    }
+
+    if (authRecord.isProfileCompleted || buyerProfile.isProfileCompleted) {
+        throw new ApiError(400, "Profile is already completed.");
+    }
+
+    const {
+        latitude,
+        longitude,
+        shoosize,
+        type,
+        nearbystores,
+        notficationprefernce,
+        barnads
+    } = payload;
+
+    // Update coordinates and fields
+    buyerProfile.location = {
+        type: "Point",
+        coordinates: [Number(longitude), Number(latitude)]
+    };
+    buyerProfile.shoeSize = Number(shoosize);
+    buyerProfile.selectedShoeSize = [{ label: shoosize.toString(), size: Number(shoosize) }];
+    buyerProfile.type = type;
+    buyerProfile.brands = barnads;
+    buyerProfile.notification = notficationprefernce;
+    buyerProfile.isProfileCompleted = true;
+
+    await buyerProfile.save();
+
+    // Upsert store follows for nearbystores
+    if (nearbystores && Array.isArray(nearbystores)) {
+        for (const storeId of nearbystores) {
+            if (mongoose.Types.ObjectId.isValid(storeId)) {
+                await FollowModel.findOneAndUpdate(
+                    { buyerId: buyerProfile._id, retailerId: storeId },
+                    { buyerId: buyerProfile._id, retailerId: storeId },
+                    { upsert: true, new: true }
+                );
+            }
+        }
+    }
+
+    // Set auth isProfileCompleted to true
+    authRecord.isProfileCompleted = true;
+    await authRecord.save();
+
+    return {
+        isProfileCompleted: true,
+        // profile: buyerProfile
+    };
+};
+
 const BuyerServices = { 
     setBuyerNotificationAlerts,
     addSelectedShoeSize,
     addBrandsOfInterest,
     getBuyersInterestsData,
     updateBuyerProfileService,
+    completeBuyerProfileService,
 
     getNearbyProductsForBuyer,
     getBuyersStoreBrandWishlistdataService,

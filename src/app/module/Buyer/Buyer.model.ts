@@ -48,6 +48,7 @@ const BuyerSchema = new Schema<IBuyer>({
     subscription:{type:Schema.Types.ObjectId,ref:"Subscription"},
     subscriptionStartDate:{type:Date},
     subscriptionEndDate:{type:Date},
+    isProfileCompleted: { type: Boolean, default: false },
 }, { timestamps: true });
 
 //to enable geospatial queries on the location field, we need to create a 2dsphere index on it. This allows us to perform queries like finding nearby buyers based on their location.
