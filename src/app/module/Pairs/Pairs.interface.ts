@@ -60,3 +60,23 @@ export interface IPairRequest {
     dealCompletionType: string;
     createdAt: Date;
 }
+
+export interface IProductRequest {
+    retailerId: Types.ObjectId;
+    resellerId: Types.ObjectId;
+    type: string;
+    images: string[];
+    name: string;
+    brand: string;
+    color: string;
+    styleCode: string;
+    variant: {
+        gender: string;
+        size: string;
+        quantity: number;
+        offerPrice: number;
+    }[];
+    note?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}

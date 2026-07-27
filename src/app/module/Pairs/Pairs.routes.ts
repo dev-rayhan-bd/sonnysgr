@@ -44,10 +44,16 @@ PairsRouter.get(
 //retailer
 
 PairsRouter.post(
-    "/request-new-pair",
+    "/request-new-product",
     authorizeUser,
-    // validateRequest(PairsValidations.makeRequestForPairValidationSchema),
-    PairsController.makeRequestForPairController
+    uploadPairImage.array("images", 8),
+    PairsController.createProductRequestController
+);
+
+PairsRouter.get(
+    "/get-product-requests",
+    authorizeUser,
+    PairsController.getProductRequestsController
 );
 
 PairsRouter.post(

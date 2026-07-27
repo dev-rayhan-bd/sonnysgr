@@ -196,6 +196,36 @@ const retailerProposeCounterOfferToPairRequestController = catchAsync(async (req
     });
 });
 
+const createProductRequestController = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+    const files = req.files as Express.Multer.File[];
+
+    const result = await PairsServices.createProductRequest(user, files, req.body);
+
+    sendResponse(res, {
+        statusCode: 201,
+        success: true,
+        message: "Product request created successfully.",
+        data: result,
+    });
+});
+
+const getProductRequestsController = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+
+    const result = await PairsServices.getAllProductRequests(user, req.query);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: result.productRequests.length === 0
+            ? "You have no request right now."
+            : "Product requests retrieved successfully.",
+        meta: result.meta,
+        data: result.productRequests,
+    });
+});
+
 const PairsController = {
     addNewPairsController,
     editPairsController,
@@ -211,7 +241,9 @@ const PairsController = {
     acceptPairRequestController,
     cancelPairRequestController,
     rejectPairRequestController,
-    proposeCounterOfferToPairRequestController
+    proposeCounterOfferToPairRequestController,
+    createProductRequestController,
+    getProductRequestsController
 };
 
 export default PairsController;

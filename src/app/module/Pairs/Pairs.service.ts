@@ -9,7 +9,8 @@ import {
   ENUM_USER_Type,
 } from "../../../utilities/enum";
 import { IPairs } from "./Pairs.interface";
-import { PairRequestModel, PairsModel } from "./Pairs.model";
+import { PairRequestModel, PairsModel, ProductRequestModel } from "./Pairs.model";
+import PairsValidations from "./Pairs.validation";
 
 //add new pairs to the reseller's listing
 const addNewPairsToReseller = async (
@@ -900,6 +901,170 @@ const retailerProposeCounterOfferToPairRequest = async (
   };
 };
 
+const createProductRequest = async (
+  userDetails: IJwtPayload,
+  files: Express.Multer.File[],
+  payload: any,
+) => {
+  const { profileId, role } = userDetails;
+
+  // 1. Authorization Check: Only Retailer can submit a request
+  if (role !== ENUM_USER_Type.RETAILER) {
+    throw new ApiError(403, "Only retailers are authorized to submit product requests.");
+  }
+
+  // Handle map aliases: brand/brannd, styleCode/style-code/sku
+  const resellerId = payload.resellerId;
+  if (!resellerId) {
+    throw new ApiError(400, "Reseller ID is required.");
+  }
+  const name = payload.name;
+  const brand = payload.brand || payload.brannd;
+  let type = payload.type;
+  if (type === "Cloths") {
+    type = ENUM_PRODUCT_TYPE.CLOTHING;
+  }
+  const color = payload.color || "";
+  const styleCode = payload.styleCode || payload["style-code/sku"] || "";
+  const note = payload.note || "";
+
+  // Parse variant if it is a stringified JSON array
+  let variant = payload.variant;
+  if (typeof variant === "string") {
+    try {
+      variant = JSON.parse(variant);
+    } catch (e) {
+      throw new ApiError(400, "Invalid format for variant. Must be a valid JSON array.");
+    }
+  }
+
+  // Process files
+  const imageUrls = (files || []).map((file) => {
+    return `uploads/pair-image/${file.filename}`;
+  });
+
+  // Prepare data for validation
+  const dataToValidate = {
+    resellerId,
+    type,
+    name,
+    brand,
+    color,
+    styleCode,
+    variant,
+    note,
+  };
+
+  // Perform validation using Zod
+  const validationResult = PairsValidations.createProductRequestValidationSchema.safeParse({
+    body: dataToValidate,
+  });
+
+  if (!validationResult.success) {
+    const errorMessages = validationResult.error.issues.map((err: any) => `${err.path.join('.')}: ${err.message}`).join(', ');
+    throw new ApiError(400, `Validation Error: ${errorMessages}`);
+  }
+
+  const validatedData = validationResult.data.body;
+
+  // Normalize gender to Capitalized
+  const formattedVariants = validatedData.variant.map((v: any) => {
+    const gender = v.gender.trim().charAt(0).toUpperCase() + v.gender.trim().slice(1).toLowerCase();
+    return {
+      gender,
+      size: v.size,
+      quantity: Number(v.quantity),
+      offerPrice: Number(v.offerPrice),
+    };
+  });
+
+  // Save to database
+  const productRequest = new ProductRequestModel({
+    retailerId: profileId,
+    resellerId: validatedData.resellerId,
+    type: validatedData.type === "Cloths" ? ENUM_PRODUCT_TYPE.CLOTHING : validatedData.type,
+    images: imageUrls,
+    name: validatedData.name,
+    brand: validatedData.brand,
+    color: validatedData.color,
+    styleCode: validatedData.styleCode,
+    variant: formattedVariants,
+    note: validatedData.note,
+  });
+
+  await productRequest.save();
+  return productRequest;
+};
+
+const getAllProductRequests = async (
+  userDetails: IJwtPayload,
+  query: Record<string, unknown>,
+) => {
+  const { profileId, role } = userDetails;
+
+  // 1. Authorization: Only Retailer and Reseller can retrieve
+  if (role !== ENUM_USER_Type.RETAILER && role !== ENUM_USER_Type.RESELLER) {
+    throw new ApiError(403, "You do not have permission to view product requests.");
+  }
+
+  let { page, limit, brand, type } = query;
+
+  const filter: Record<string, any> = {};
+
+  if (role === ENUM_USER_Type.RETAILER) {
+    filter.retailerId = profileId;
+  }
+
+  if (role === ENUM_USER_Type.RESELLER) {
+    filter.resellerId = profileId;
+  }
+
+  if (brand) {
+    filter.brand = brand;
+  }
+
+  if (type) {
+    filter.type = type;
+  }
+
+  page = parseInt(page as any) || 1;
+  limit = parseInt(limit as any) || 10;
+  let skip = ((page as number) - 1) * (limit as number);
+
+  const [productRequests, totalRequests] = await Promise.all([
+    ProductRequestModel.find(filter)
+      .populate({
+        path: "retailerId",
+        select: "name image address averageRating badge",
+      })
+      .populate({
+        path: "resellerId",
+        select: "name image address badge",
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit as number)
+      .lean(),
+
+    ProductRequestModel.countDocuments(filter),
+  ]);
+
+  const totalPage = Math.ceil(totalRequests / (limit as number));
+  const hasNextPage = (page as number) < totalPage;
+
+  return {
+    meta: {
+      page: page as number,
+      limit: limit as number,
+      total: totalRequests,
+      totalPage,
+      hasNextPage,
+    },
+    productRequests,
+    count: productRequests.length,
+  };
+};
+
 const PairsServices = {
   addNewPairsToReseller,
   editPairsDetails,
@@ -916,6 +1081,8 @@ const PairsServices = {
   cancelPairRequest,
   rejectPairRequest,
   proposeCounterOfferToPairRequest,
+  createProductRequest,
+  getAllProductRequests,
 };
 
 export default PairsServices;

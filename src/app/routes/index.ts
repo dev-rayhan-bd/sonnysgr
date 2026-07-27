@@ -16,85 +16,78 @@ import notificationRouter from "../module/Notification/Notification.routes";
 import ChatRouter from "../module/Chat/Chat.routes";
 import settingsRouter from "../module/Settings/Settings.routes";
 
-
-
 const allRouter = Router();
 
-
 const moduleRoutes = [
-    {
-        path: '/auth',
-        router: authRouter,
-    },
-    {
-        path: '/user',
-        router: userRouter,
-    },
-    {
-        path: '/chat',
-        router: ChatRouter,
-    },
-    {
-        path: '/buyer',
-        router: BuyerRouter,
-    },
-    {
-        path: '/retailer',
-        router: RetailerRouter,
-    },
-    {
-        path: '/engagement',
-        router: EngagementRouter,
-    },
-    {
-        path: '/reseller',
-        router: ResellerRouter,
-    },
-    {
-        path: '/product',
-        router: ProductRouter,
-    },
-    {
-        path: '/cart',
-        router: CartRouter,
-    },
-    {
-        path: '/order',
-        router: OrderRouter,
-    },
-    {
-        path: '/report',
-        router: ReportRouter,
-    },
-    {
+  {
+    path: "/auth",
+    router: authRouter,
+  },
+  {
+    path: "/user",
+    router: userRouter,
+  },
+  {
+    path: "/chat",
+    router: ChatRouter,
+  },
+  {
+    path: "/buyer",
+    router: BuyerRouter,
+  },
+  {
+    path: "/retailer",
+    router: RetailerRouter,
+  },
+  {
+    path: "/engagement",
+    router: EngagementRouter,
+  },
+  {
+    path: "/reseller",
+    router: ResellerRouter,
+  },
+  {
+    path: "/product",
+    router: ProductRouter,
+  },
+  {
+    path: "/cart",
+    router: CartRouter,
+  },
+  {
+    path: "/order",
+    router: OrderRouter,
+  },
+  {
+    path: "/report",
+    router: ReportRouter,
+  },
+  {
+    path: "/dashboard",
+    router: dashboardRouter,
+  },
 
-        path: '/dashboard',
-        router: dashboardRouter,
-    },
-
-{
-        path: '/pair',
-        router: PairsRouter,
-    },
-    {
-        path: '/promotion',
-        router: PromotionRouter,
-    },
-    {
-        path: '/dashboard',
-        router: dashboardRouter,
-    },
-    {
-        path: '/notification',
-        router: notificationRouter,
-    },
-    {
-        path: '/settings',
-        router: settingsRouter,
-    },
-
-
-  
+  {
+    path: "/pair",
+    router: PairsRouter,
+  },
+  {
+    path: "/promotion",
+    router: PromotionRouter,
+  },
+  {
+    path: "/dashboard",
+    router: dashboardRouter,
+  },
+  {
+    path: "/notification",
+    router: notificationRouter,
+  },
+  {
+    path: "/settings",
+    router: settingsRouter,
+  },
 ];
 
 moduleRoutes.forEach((route) => allRouter.use(route.path, route.router));

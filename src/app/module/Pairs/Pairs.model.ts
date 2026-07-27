@@ -1,5 +1,5 @@
 import { model, Schema, models } from "mongoose";
-import { IPairRequest, IPairs } from "./Pairs.interface";
+import { IPairRequest, IPairs, IProductRequest } from "./Pairs.interface";
 import {
   ENUM_GENDER_TYPE,
   ENUM_PAIR_REQUEST_STATUS,
@@ -151,4 +151,46 @@ const PairsModel = models.Pairs || model<IPairs>("Pairs", PairsSchema);
 const PairRequestModel =
   models.PairRequest || model<IPairRequest>("PairRequest", pairRequestSchema);
 
-export { PairsModel, PairRequestModel };
+const productRequestSchema = new Schema<IProductRequest>(
+  {
+    retailerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Retailer",
+      required: true,
+    },
+    resellerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Reseller",
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: Object.values(ENUM_PRODUCT_TYPE),
+      required: true,
+    },
+    name: { type: String, required: true },
+    images: [{ type: String, default: [] }],
+    brand: { type: String, required: true },
+    color: { type: String, default: "" },
+    styleCode: { type: String, default: "" },
+    variant: [
+      {
+        gender: {
+          type: String,
+          enum: Object.values(ENUM_GENDER_TYPE),
+          required: true,
+        },
+        size: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        offerPrice: { type: Number, required: true },
+      },
+    ],
+    note: { type: String, default: "" },
+  },
+  { timestamps: true },
+);
+
+const ProductRequestModel =
+  models.ProductRequest || model<IProductRequest>("ProductRequest", productRequestSchema);
+
+export { PairsModel, PairRequestModel, ProductRequestModel };
