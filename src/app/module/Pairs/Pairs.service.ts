@@ -3,7 +3,6 @@ import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
 import { ENUM_NOTIFICATION_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_PRODUCT_TYPE, ENUM_USER_Type } from "../../../utilities/enum";
-import AuthModel from "../auth/auth.model";
 import { IPairs } from "./Pairs.interface";
 import { PairRequestModel, PairsModel } from "./Pairs.model";
 
@@ -22,13 +21,12 @@ const addNewPairsToReseller = async (
     }
 
     const imageUrls = files.map(file => {
-        // Assuming you have a function to upload the file and get its URL
-        return `uploads/pair-image/${file.filename}`; // Replace with actual URL generation logic
+        return `uploads/pair-image/${file.filename}`; 
     });
 
     console.log("product images:", imageUrls);
 
-    const { name, type, brand, details, variant, styleCode, askingPrice, sneakerAttributes, tshirtAttributes } = payload;
+    const { name, type, brand, details, variant, styleCode, askingPrice, sneakerAttributes, tshirtAttributes ,description ,quantity} = payload;
 
     // console.log("sneakerAttributes:",sneakerAttributes);
     // console.log("tshirtAttributes:",tshirtAttributes);
@@ -44,11 +42,13 @@ const addNewPairsToReseller = async (
         variant: JSON.parse(variant as any),
         styleCode,
         askingPrice,
+        description,
+        quantity
     };
 
     // console.log("payload before:", pairPayload);
 
-    if (type === ENUM_PRODUCT_TYPE.SNEAKERS) {
+    if (type === ENUM_PRODUCT_TYPE.SHOES) {
         //  console.log("entered 1");
         pairPayload.sneakerAttributes = JSON.parse(sneakerAttributes as any);
         pairPayload.tshirtAttributes = null;

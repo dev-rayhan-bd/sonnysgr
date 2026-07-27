@@ -24,7 +24,9 @@ export interface IPairs {
     isAllowDirectRequest: boolean;
     isSold: boolean;
     pairViewCount: number;
-    pairRequestCount: number;
+    quantity: number;
+    description?: string;
+
     createdAt: Date;
 }
 

@@ -63,7 +63,7 @@ const addProductService = async (
       availability,
     };
 
-    if (type === ENUM_PRODUCT_TYPE.SNEAKERS) {
+    if (type === ENUM_PRODUCT_TYPE.SHOES) {
       productPayload.sneakerAttributes = JSON.parse(sneakerAttributes as any);
       productPayload.tshirtAttributes = null;
     }
