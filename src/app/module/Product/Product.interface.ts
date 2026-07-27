@@ -35,7 +35,7 @@ export interface IProductVariant {
   createdAt: Date;
 }
 
-export type TProductType = "Sneaker" | "Clothing";
+export type TProductType = "Shoes" | "Clothing";
 
 export type TGender = "Men" | "Women" | "Kids";
 

@@ -1,6 +1,4 @@
-import { get } from "http";
 import ApiError from "../../../error/ApiError";
-import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
 import {  ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
