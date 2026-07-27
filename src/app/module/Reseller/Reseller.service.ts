@@ -3,11 +3,9 @@ import ApiError from "../../../error/ApiError";
 import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
-import { ENUM_NOTIFICATION_TYPE, ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
+import {  ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
 import AuthModel from "../auth/auth.model";
-import { IPairRequest } from "../Pairs/Pairs.interface";
 import { PairRequestModel, PairsModel } from "../Pairs/Pairs.model";
-import { IReseller } from "./Reseller.interface";
 import ResellerModel from "./Reseller.model";
 
 const resellerHomePageStatDataService = async (userDetails: IJwtPayload) => {
