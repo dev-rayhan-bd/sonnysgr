@@ -98,4 +98,7 @@ dashboardRouter.get(
   DashboardController.dashboardStat,
 );
 
+import adminUserRouter from "../users/users.route";
+dashboardRouter.use("/users", adminUserRouter);
+
 export default dashboardRouter;

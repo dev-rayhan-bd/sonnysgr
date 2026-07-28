@@ -112,18 +112,17 @@ const registerWithEmailService = async (payload: any) => {
     const createdUser = user[0];
 
     // Create Profile
+    const profilePayload: any = {
+      auth: createdUser._id,
+      email: email.toLowerCase(),
+      name,
+    };
+    if (userType === ENUM_USER_Type.RETAILER || userType === ENUM_USER_Type.RESELLER) {
+      profilePayload.isApproved = false;
+    }
+
     const profile = await UserModel.create(
-      [
-        {
-          auth: createdUser._id,
-          email: email.toLowerCase(),
-          name,
-          // shoeSize,
-          // location: {
-          //     coordinates: [Number(longitude), Number(latitude)]
-          // }
-        },
-      ],
+      [profilePayload],
       { session },
     );
     // console.log("Profile created:", profile);

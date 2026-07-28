@@ -15,6 +15,7 @@ import PromotionRouter from "../module/Promotion/Promotion.routes";
 import notificationRouter from "../module/Notification/Notification.routes";
 import ChatRouter from "../module/Chat/Chat.routes";
 import settingsRouter from "../module/Settings/Settings.routes";
+import adminUserRouter from "../module/Dashboard/users/users.route";
 
 const allRouter = Router();
 
@@ -77,8 +78,8 @@ const moduleRoutes = [
     router: PromotionRouter,
   },
   {
-    path: "/dashboard",
-    router: dashboardRouter,
+    path: "/dashboard/users",
+    router: adminUserRouter,
   },
   {
     path: "/notification",

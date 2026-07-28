@@ -30,6 +30,7 @@ const ResellerSchema = new Schema<IReseller>({
     subscriptionStartDate:{type:Date},
     subscriptionEndDate:{type:Date},
     isApproved:{type:Boolean,default:false},
+    trustScore: { type: Number, default: 100 },
 }, { timestamps: true });
 
 const ResellerModel = models.Reseller || model<IReseller>("Reseller", ResellerSchema);
