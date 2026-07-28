@@ -10,7 +10,7 @@ const PairsRouter = express.Router();
 
 PairsRouter.post(
     "/add-new-pairs",
-    authorizeUser,
+    auth(["Reseller"]),
     uploadPairImage.array("pair-image", 8),
     // validateRequest(PairsValidations.addnewPairValidationSchema),
     PairsController.addNewPairsController
@@ -28,7 +28,7 @@ PairsRouter.patch(
 //get my listed pair
 PairsRouter.get(
     "/get-listed-pairs",
-    authorizeUser,
+    auth(["Reseller"]),
     // validateRequest(PairsValidations.addNewPairsZodSchema),
     PairsController.getAllListedPairsController
 );

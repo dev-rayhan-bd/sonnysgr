@@ -82,7 +82,11 @@ const PairsSchema = new Schema<IPairs>(
     isAllowDirectRequest: { type: Boolean, default: true },
     isSold: { type: Boolean, default: false },
     pairViewCount: { type: Number, default: 0 },
-   
+    productStatus: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
     quantity: { type: Number, default: 1 },
     description: { type: String, default: "" },
   },
@@ -191,6 +195,7 @@ const productRequestSchema = new Schema<IProductRequest>(
 );
 
 const ProductRequestModel =
-  models.ProductRequest || model<IProductRequest>("ProductRequest", productRequestSchema);
+  models.ProductRequest ||
+  model<IProductRequest>("ProductRequest", productRequestSchema);
 
 export { PairsModel, PairRequestModel, ProductRequestModel };

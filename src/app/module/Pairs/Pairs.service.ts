@@ -43,6 +43,7 @@ const addNewPairsToReseller = async (
     tshirtAttributes,
     description,
     quantity,
+    productStatus
   } = payload;
 
   // console.log("sneakerAttributes:",sneakerAttributes);
@@ -61,6 +62,7 @@ const addNewPairsToReseller = async (
     askingPrice,
     description,
     quantity,
+    productStatus
   };
 
   // console.log("payload before:", pairPayload);
@@ -169,6 +171,7 @@ const getMyListedPairs = async (
     variant,
     gender,
     size,
+    productStatus
   } = query;
 
   const filter: Record<string, any> = {
@@ -191,6 +194,9 @@ const getMyListedPairs = async (
     filter.brand = brand;
   }
 
+  if (productStatus) {
+    filter.productStatus = productStatus;
+  }
   const variantFilter: Record<string, any> = {};
 
   // Resolve gender supporting both 'gender' and legacy 'variant' parameters
@@ -293,6 +299,7 @@ const makeRequestForPairService = async (
     validityHours,
     note,
     dealCompletionType,
+    status
   } = payload;
 
   console.log("make request payload:", payload);
