@@ -11,6 +11,7 @@ import {
 import { IPairs } from "./Pairs.interface";
 import { PairRequestModel, PairsModel, ProductRequestModel } from "./Pairs.model";
 import PairsValidations from "./Pairs.validation";
+import ResellerModel from "../Reseller/Reseller.model";
 
 //add new pairs to the reseller's listing
 const addNewPairsToReseller = async (
@@ -967,6 +968,17 @@ const createProductRequest = async (
 
   const validatedData = validationResult.data.body;
 
+  let resolvedResellerId = validatedData.resellerId;
+  let reseller = await ResellerModel.findById(validatedData.resellerId);
+  if (!reseller) {
+    reseller = await ResellerModel.findOne({ auth: validatedData.resellerId });
+  }
+
+  if (!reseller) {
+    throw new ApiError(404, "Reseller not found.");
+  }
+  resolvedResellerId = reseller._id;
+
   // Normalize gender to Capitalized
   const formattedVariants = validatedData.variant.map((v: any) => {
     const gender = v.gender.trim().charAt(0).toUpperCase() + v.gender.trim().slice(1).toLowerCase();
@@ -981,7 +993,7 @@ const createProductRequest = async (
   // Save to database
   const productRequest = new ProductRequestModel({
     retailerId: profileId,
-    resellerId: validatedData.resellerId,
+    resellerId: resolvedResellerId,
     type: validatedData.type === "Cloths" ? ENUM_PRODUCT_TYPE.CLOTHING : validatedData.type,
     images: imageUrls,
     name: validatedData.name,
@@ -1000,7 +1012,7 @@ const getAllProductRequests = async (
   userDetails: IJwtPayload,
   query: Record<string, unknown>,
 ) => {
-  const { profileId, role } = userDetails;
+  const { profileId, authId, role } = userDetails;
 
   // 1. Authorization: Only Retailer and Reseller can retrieve
   if (role !== ENUM_USER_Type.RETAILER && role !== ENUM_USER_Type.RESELLER) {
@@ -1016,7 +1028,15 @@ const getAllProductRequests = async (
   }
 
   if (role === ENUM_USER_Type.RESELLER) {
-    filter.resellerId = profileId;
+    let resolvedResellerId = profileId;
+    const resellerProfile = await ResellerModel.findById(profileId);
+    if (!resellerProfile) {
+      const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+      if (resellerByAuth) {
+        resolvedResellerId = resellerByAuth._id.toString();
+      }
+    }
+    filter.resellerId = resolvedResellerId;
   }
 
   if (brand) {
