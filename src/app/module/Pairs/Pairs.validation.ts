@@ -74,11 +74,30 @@ const updateProductRequestStatusValidationSchema = z.object({
   }),
 });
 
+const proposeCounterOfferValidationSchema = z.object({
+  body: z.object({
+    pairRequestId: z.string().min(24, "Pair request ID must be a valid ObjectId"),
+    offerPrice: z.number().min(0).optional(),
+    variants: z
+      .array(
+        z.object({
+          variantId: z.string().min(24, "Variant ID must be a valid ObjectId"),
+          offerPrice: z.number().min(0),
+          quantity: z.number().min(1),
+        }),
+      )
+      .optional(),
+    dealCompletionType: z.enum(["Meetup", "Store dropoff", "Shipping", "Direct"]).optional(),
+    note: z.string().optional(),
+  }),
+});
+
 const PairsValidations = { 
     addnewPairValidationSchema,
     makeRequestForPairValidationSchema,
     createProductRequestValidationSchema,
-    updateProductRequestStatusValidationSchema
+    updateProductRequestStatusValidationSchema,
+    proposeCounterOfferValidationSchema
  };
 
 export default PairsValidations;

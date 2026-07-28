@@ -112,7 +112,7 @@ PairsRouter.post(
 PairsRouter.post(
     "/propose-counter-offer",
     authorizeUser,
-    // validateRequest(PairsValidations.addNewPairsZodSchema),
+    validateRequest(PairsValidations.proposeCounterOfferValidationSchema),
     PairsController.proposeCounterOfferToPairRequestController
 );
 

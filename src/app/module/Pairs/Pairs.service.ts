@@ -774,89 +774,155 @@ const proposeCounterOfferToPairRequest = async (
 ) => {
   const { profileId, authId } = userDetails;
 
-  // const auth:any = AuthModel.findById(authId).select("role").lean();
+  const { pairRequestId, offerPrice, variants, dealCompletionType } = payload;
 
-  const { pairRequestId, offerPrice, dealCompletionType } = payload;
+  // Resolve reseller's profile ID
+  let resolvedResellerId = profileId;
+  const resellerProfile = await ResellerModel.findById(profileId);
+  if (!resellerProfile) {
+    const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+    if (resellerByAuth) {
+      resolvedResellerId = resellerByAuth._id.toString();
+    }
+  }
 
+  // 1. Try finding in PairRequestModel
   const pairRequest = await PairRequestModel.findById(pairRequestId);
 
-  if (!pairRequest) {
-    throw new ApiError(404, "Pair request not found to propose counter offer.");
+  if (pairRequest) {
+    if (pairRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You can not make counter offer of this pair request.");
+    }
+
+    if (pairRequest.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
+      throw new ApiError(400, "You can not make counter offer of this accepted pair request.");
+    }
+
+    if (pairRequest.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+      throw new ApiError(400, "You can not make counter offer of this rejected pair request.");
+    }
+
+    if (pairRequest.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+      throw new ApiError(400, "You can not make counter offer of this cancelled pair request.");
+    }
+
+    pairRequest.status = ENUM_PAIR_REQUEST_STATUS.COUNTER;
+
+    pairRequest.offerHistory.push({
+      offeredBy: ENUM_USER_Type.RESELLER,
+      price: offerPrice,
+      createdAt: new Date(),
+    });
+
+    if (dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
+
+    await pairRequest.save();
+
+    // notification to reseller and retailer
+    await Promise.all([
+      notification.createNotification({
+        toId: resolvedResellerId,
+        toModel: "Reseller",
+        title: "You have proposed a counter offer for a pair request.",
+        description: "You have proposed a counter offer for a pair request.",
+        type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+
+      notification.createNotification({
+        toId: pairRequest.retailerId,
+        toModel: "Retailer",
+        title: "You have received a counter offer for your pair request.",
+        description: "Reseller has proposed a counter offer for your pair request.",
+        type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+    ]);
+
+    return {
+      status: pairRequest.status,
+      price: offerPrice,
+    };
   }
 
-  if (pairRequest?.resellerId.toString() !== profileId) {
-    throw new ApiError(
-      403,
-      "You can not make counter offer of this pair request.",
-    );
+  // 2. Try finding in ProductRequestModel
+  const productRequest = await ProductRequestModel.findById(pairRequestId);
+  if (!productRequest) {
+    throw new ApiError(404, "Request not found to propose counter offer.");
   }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
-    throw new ApiError(
-      400,
-      "You can not make counter offer of this accepted pair request.",
-    );
+  if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+    throw new ApiError(403, "You can not make counter offer of this product request.");
   }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
-    throw new ApiError(
-      400,
-      "You can not make counter offer of this rejected pair request.",
-    );
+  if (productRequest.status === "Accepted") {
+    throw new ApiError(400, "You can not make counter offer of this accepted product request.");
   }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
-    throw new ApiError(
-      400,
-      "You can not make counter offer of this cancelled pair request.",
-    );
+  if (productRequest.status === "Declined") {
+    throw new ApiError(400, "You can not make counter offer of this declined product request.");
   }
 
-  pairRequest.status = ENUM_PAIR_REQUEST_STATUS.COUNTER;
+  if (!variants || variants.length === 0) {
+    throw new ApiError(400, "Variants list is required for product request counter offer.");
+  }
 
-  pairRequest.offerHistory.push({
-    offeredBy: ENUM_USER_Type.RESELLER,
-    price: offerPrice,
-    // note: payload.note || ""
+  // Update variants and calculate total counter price (for history)
+  let totalCounterPrice = 0;
+  for (const item of variants) {
+    const match = (productRequest.variant as any).id(item.variantId);
+    if (!match) {
+      throw new ApiError(400, `Variant with ID ${item.variantId} not found in this request.`);
+    }
+    match.offerPrice = item.offerPrice;
+    match.quantity = item.quantity;
+    totalCounterPrice += item.offerPrice * item.quantity;
+  }
+
+  productRequest.status = "Countered";
+
+  if (!productRequest.offerHistory) {
+    productRequest.offerHistory = [];
+  }
+
+  productRequest.offerHistory.push({
+    offeredBy: "Reseller",
+    price: totalCounterPrice,
+    createdAt: new Date(),
   });
 
-  if (dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
+  await productRequest.save();
 
-  await pairRequest.save();
-
-  //notification to reseller
+  // Notifications
   await Promise.all([
     notification.createNotification({
-      toId: profileId,
+      toId: resolvedResellerId,
       toModel: "Reseller",
-      title: "You have proposed a counter offer for a pair request.",
-      description: "You have proposed a counter offer for a pair request.",
-      // message?: string;
+      title: "You have proposed a counter offer for a product request.",
+      description: "You have proposed a counter offer for a product request.",
       type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
 
-    //notification to retailer
     notification.createNotification({
-      toId: pairRequest?.retailerId,
+      toId: productRequest.retailerId,
       toModel: "Retailer",
-      title: "You have received a counter offer for your pair request.",
-      description:
-        "Reseller has proposed a counter offer for your pair request.",
-      // message?: string;
+      title: "You have received a counter offer for your product request.",
+      description: "Reseller has proposed a counter offer for your product request.",
       type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
   ]);
 
-  return {
-    status: pairRequest?.status,
-    price: offerPrice,
-  };
+  return productRequest;
 };
 
 const retailerProposeCounterOfferToPairRequest = async (
