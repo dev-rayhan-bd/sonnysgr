@@ -47,9 +47,58 @@ const makeRequestForPairValidationSchema = z.object({
 
 
 
+const VariantItemSchema = z.object({
+  gender: z.enum(["Men", "Women", "Kids"]),
+  size: z.coerce.string().min(1, "Size is required"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  offerPrice: z.coerce.number().min(0, "Offer price must be positive"),
+});
+
+const createProductRequestValidationSchema = z.object({
+  body: z.object({
+    resellerId: z.string().min(1, "Reseller ID is required").min(24, "Reseller ID must be a valid ObjectId"),
+    type: z.enum(["Shoes", "Clothing", "Cloths"]),
+    name: z.string().min(1, "Name is required"),
+    brand: z.string().min(1, "Brand is required"),
+    color: z.string().optional(),
+    styleCode: z.string().optional(),
+    variant: z.array(VariantItemSchema).min(1, "At least one variant is required"),
+    note: z.string().optional(),
+  }),
+});
+
+const updateProductRequestStatusValidationSchema = z.object({
+  body: z.object({
+    status: z.enum(["Accepted", "Declined", "Countered"]),
+    counterOfferPrice: z.number().min(0).optional(),
+  }),
+});
+
+const proposeCounterOfferValidationSchema = z.object({
+  body: z.object({
+    pairRequestId: z.string().min(24, "Pair request ID must be a valid ObjectId"),
+    offerPrice: z.number().min(0).optional(),
+    variants: z
+      .array(
+        z.object({
+          variantId: z.string().min(24, "Variant ID must be a valid ObjectId"),
+          currentOffer: z.number().min(0, "Current offer price cannot be negative"),
+          offerPrice: z.number().min(0, "Offer price cannot be negative"),
+          quantity: z.number().min(1, "Quantity must be at least 1"),
+        }),
+      )
+      .optional(),
+    dealCompletionType: z.enum(["Meetup", "Store dropoff", "Shipping", "Direct"]).optional(),
+    note: z.string().optional(),
+  }),
+});
+
 const PairsValidations = { 
     addnewPairValidationSchema,
-    makeRequestForPairValidationSchema
+    makeRequestForPairValidationSchema,
+    createProductRequestValidationSchema,
+    updateProductRequestStatusValidationSchema,
+    proposeCounterOfferValidationSchema
  };
 
 export default PairsValidations;

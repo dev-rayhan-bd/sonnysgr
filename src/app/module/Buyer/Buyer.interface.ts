@@ -15,11 +15,12 @@ export interface IBuyer {
     size: number;
   }[];
   brands: string[];
+  type: "man" | "woman" | "kid" | "";
   location: {
     type: string;
     coordinates: number[];
   };
-   address: string;
+  address: string;
   notification: {
     isRestockInMyShoeSize: boolean;
     isNearbyStoreAlert: boolean;
@@ -35,15 +36,15 @@ export interface IBuyer {
     isLockerCollectionPublic: boolean;
     isVipStatusPublic: boolean;
     isActivityPublic: boolean;
-  }
+  };
   myReviews: number;
   subscription: Types.ObjectId;
   subscriptionStartDate: Date;
   subscriptionEndDate: Date;
   discoveryRadius: number;
+  isProfileCompleted: boolean;
   createdAT: Date;
 }
-
 
 export interface IBuyerNotification {
   isRestockInMyShoeSize: boolean;

@@ -21,6 +21,7 @@ const RetailerSchema = new Schema<IRetailer>({
     email: { type: String, required: true, unique: true },
     coverImage: { type: String, default: "" },
     image: { type: String, default: "" },
+    license: { type: String, default: "" },
     // shoeSize: { type: Number, default: 0 },
     type: { type: String, default: "" },
     details: { type: String, default: "" },

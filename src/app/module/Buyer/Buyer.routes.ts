@@ -1,5 +1,5 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
+import {auth} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import BuyerValidations from "./Buyer.validation";
 import BuyerController from "./Buyer.controller";
@@ -10,31 +10,31 @@ const BuyerRouter = express.Router();
 
 BuyerRouter.post(
     "/set-buyer-notification-alerts",
-    authorizeUser,
+    auth(["Buyer"]),
     BuyerController.setBuyerNotificationAlertsController
 );
 
 BuyerRouter.post(
     "/set-buyer-shoe-size",
-    authorizeUser,
+    auth(["Buyer"]),
     BuyerController.addSelectedShoeSizeController
 );
 
 BuyerRouter.post(
     "/add-buyer-interested-brands",
-    authorizeUser,
+    auth(["Buyer"]),
     BuyerController.addBrandsOfInterestController
 );
 
 BuyerRouter.get(
     "/get-buyer-interests",
-    authorizeUser,
+    auth(["Buyer"]),
     BuyerController.getBuyersInterestsDataController
 );
 
 BuyerRouter.patch(
     "/update-buyer-profile",
-    authorizeUser,
+    auth(["Buyer"]),
     uploadProfile.single("profile-image"),
     BuyerController.updateBuyerProfileController
 );
@@ -44,32 +44,39 @@ BuyerRouter.patch(
 
 BuyerRouter.get(
     "/buyer-nearby-product",
-    authorizeUser,
+    auth(["Buyer"]),
     validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
     BuyerController.getBuyersInterestsDataController
 );
 
 BuyerRouter.get(
     "/buyer-followed-brand-product",
-    authorizeUser,
+    auth(["Buyer"]),
     // validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
     BuyerController.getBuyerFollowedBrandsProductsController
 );
 
 BuyerRouter.get(
     "/buyer-followed-retailer-product",
-    authorizeUser,
+    auth(["Buyer"]),
     // validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
     BuyerController.getBuyerFollowedRetailersProductsController
 );
 
 BuyerRouter.get(
     "/buyer-brand-retailer-wishlist",
-    authorizeUser,
+    auth(["Buyer"]),
     // validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
     BuyerController.getBuyerFollowedBrandStoreWishlistData
 );
 
+// Rabeyas code:
 
+BuyerRouter.patch(
+    "/complete-buyer-profile",
+    auth(["Buyer"], false),
+    validateRequest(BuyerValidations.completeBuyerProfileValidation),
+    BuyerController.completeBuyerProfileController
+);
 
 export default BuyerRouter;

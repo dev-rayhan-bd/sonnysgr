@@ -1,9 +1,9 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
+import {auth} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import RetailerValidations from "./Retailer.validation";
 import RetailerController from "./Retailer.controller";
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import { uploadRetailerFields } from "../../middlewares/multerMiddleware";
 
 
 const RetailerRouter = express.Router();
@@ -27,7 +27,7 @@ RetailerRouter.get(
 
 RetailerRouter.get(
     "/get-retailer-inventory",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.getRetailerInventoryController
 );
 
@@ -35,28 +35,32 @@ RetailerRouter.get(
 
 RetailerRouter.get(
     "/get-retailer-order",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.getRetailerAllOrdersController
 );
 
 RetailerRouter.post(
     "/toggle-retailer-operation-hour",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.toggleRetailerOperationHourController
 );
 
 RetailerRouter.patch(
     "/update-retailer-profile",
 
-    authorizeUser,
+    auth(["Retailer"]),
 
-    uploadProfile.fields([
+    uploadRetailerFields.fields([
         {
             name: "profile-image",
             maxCount: 1,
         },
         {
             name: "cover-image",
+            maxCount: 1,
+        },
+        {
+            name: "licence",
             maxCount: 1,
         },
     ]),
@@ -69,9 +73,9 @@ RetailerRouter.patch(
 RetailerRouter.post(
     "/add-verification-info",
 
-    authorizeUser,
+    auth(["Retailer"]),
 
-    uploadProfile.fields([
+    uploadRetailerFields.fields([
         {
             name: "retailer-file",
             maxCount: 1,
@@ -94,9 +98,9 @@ RetailerRouter.post(
 RetailerRouter.post(
     "/add-new-branch",
 
-    authorizeUser,
+    auth(["Retailer"]),
 
-    uploadProfile.fields([
+    uploadRetailerFields.fields([
         {
             name: "profile-image",
             maxCount: 1,
@@ -114,11 +118,30 @@ RetailerRouter.post(
 
 RetailerRouter.get(
     "/get-all-branch",
-    authorizeUser,
+    auth(["Retailer"]),
     RetailerController.getAllBranchController
 );
 
 
+RetailerRouter.patch("/complete-retailer-profile",
+    auth(["Retailer"], false),
+    uploadRetailerFields.fields([
+        {
+            name: "profile-image",
+            maxCount: 1,
+        },
+        {
+            name: "cover-image",
+            maxCount: 1,
+        },
+        {
+            name: "licence",
+            maxCount: 1,
+        },
+    ]),
+    validateRequest(RetailerValidations.completeRetailerProfileValidation),
+    RetailerController.completeRetailerProfileController
+);
 
 
 export default RetailerRouter;

@@ -15,6 +15,7 @@ const BuyerSchema = new Schema<IBuyer>({
         size: { type: Number, default: 0 }
     }],
     brands: { type: [String], default: [] },
+    type: { type: String, enum: ["man", "woman", "kid", ""], default: "" },
     location: {
         type: {
             type: String,
@@ -47,10 +48,31 @@ const BuyerSchema = new Schema<IBuyer>({
     subscription:{type:Schema.Types.ObjectId,ref:"Subscription"},
     subscriptionStartDate:{type:Date},
     subscriptionEndDate:{type:Date},
+    isProfileCompleted: { type: Boolean, default: false },
 }, { timestamps: true });
 
 //to enable geospatial queries on the location field, we need to create a 2dsphere index on it. This allows us to perform queries like finding nearby buyers based on their location.
 BuyerSchema.index({ location: "2dsphere"});
+
+BuyerSchema.pre("findOneAndDelete", async function (next) {
+    const doc = await this.model.findOne(this.getQuery());
+    if (doc) {
+        const buyerId = doc._id;
+        
+        // Delete related Auth record
+        await model("Auth").deleteMany({ profile: buyerId });
+
+        // Delete Follow records
+        await model("Follow").deleteMany({ buyerId });
+
+        // Delete WishList records
+        await model("WishList").deleteMany({ buyerId });
+
+        // Delete Cart records
+        await model("Cart").deleteMany({ buyerId });
+    }
+    next();
+});
 
 const BuyerModel = models.Buyer || model<IBuyer>("Buyer", BuyerSchema);
 

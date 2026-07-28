@@ -3,7 +3,7 @@ import {auth, authorizeUser} from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import ChatValidations from "./Chat.validation";
 import ChatController from "./Chat.controller";
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import { uploadChatFiles } from "../../middlewares/multerMiddleware";
 
 
 const ChatRouter = express.Router();
@@ -25,7 +25,7 @@ ChatRouter.get(
 //upload inage file in chat
 ChatRouter.post(
   "/upload-chat-files",
-  uploadProfile.array("chat-files", 5),
+  uploadChatFiles.array("chat-files", 5),
   ChatController.uploadChatFilesController
 );
 

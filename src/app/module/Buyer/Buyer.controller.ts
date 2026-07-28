@@ -132,12 +132,27 @@ const getBuyerFollowedBrandStoreWishlistData = catchAsync(async (req, res) => {
     });
 });
 
+const completeBuyerProfileController = catchAsync(async (req, res) => {
+    const user = (req as AuthRequest).user;
+    const { email } = req.body;
+
+    const result = await BuyerServices.completeBuyerProfileService(user, email, req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Buyer profile completed successfully.",
+        data: result,
+    });
+});
+
 const BuyerController = { 
     setBuyerNotificationAlertsController,
     addSelectedShoeSizeController,
     addBrandsOfInterestController,
     getBuyersInterestsDataController,
     updateBuyerProfileController,
+    completeBuyerProfileController,
 
     getNearbyProductsForBuyerController,
     getBuyerFollowedBrandsProductsController,
