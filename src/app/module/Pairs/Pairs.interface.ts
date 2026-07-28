@@ -33,7 +33,8 @@ export interface IPairs {
 export interface IOfferHistory {
   offeredBy: "Retailer" | "Reseller";
   price: number;
-  // note?: string;
+  counterNumber?: string;
+  quantity?: number;
   createdAt: Date;
 }
 

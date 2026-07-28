@@ -772,7 +772,7 @@ const proposeCounterOfferToPairRequest = async (
   userDetails: IJwtPayload,
   payload: any,
 ) => {
-  const { profileId, authId } = userDetails;
+  const { profileId, authId, role } = userDetails;
 
   const { pairRequestId, offerPrice, variants, dealCompletionType } = payload;
 
@@ -855,10 +855,6 @@ const proposeCounterOfferToPairRequest = async (
     throw new ApiError(404, "Request not found to propose counter offer.");
   }
 
-  if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
-    throw new ApiError(403, "You can not make counter offer of this product request.");
-  }
-
   if (productRequest.status === "Accepted") {
     throw new ApiError(400, "You can not make counter offer of this accepted product request.");
   }
@@ -867,12 +863,41 @@ const proposeCounterOfferToPairRequest = async (
     throw new ApiError(400, "You can not make counter offer of this declined product request.");
   }
 
+  // Determine role and validate counter counts
+  let offeredByRole: "Retailer" | "Reseller";
+  if (role === ENUM_USER_Type.RESELLER) {
+    if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You can not make counter offer of this product request.");
+    }
+    const resellerCounterCount = (productRequest.offerHistory || []).filter(
+      (h: any) => h.offeredBy === "Reseller",
+    ).length;
+    if (resellerCounterCount >= 2) {
+      throw new ApiError(400, "You have reached the maximum limit of 2 counter offers.");
+    }
+    offeredByRole = "Reseller";
+  } else if (role === ENUM_USER_Type.RETAILER) {
+    if (productRequest.retailerId.toString() !== profileId.toString()) {
+      throw new ApiError(403, "You can not make counter offer of this product request.");
+    }
+    const retailerCounterCount = (productRequest.offerHistory || []).filter(
+      (h: any) => h.offeredBy === "Retailer",
+    ).length;
+    if (retailerCounterCount >= 2) {
+      throw new ApiError(400, "You have reached the maximum limit of 2 counter offers.");
+    }
+    offeredByRole = "Retailer";
+  } else {
+    throw new ApiError(403, "You do not have permission to counter this product request.");
+  }
+
   if (!variants || variants.length === 0) {
     throw new ApiError(400, "Variants list is required for product request counter offer.");
   }
 
   // Update variants and calculate total counter price (for history)
   let totalCounterPrice = 0;
+  let totalQuantity = 0;
   for (const item of variants) {
     const match = (productRequest.variant as any).id(item.variantId);
     if (!match) {
@@ -890,6 +915,7 @@ const proposeCounterOfferToPairRequest = async (
     match.offerPrice = item.offerPrice;
     match.quantity = item.quantity;
     totalCounterPrice += item.offerPrice * item.quantity;
+    totalQuantity += item.quantity;
   }
 
   productRequest.status = "Countered";
@@ -898,19 +924,27 @@ const proposeCounterOfferToPairRequest = async (
     productRequest.offerHistory = [];
   }
 
+  const counterNum = productRequest.offerHistory.length + 1;
+
   productRequest.offerHistory.push({
-    offeredBy: "Reseller",
+    offeredBy: offeredByRole,
     price: totalCounterPrice,
+    counterNumber: `Counter #${counterNum}`,
+    quantity: totalQuantity,
     createdAt: new Date(),
   });
 
   await productRequest.save();
 
   // Notifications
+  const targetId = offeredByRole === "Reseller" ? productRequest.retailerId : productRequest.resellerId;
+  const targetModel = offeredByRole === "Reseller" ? "Retailer" : "Reseller";
+  const sourceModel = offeredByRole === "Reseller" ? "Reseller" : "Retailer";
+
   await Promise.all([
     notification.createNotification({
-      toId: resolvedResellerId,
-      toModel: "Reseller",
+      toId: profileId,
+      toModel: sourceModel,
       title: "You have proposed a counter offer for a product request.",
       description: "You have proposed a counter offer for a product request.",
       type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
@@ -920,10 +954,10 @@ const proposeCounterOfferToPairRequest = async (
     }),
 
     notification.createNotification({
-      toId: productRequest.retailerId,
-      toModel: "Retailer",
-      title: "You have received a counter offer for your product request.",
-      description: "Reseller has proposed a counter offer for your product request.",
+      toId: targetId,
+      toModel: targetModel,
+      title: "You have received a counter offer for a product request.",
+      description: `${sourceModel} has proposed a counter offer for a product request.`,
       type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
       referenceId: productRequest._id,
       referenceModel: "ProductRequest",
@@ -931,7 +965,18 @@ const proposeCounterOfferToPairRequest = async (
     }),
   ]);
 
-  return productRequest;
+  const existingOffersCount = (productRequest.offerHistory || []).filter(
+    (h: any) => h.offeredBy === offeredByRole,
+  ).length;
+
+  const countMessage = existingOffersCount >= 2
+    ? "You have reached the maximum limit of 2 counter offers."
+    : `You have used ${existingOffersCount} of 2 counter offers.`;
+
+  return {
+    productRequest,
+    message: countMessage,
+  };
 };
 
 const retailerProposeCounterOfferToPairRequest = async (
@@ -940,66 +985,164 @@ const retailerProposeCounterOfferToPairRequest = async (
 ) => {
   const { profileId, authId } = userDetails;
 
-  // const auth:any = AuthModel.findById(authId).select("role").lean();
+  const { pairRequestId, offerPrice, variants, dealCompletionType } = payload;
 
-  const { pairRequestId, offerPrice, dealCompletionType } = payload;
-
+  // 1. Try finding in PairRequestModel
   const pairRequest = await PairRequestModel.findById(pairRequestId);
 
-  if (!pairRequest) {
-    throw new ApiError(404, "Pair request not found to propose counter offer.");
+  if (pairRequest) {
+    if (pairRequest.retailerId.toString() !== profileId) {
+      throw new ApiError(403, "You can not make counter offer of this pair request.");
+    }
+
+    pairRequest.status = ENUM_PAIR_REQUEST_STATUS.COUNTER;
+
+    pairRequest.offerHistory.push({
+      offeredBy: ENUM_USER_Type.RETAILER,
+      price: offerPrice,
+      createdAt: new Date(),
+    });
+
+    if (dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
+
+    await pairRequest.save();
+
+    // notification to reseller and retailer
+    await Promise.all([
+      notification.createNotification({
+        toId: pairRequest.resellerId,
+        toModel: "Reseller",
+        title: "You have received a counter offer for a pair request.",
+        description: "You have received a counter offer for a pair request.",
+        type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+
+      notification.createNotification({
+        toId: profileId,
+        toModel: "Retailer",
+        title: "You have proposed a counter offer for your pair request.",
+        description: "You have proposed a counter offer for your pair request.",
+        type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+    ]);
+
+    return {
+      status: pairRequest.status,
+      price: offerPrice,
+    };
   }
 
-  if (pairRequest?.retailerId.toString() !== profileId) {
-    throw new ApiError(
-      403,
-      "You can not make counter offer of this pair request.",
-    );
+  // 2. Try finding in ProductRequestModel
+  const productRequest = await ProductRequestModel.findById(pairRequestId);
+  if (!productRequest) {
+    throw new ApiError(404, "Request not found to propose counter offer.");
   }
 
-  pairRequest.status = ENUM_PAIR_REQUEST_STATUS.COUNTER;
+  if (productRequest.retailerId.toString() !== profileId) {
+    throw new ApiError(403, "You can not make counter offer of this product request.");
+  }
 
-  pairRequest.offerHistory.push({
-    offeredBy: ENUM_USER_Type.RETAILER,
-    price: offerPrice,
-    // note: payload.note || ""
+  if (productRequest.status === "Accepted") {
+    throw new ApiError(400, "You can not make counter offer of this accepted product request.");
+  }
+
+  if (productRequest.status === "Declined") {
+    throw new ApiError(400, "You can not make counter offer of this declined product request.");
+  }
+
+  // Check Retailer counter count limit
+  const retailerCounterCount = (productRequest.offerHistory || []).filter(
+    (h: any) => h.offeredBy === "Retailer",
+  ).length;
+
+  if (retailerCounterCount >= 2) {
+    throw new ApiError(400, "You have reached the maximum limit of 2 counter offers.");
+  }
+
+  if (!variants || variants.length === 0) {
+    throw new ApiError(400, "Variants list is required for product request counter offer.");
+  }
+
+  // Update variants and calculate total counter price (for history)
+  let totalCounterPrice = 0;
+  let totalQuantity = 0;
+  for (const item of variants) {
+    const match = (productRequest.variant as any).id(item.variantId);
+    if (!match) {
+      throw new ApiError(400, `Variant with ID ${item.variantId} not found in this request.`);
+    }
+
+    // Check that original offer price has not changed
+    if (match.offerPrice !== item.currentOffer) {
+      throw new ApiError(
+        400,
+        `Original offer price for variant (${match.gender} - Size ${match.size}) has changed. Original price is ${match.offerPrice} but currentOffer was sent as ${item.currentOffer}. Please refresh.`,
+      );
+    }
+
+    match.offerPrice = item.offerPrice;
+    match.quantity = item.quantity;
+    totalCounterPrice += item.offerPrice * item.quantity;
+    totalQuantity += item.quantity;
+  }
+
+  productRequest.status = "Countered";
+
+  if (!productRequest.offerHistory) {
+    productRequest.offerHistory = [];
+  }
+
+  const counterNum = productRequest.offerHistory.length + 1;
+
+  productRequest.offerHistory.push({
+    offeredBy: "Retailer",
+    price: totalCounterPrice,
+    counterNumber: `Counter #${counterNum}`,
+    quantity: totalQuantity,
+    createdAt: new Date(),
   });
 
-  if (dealCompletionType) pairRequest.dealCompletionType = dealCompletionType;
+  await productRequest.save();
 
-  await pairRequest.save();
-
-  //notification to reseller
+  // Notifications
   await Promise.all([
     notification.createNotification({
-      toId: profileId,
+      toId: productRequest.resellerId,
       toModel: "Reseller",
-      title: "You have received a counter offer for a pair request.",
-      description: "You have received a counter offer for a pair request.",
-      // message?: string;
+      title: "You have received a counter offer for a product request.",
+      description: "You have received a counter offer for a product request.",
       type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
 
-    //notification to retailer
     notification.createNotification({
-      toId: pairRequest?.retailerId,
+      toId: profileId,
       toModel: "Retailer",
-      title: "You have proposed a counter offer for your pair request.",
-      description: "You have proposed a counter offer for your pair request.",
-      // message?: string;
+      title: "You have proposed a counter offer for a product request.",
+      description: "You have proposed a counter offer for a product request.",
       type: ENUM_NOTIFICATION_TYPE.COUNTER_OFFER,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
   ]);
 
+  const retailerNewCount = retailerCounterCount + 1;
+  const retailerMessage = retailerNewCount >= 2
+    ? "You have reached the maximum limit of 2 counter offers."
+    : `You have used ${retailerNewCount} of 2 counter offers.`;
+
   return {
-    status: pairRequest?.status,
-    price: offerPrice,
+    productRequest,
+    message: retailerMessage,
   };
 };
 

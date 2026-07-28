@@ -169,30 +169,44 @@ const rejectPairRequestController = catchAsync(async (req, res) => {
 });
 
 const proposeCounterOfferToPairRequestController = catchAsync(async (req, res) => {
-
     const { user } = req as AuthRequest;
 
     const result = await PairsServices.proposeCounterOfferToPairRequest(user, req.body);
 
+    const message = result && (result as any).message 
+        ? (result as any).message 
+        : "Counter offer proposed successfully.";
+
+    const data = result && (result as any).productRequest 
+        ? (result as any).productRequest 
+        : result;
+
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Counter offer proposed successfully.",
-        data: result,
+        message,
+        data,
     });
 });
 
 const retailerProposeCounterOfferToPairRequestController = catchAsync(async (req, res) => {
-
     const { user } = req as AuthRequest;
 
     const result = await PairsServices.retailerProposeCounterOfferToPairRequest(user, req.body);
 
+    const message = result && (result as any).message 
+        ? (result as any).message 
+        : "Counter offer proposed successfully.";
+
+    const data = result && (result as any).productRequest 
+        ? (result as any).productRequest 
+        : result;
+
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Counter offer proposed successfully.",
-        data: result,
+        message,
+        data,
     });
 });
 

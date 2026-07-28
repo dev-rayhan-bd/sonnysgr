@@ -203,6 +203,8 @@ const productRequestSchema = new Schema<IProductRequest>(
           required: true,
         },
         price: { type: Number, required: true },
+        counterNumber: { type: String },
+        quantity: { type: Number },
         createdAt: { type: Date, default: Date.now },
       },
     ],
