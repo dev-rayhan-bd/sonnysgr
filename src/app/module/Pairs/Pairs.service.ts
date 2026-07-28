@@ -509,8 +509,8 @@ const acceptPairRequest = async (
   const { profileId } = userDetails;
 
   const pairRequest: any = await PairRequestModel.findById(pairRequestId);
+  console.log("pair request:",pairRequestId);
 
-  // console.log("pair request:",pairRequest);
 
   if (!pairRequest) {
     throw new ApiError(404, "Pair request not found to accept.");

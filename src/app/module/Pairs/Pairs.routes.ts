@@ -86,21 +86,21 @@ PairsRouter.get(
 
 PairsRouter.post(
   "/accept-product-request/:id",
-  authorizeUser,
+  auth(["Reseller", ]),
   // validateRequest(PairsValidations.addNewPairsZodSchema),
   PairsController.acceptPairRequestController,
 );
 
 PairsRouter.post(
   "/cancel-product-request/:id",
-  authorizeUser,
+  auth(["Reseller", ]),
   // validateRequest(PairsValidations.addNewPairsZodSchema),
   PairsController.cancelPairRequestController,
 );
 
 PairsRouter.post(
   "/reject-pair-request/:id",
-  authorizeUser,
+  auth(["Reseller", "Retailer"]),
   // validateRequest(PairsValidations.addNewPairsZodSchema),
   PairsController.rejectPairRequestController,
 );
