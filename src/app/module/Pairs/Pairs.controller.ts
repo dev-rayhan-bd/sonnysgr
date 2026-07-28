@@ -226,6 +226,20 @@ const getProductRequestsController = catchAsync(async (req, res) => {
     });
 });
 
+const updateProductRequestStatusController = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+    const { id } = req.params;
+
+    const result = await PairsServices.updateProductRequestStatus(user, id, req.body);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: `Product request status updated to ${req.body.status} successfully.`,
+        data: result,
+    });
+});
+
 const PairsController = {
     addNewPairsController,
     editPairsController,
@@ -243,7 +257,8 @@ const PairsController = {
     rejectPairRequestController,
     proposeCounterOfferToPairRequestController,
     createProductRequestController,
-    getProductRequestsController
+    getProductRequestsController,
+    updateProductRequestStatusController
 };
 
 export default PairsController;

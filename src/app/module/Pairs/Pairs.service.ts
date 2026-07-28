@@ -9,7 +9,11 @@ import {
   ENUM_USER_Type,
 } from "../../../utilities/enum";
 import { IPairs } from "./Pairs.interface";
-import { PairRequestModel, PairsModel, ProductRequestModel } from "./Pairs.model";
+import {
+  PairRequestModel,
+  PairsModel,
+  ProductRequestModel,
+} from "./Pairs.model";
 import PairsValidations from "./Pairs.validation";
 import ResellerModel from "../Reseller/Reseller.model";
 
@@ -43,7 +47,7 @@ const addNewPairsToReseller = async (
     tshirtAttributes,
     description,
     quantity,
-    productStatus
+    productStatus,
   } = payload;
 
   // console.log("sneakerAttributes:",sneakerAttributes);
@@ -62,7 +66,7 @@ const addNewPairsToReseller = async (
     askingPrice,
     description,
     quantity,
-    productStatus
+    productStatus,
   };
 
   // console.log("payload before:", pairPayload);
@@ -171,7 +175,7 @@ const getMyListedPairs = async (
     variant,
     gender,
     size,
-    productStatus
+    productStatus,
   } = query;
 
   const filter: Record<string, any> = {
@@ -299,7 +303,7 @@ const makeRequestForPairService = async (
     validityHours,
     note,
     dealCompletionType,
-    status
+    status,
   } = payload;
 
   console.log("make request payload:", payload);
@@ -474,13 +478,28 @@ const getAllPairRequestsForReseller = async (
 };
 
 const getSInglePairRequestService = async (pairRequestId: string) => {
-  const pairRequest = await PairRequestModel.findById(pairRequestId).lean();
+  console.log(pairRequestId);
+  let request: any = await PairRequestModel.findById(pairRequestId).lean();
+  console.log(request);
 
-  if (!pairRequest) {
-    throw new ApiError(404, "Pair request not found.");
+  if (!request) {
+    request = await ProductRequestModel.findById(pairRequestId)
+      .populate({
+        path: "retailerId",
+        select: "name image address averageRating badge",
+      })
+      .populate({
+        path: "resellerId",
+        select: "name image address badge",
+      })
+      .lean();
   }
 
-  return pairRequest;
+  if (!request) {
+    throw new ApiError(404, "Request not found.");
+  }
+
+  return request;
 };
 
 const acceptPairRequest = async (
@@ -918,7 +937,10 @@ const createProductRequest = async (
 
   // 1. Authorization Check: Only Retailer can submit a request
   if (role !== ENUM_USER_Type.RETAILER) {
-    throw new ApiError(403, "Only retailers are authorized to submit product requests.");
+    throw new ApiError(
+      403,
+      "Only retailers are authorized to submit product requests.",
+    );
   }
 
   // Handle map aliases: brand/brannd, styleCode/style-code/sku
@@ -942,7 +964,10 @@ const createProductRequest = async (
     try {
       variant = JSON.parse(variant);
     } catch (e) {
-      throw new ApiError(400, "Invalid format for variant. Must be a valid JSON array.");
+      throw new ApiError(
+        400,
+        "Invalid format for variant. Must be a valid JSON array.",
+      );
     }
   }
 
@@ -964,12 +989,15 @@ const createProductRequest = async (
   };
 
   // Perform validation using Zod
-  const validationResult = PairsValidations.createProductRequestValidationSchema.safeParse({
-    body: dataToValidate,
-  });
+  const validationResult =
+    PairsValidations.createProductRequestValidationSchema.safeParse({
+      body: dataToValidate,
+    });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.issues.map((err: any) => `${err.path.join('.')}: ${err.message}`).join(', ');
+    const errorMessages = validationResult.error.issues
+      .map((err: any) => `${err.path.join(".")}: ${err.message}`)
+      .join(", ");
     throw new ApiError(400, `Validation Error: ${errorMessages}`);
   }
 
@@ -988,7 +1016,9 @@ const createProductRequest = async (
 
   // Normalize gender to Capitalized
   const formattedVariants = validatedData.variant.map((v: any) => {
-    const gender = v.gender.trim().charAt(0).toUpperCase() + v.gender.trim().slice(1).toLowerCase();
+    const gender =
+      v.gender.trim().charAt(0).toUpperCase() +
+      v.gender.trim().slice(1).toLowerCase();
     return {
       gender,
       size: v.size,
@@ -1001,7 +1031,10 @@ const createProductRequest = async (
   const productRequest = new ProductRequestModel({
     retailerId: profileId,
     resellerId: resolvedResellerId,
-    type: validatedData.type === "Cloths" ? ENUM_PRODUCT_TYPE.CLOTHING : validatedData.type,
+    type:
+      validatedData.type === "Cloths"
+        ? ENUM_PRODUCT_TYPE.CLOTHING
+        : validatedData.type,
     images: imageUrls,
     name: validatedData.name,
     brand: validatedData.brand,
@@ -1023,7 +1056,10 @@ const getAllProductRequests = async (
 
   // 1. Authorization: Only Retailer and Reseller can retrieve
   if (role !== ENUM_USER_Type.RETAILER && role !== ENUM_USER_Type.RESELLER) {
-    throw new ApiError(403, "You do not have permission to view product requests.");
+    throw new ApiError(
+      403,
+      "You do not have permission to view product requests.",
+    );
   }
 
   let { page, limit, brand, type, resellerId } = query;
@@ -1038,7 +1074,9 @@ const getAllProductRequests = async (
     let resolvedResellerId = profileId;
     const resellerProfile = await ResellerModel.findById(profileId);
     if (!resellerProfile) {
-      const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+      const resellerByAuth = await ResellerModel.findOne({
+        auth: authId || profileId,
+      });
       if (resellerByAuth) {
         resolvedResellerId = resellerByAuth._id.toString();
       }
@@ -1104,6 +1142,76 @@ const getAllProductRequests = async (
   };
 };
 
+const updateProductRequestStatus = async (
+  userDetails: IJwtPayload,
+  id: string,
+  payload: {
+    status: "Accepted" | "Declined" | "Countered";
+    counterOfferPrice?: number;
+  },
+) => {
+  const { profileId, authId, role } = userDetails;
+
+  // 1. Authorization Check: Only Reseller can update status
+  if (role !== ENUM_USER_Type.RESELLER) {
+    throw new ApiError(
+      403,
+      "Only resellers are authorized to update product request status.",
+    );
+  }
+
+  // Find the product request
+  const productRequest = await ProductRequestModel.findById(id);
+  if (!productRequest) {
+    throw new ApiError(404, "Product request not found.");
+  }
+
+  // Resolve reseller's profile ID
+  let resolvedResellerId = profileId;
+  const resellerProfile = await ResellerModel.findById(profileId);
+  if (!resellerProfile) {
+    const resellerByAuth = await ResellerModel.findOne({
+      auth: authId || profileId,
+    });
+    if (resellerByAuth) {
+      resolvedResellerId = resellerByAuth._id.toString();
+    }
+  }
+
+  // Ensure this reseller is assigned to the request
+  if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+    throw new ApiError(
+      403,
+      "You do not have permission to update this product request.",
+    );
+  }
+
+  const { status, counterOfferPrice } = payload;
+
+  if (status === "Countered") {
+    if (counterOfferPrice === undefined || counterOfferPrice === null) {
+      throw new ApiError(
+        400,
+        "Counter offer price is required for Countered status.",
+      );
+    }
+    // Append to offer history
+    if (!productRequest.offerHistory) {
+      productRequest.offerHistory = [];
+    }
+    productRequest.offerHistory.push({
+      offeredBy: "Reseller",
+      price: counterOfferPrice,
+      createdAt: new Date(),
+    });
+  }
+
+  productRequest.status = status;
+  await productRequest.save();
+
+  return productRequest;
+};
+
 const PairsServices = {
   addNewPairsToReseller,
   editPairsDetails,
@@ -1122,6 +1230,7 @@ const PairsServices = {
   proposeCounterOfferToPairRequest,
   createProductRequest,
   getAllProductRequests,
+  updateProductRequestStatus,
 };
 
 export default PairsServices;

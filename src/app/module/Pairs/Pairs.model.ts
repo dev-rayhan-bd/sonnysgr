@@ -190,6 +190,22 @@ const productRequestSchema = new Schema<IProductRequest>(
       },
     ],
     note: { type: String, default: "" },
+    status: {
+      type: String,
+      enum: ["Pending", "Accepted", "Declined", "Countered"],
+      default: "Pending",
+    },
+    offerHistory: [
+      {
+        offeredBy: {
+          type: String,
+          enum: ["Retailer", "Reseller"],
+          required: true,
+        },
+        price: { type: Number, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true },
 );

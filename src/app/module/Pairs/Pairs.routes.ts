@@ -75,28 +75,28 @@ PairsRouter.post(
 //get all pair request
 
 PairsRouter.get(
-    "/get-pair-requests",
+    "/get-product-requests",
     authorizeUser,
     // validateRequest(PairsValidations.addNewPairsZodSchema),
     PairsController.getAllpairRequestController
 );
 
 PairsRouter.get(
-    "/get-single-pair-request/:id",
+    "/get-single-product-request/:id",
     // authorizeUser,
     // validateRequest(PairsValidations.addNewPairsZodSchema),
     PairsController.getSinglePairRequestDetails
 );
 
 PairsRouter.post(
-    "/accept-pair-request/:id",
+    "/accept-product-request/:id",
     authorizeUser,
     // validateRequest(PairsValidations.addNewPairsZodSchema),
     PairsController.acceptPairRequestController
 );
 
 PairsRouter.post(
-    "/cancel-pair-request/:id",
+    "/cancel-product-request/:id",
     authorizeUser,
     // validateRequest(PairsValidations.addNewPairsZodSchema),
     PairsController.cancelPairRequestController
@@ -114,6 +114,13 @@ PairsRouter.post(
     authorizeUser,
     // validateRequest(PairsValidations.addNewPairsZodSchema),
     PairsController.proposeCounterOfferToPairRequestController
+);
+
+PairsRouter.patch(
+    "/update-product-request-status/:id",
+    auth(["Reseller"]),
+    validateRequest(PairsValidations.updateProductRequestStatusValidationSchema),
+    PairsController.updateProductRequestStatusController
 );
 
 

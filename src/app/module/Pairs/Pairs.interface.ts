@@ -79,6 +79,7 @@ export interface IProductRequest {
   }[];
   note?: string;
   status: string;
+  offerHistory?: IOfferHistory[];
   createdAt?: Date;
   updatedAt?: Date;
 }

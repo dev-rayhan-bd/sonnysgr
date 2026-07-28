@@ -67,10 +67,18 @@ const createProductRequestValidationSchema = z.object({
   }),
 });
 
+const updateProductRequestStatusValidationSchema = z.object({
+  body: z.object({
+    status: z.enum(["Accepted", "Declined", "Countered"]),
+    counterOfferPrice: z.number().min(0).optional(),
+  }),
+});
+
 const PairsValidations = { 
     addnewPairValidationSchema,
     makeRequestForPairValidationSchema,
-    createProductRequestValidationSchema
+    createProductRequestValidationSchema,
+    updateProductRequestStatusValidationSchema
  };
 
 export default PairsValidations;
