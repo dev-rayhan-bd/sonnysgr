@@ -506,266 +506,468 @@ const acceptPairRequest = async (
   userDetails: IJwtPayload,
   pairRequestId: string,
 ) => {
-  const { profileId } = userDetails;
+  const { profileId, authId, role } = userDetails;
 
+  // Resolve reseller profile ID
+  let resolvedResellerId = profileId;
+  const resellerProfile = await ResellerModel.findById(profileId);
+  if (!resellerProfile) {
+    const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+    if (resellerByAuth) {
+      resolvedResellerId = resellerByAuth._id.toString();
+    }
+  }
+
+  // 1. Try finding in PairRequestModel first
   const pairRequest: any = await PairRequestModel.findById(pairRequestId);
-  console.log("pair request:",pairRequestId);
 
+  if (pairRequest) {
+    if (pairRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You can not accept this pair request.");
+    }
 
-  if (!pairRequest) {
-    throw new ApiError(404, "Pair request not found to accept.");
-  }
+    //check already accepted or rejected
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
+      throw new ApiError(400, "You have already accepted the pair request.");
+    }
 
-  if (pairRequest.resellerId.toString() !== profileId) {
-    throw new ApiError(403, "You can not accept this pair request.");
-  }
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+      throw new ApiError(400, "You can not accept a already rejected request.");
+    }
 
-  //check already accepted or rejected
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
-    throw new ApiError(400, "You have already accepted the pair request.");
-  }
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+      throw new ApiError(400, "You can not accept a already cancelled request.");
+    }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
-    throw new ApiError(400, "You can not accept a already rejected request.");
-  }
+    //check before accept that the stock is available
+    const pair = await PairsModel.findById(pairRequest?.pairId);
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
-    throw new ApiError(400, "You can not accept a already cancelled request.");
-  }
+    if (!pair) {
+      throw new ApiError(404, "Pair not found.");
+    }
 
-  //check before accept that the stock is available
-  const pair = await PairsModel.findById(pairRequest?.pairId);
+    //check pair stock is available
+    const variant = pair.variant.find(
+      (item: any) =>
+        item?.size == pairRequest?.variant?.size.toString() &&
+        item?.gender == pairRequest?.variant?.gender,
+    );
 
-  if (!pair) {
-    throw new ApiError(404, "Pair not found.");
-  }
+    if (!variant) {
+      throw new ApiError(404, "Pair stock not found.");
+    }
 
-  //check pair stock is available
-  const variant = pair.variant.find(
-    (item: any) =>
-      item?.size == pairRequest?.variant?.size.toString() &&
-      item?.gender == pairRequest?.variant?.gender,
-  );
+    if (variant?.stock < pairRequest?.quantity) {
+      throw new ApiError(400, "Pair stock is not available.");
+    }
 
-  if (!variant) {
-    throw new ApiError(404, "Pair stock not found.");
-  }
-
-  if (variant?.stock < pairRequest?.quantity) {
-    throw new ApiError(400, "Pair stock is not available.");
-  }
-
-  //adjust the quantity of the pairs based on the accepted request
-  const adjustPairStock = await PairsModel.findOneAndUpdate(
-    {
-      _id: pairRequest?.pairId,
-      variant: {
-        $elemMatch: {
-          gender: pairRequest?.variant?.gender,
-          size: pairRequest?.variant?.size,
-          stock: { $gte: pairRequest?.quantity },
+    //adjust the quantity of the pairs based on the accepted request
+    const adjustPairStock = await PairsModel.findOneAndUpdate(
+      {
+        _id: pairRequest?.pairId,
+        variant: {
+          $elemMatch: {
+            gender: pairRequest?.variant?.gender,
+            size: pairRequest?.variant?.size,
+            stock: { $gte: pairRequest?.quantity },
+          },
         },
       },
-    },
-    {
-      $inc: {
-        "variant.$.stock": -pairRequest?.quantity,
+      {
+        $inc: {
+          "variant.$.stock": -pairRequest?.quantity,
+        },
       },
-    },
-    { new: true },
-  );
+      { new: true },
+    );
 
-  // console.log("adjusted pair stock:",adjustPairStock);
+    if (!adjustPairStock) {
+      throw new ApiError(400, "You do not have enough stock for this request.");
+    }
 
-  if (!adjustPairStock) {
-    throw new ApiError(400, "You do not have enough stock for this request.");
+    pairRequest.status = ENUM_PAIR_REQUEST_STATUS.ACCEPTED;
+    await pairRequest.save();
+
+    //send notification to the retailer about the acceptance of their pair request (this can be implemented using a notification service or system)
+    //notification to reseller
+    await Promise.all([
+      notification.createNotification({
+        toId: resolvedResellerId,
+        toModel: "Reseller",
+        title: "You have accepted a pair request.",
+        description: "You have acepted a pair request offer",
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.ACCEPTED_PAIR_REQUEST,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+
+      //notification to retailer
+      notification.createNotification({
+        toId: pairRequest?.retailerId,
+        toModel: "Retailer",
+        title: "Your requested pair is accepted.",
+        description: "Reseller has accepted your pair request offer.",
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.ACCEPTED_PAIR_REQUEST,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+    ]);
+
+    return {
+      status: pairRequest?.status,
+      price: pairRequest?.askingPrice,
+    };
   }
 
-  pairRequest.status = ENUM_PAIR_REQUEST_STATUS.ACCEPTED;
-  await pairRequest.save();
+  // 2. Try finding in ProductRequestModel
+  const productRequest = await ProductRequestModel.findById(pairRequestId);
+  if (!productRequest) {
+    throw new ApiError(404, "Request not found to accept.");
+  }
 
-  //send notification to the retailer about the acceptance of their pair request (this can be implemented using a notification service or system)
-  //notification to reseller
+  // Only reseller can accept
+  if (role !== ENUM_USER_Type.RESELLER) {
+    throw new ApiError(403, "Only resellers can accept product requests.");
+  }
+
+  if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+    throw new ApiError(403, "You do not have permission to accept this product request.");
+  }
+
+  if (productRequest.status === "accepted") {
+    throw new ApiError(400, "This product request is already accepted.");
+  }
+
+  productRequest.status = "accepted";
+  productRequest.acceptedBy = resolvedResellerId as any;
+  productRequest.acceptedAt = new Date();
+
+  await productRequest.save();
+
+  // Send notifications
   await Promise.all([
     notification.createNotification({
-      toId: profileId,
+      toId: resolvedResellerId,
       toModel: "Reseller",
-      title: "You have accepted a pair request.",
-      description: "You have acepted a pair request offer",
-      // message?: string;
-      type: ENUM_NOTIFICATION_TYPE.ACCEPTED_PAIR_REQUEST,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      title: "You have accepted a product request.",
+      description: "You have accepted a product request.",
+      type: ENUM_NOTIFICATION_TYPE.NEW_PAIR_REQUEST,
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
-
-    //notification to retailer
     notification.createNotification({
-      toId: pairRequest?.retailerId,
+      toId: productRequest.retailerId,
       toModel: "Retailer",
-      title: "Your requested pair is accepted.",
-      description: "Reseller has accepted your pair request offer.",
-      // message?: string;
-      type: ENUM_NOTIFICATION_TYPE.ACCEPTED_PAIR_REQUEST,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      title: "Your product request has been accepted.",
+      description: "Reseller has accepted your product request.",
+      type: ENUM_NOTIFICATION_TYPE.NEW_PAIR_REQUEST,
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
   ]);
 
-  return {
-    status: pairRequest?.status,
-    price: pairRequest?.askingPrice,
-  };
+  return productRequest;
 };
 
 const cancelPairRequest = async (
   userDetails: IJwtPayload,
   pairRequestId: string,
 ) => {
-  const { profileId } = userDetails;
+  const { profileId, authId, role } = userDetails;
 
+  // Resolve reseller profile ID
+  let resolvedResellerId = profileId;
+  const resellerProfile = await ResellerModel.findById(profileId);
+  if (!resellerProfile) {
+    const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+    if (resellerByAuth) {
+      resolvedResellerId = resellerByAuth._id.toString();
+    }
+  }
+
+  // 1. Try finding in PairRequestModel first
   const pairRequest = await PairRequestModel.findById(pairRequestId);
 
-  if (!pairRequest) {
-    throw new ApiError(404, "Pair request not found to cancel.");
-  }
+  if (pairRequest) {
+    if (pairRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You can not reject this pair request.");
+    }
 
-  if (pairRequest.resellerId.toString() !== profileId) {
-    throw new ApiError(403, "You can not reject this pair request.");
-  }
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+      throw new ApiError(400, "You have already cancelled the pair request.");
+    }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
-    throw new ApiError(400, "You have already cancelled the pair request.");
-  }
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+      throw new ApiError(400, "You can not cancel a already rejected request.");
+    }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
-    throw new ApiError(400, "You can not cancel a already rejected request.");
-  }
+    pairRequest.status = ENUM_PAIR_REQUEST_STATUS.CANCELLED;
+    await pairRequest.save();
 
-  pairRequest.status = ENUM_PAIR_REQUEST_STATUS.CANCELLED;
-  await pairRequest.save();
-
-  //add stock back to the pair
-  const addStockBack = await PairsModel.findOneAndUpdate(
-    {
-      _id: pairRequest?.pairId,
-      variant: {
-        $elemMatch: {
-          gender: pairRequest?.variant?.gender,
-          size: pairRequest?.variant?.size,
+    //add stock back to the pair
+    const addStockBack = await PairsModel.findOneAndUpdate(
+      {
+        _id: pairRequest?.pairId,
+        variant: {
+          $elemMatch: {
+            gender: pairRequest?.variant?.gender,
+            size: pairRequest?.variant?.size,
+          },
         },
       },
-    },
-    {
-      $inc: {
-        "variant.$.stock": pairRequest?.quantity,
+      {
+        $inc: {
+          "variant.$.stock": pairRequest?.quantity,
+        },
       },
-    },
-    { new: true },
-  );
+      { new: true },
+    );
 
-  if (!addStockBack) {
-    throw new ApiError(400, "Failed to add stock back to the pair");
+    if (!addStockBack) {
+      throw new ApiError(400, "Failed to add stock back to the pair");
+    }
+
+    //notification to reseller
+    await Promise.all([
+      notification.createNotification({
+        toId: resolvedResellerId,
+        toModel: "Reseller",
+        title: "You have cancelled a pair request.",
+        description: "You have cancelled a pair request offer",
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.CANCELLED_PAIR_REQUEST,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+
+      //notification to retailer
+      notification.createNotification({
+        toId: pairRequest?.retailerId,
+        toModel: "Retailer",
+        title: "Your requested pair is cancelled.",
+        description: "Reseller has cancelled your pair request offer.",
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.CANCELLED_PAIR_REQUEST,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+    ]);
+
+    return {
+      status: pairRequest?.status,
+      price: pairRequest?.askingPrice,
+    };
   }
 
-  //notification to reseller
+  // 2. Try finding in ProductRequestModel
+  const productRequest = await ProductRequestModel.findById(pairRequestId);
+  if (!productRequest) {
+    throw new ApiError(404, "Request not found to cancel.");
+  }
+
+  // Both Retailer and Reseller can Cancel
+  let actorId = profileId;
+  let actorRole: "Retailer" | "Reseller";
+  if (role === ENUM_USER_Type.RESELLER) {
+    if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You do not have permission to cancel this product request.");
+    }
+    actorId = resolvedResellerId;
+    actorRole = "Reseller";
+  } else if (role === ENUM_USER_Type.RETAILER) {
+    if (productRequest.retailerId.toString() !== profileId.toString()) {
+      throw new ApiError(403, "You do not have permission to cancel this product request.");
+    }
+    actorRole = "Retailer";
+  } else {
+    throw new ApiError(403, "You do not have permission to cancel this product request.");
+  }
+
+  if (productRequest.status === "cancelled") {
+    throw new ApiError(400, "This product request is already cancelled.");
+  }
+
+  productRequest.status = "cancelled";
+  productRequest.cancelledBy = actorId as any;
+  productRequest.cancelledByRole = actorRole;
+  productRequest.cancelledAt = new Date();
+
+  await productRequest.save();
+
+  // Send notifications
+  const targetId = actorRole === "Reseller" ? productRequest.retailerId : productRequest.resellerId;
+  const targetModel = actorRole === "Reseller" ? "Retailer" : "Reseller";
+
   await Promise.all([
     notification.createNotification({
       toId: profileId,
-      toModel: "Reseller",
-      title: "You have cancelled a pair request.",
-      description: "You have cancelled a pair request offer",
-      // message?: string;
+      toModel: actorRole,
+      title: "You have cancelled a product request.",
+      description: "You have cancelled a product request.",
       type: ENUM_NOTIFICATION_TYPE.CANCELLED_PAIR_REQUEST,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
-
-    //notification to retailer
     notification.createNotification({
-      toId: pairRequest?.retailerId,
-      toModel: "Retailer",
-      title: "Your requested pair is cancelled.",
-      description: "Reseller has cancelled your pair request offer.",
-      // message?: string;
+      toId: targetId,
+      toModel: targetModel,
+      title: "A product request has been cancelled.",
+      description: `${actorRole} has cancelled the product request.`,
       type: ENUM_NOTIFICATION_TYPE.CANCELLED_PAIR_REQUEST,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
   ]);
 
-  return {
-    status: pairRequest?.status,
-    price: pairRequest?.askingPrice,
-  };
+  return productRequest;
 };
 
 const rejectPairRequest = async (
   userDetails: IJwtPayload,
   pairRequestId: string,
 ) => {
-  const { profileId } = userDetails;
+  const { profileId, authId, role } = userDetails;
 
+  // Resolve reseller profile ID
+  let resolvedResellerId = profileId;
+  const resellerProfile = await ResellerModel.findById(profileId);
+  if (!resellerProfile) {
+    const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+    if (resellerByAuth) {
+      resolvedResellerId = resellerByAuth._id.toString();
+    }
+  }
+
+  // 1. Try finding in PairRequestModel first
   const pairRequest = await PairRequestModel.findById(pairRequestId);
 
-  if (!pairRequest) {
-    throw new ApiError(404, "Pair request not found to cancel.");
+  if (pairRequest) {
+    if (pairRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You can not reject this pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
+      throw new ApiError(400, "You have already rejected the pair request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
+      throw new ApiError(400, "You can not reject a already accepted request.");
+    }
+
+    if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
+      throw new ApiError(400, "You can not reject a already cancelled request.");
+    }
+
+    pairRequest.status = ENUM_PAIR_REQUEST_STATUS.REJECTED;
+    await pairRequest.save();
+
+    //notification to reseller
+    await Promise.all([
+      notification.createNotification({
+        toId: resolvedResellerId,
+        toModel: "Reseller",
+        title: "You have rejected a pair request.",
+        description: "You have rejected a pair request offer",
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.REJECTED_PAIR_REQUEST,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+
+      //notification to retailer
+      notification.createNotification({
+        toId: pairRequest?.retailerId,
+        toModel: "Retailer",
+        title: "Your requested pair is rejected.",
+        description: "Reseller has rejected your pair request offer.",
+        // message?: string;
+        type: ENUM_NOTIFICATION_TYPE.REJECTED_PAIR_REQUEST,
+        referenceId: pairRequest._id,
+        referenceModel: "PairRequestModel",
+        metadata: {},
+      }),
+    ]);
+
+    return {
+      status: pairRequest?.status,
+      price: pairRequest?.askingPrice,
+    };
   }
 
-  if (pairRequest.resellerId.toString() !== profileId) {
-    throw new ApiError(403, "You can not reject this pair request.");
+  // 2. Try finding in ProductRequestModel
+  const productRequest = await ProductRequestModel.findById(pairRequestId);
+  if (!productRequest) {
+    throw new ApiError(404, "Request not found to reject.");
   }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.REJECTED) {
-    throw new ApiError(400, "You have already rejected the pair request.");
+  // Both Retailer and Reseller can Reject
+  let actorId = profileId;
+  let actorRole: "Retailer" | "Reseller";
+  if (role === ENUM_USER_Type.RESELLER) {
+    if (productRequest.resellerId.toString() !== resolvedResellerId.toString()) {
+      throw new ApiError(403, "You do not have permission to reject this product request.");
+    }
+    actorId = resolvedResellerId;
+    actorRole = "Reseller";
+  } else if (role === ENUM_USER_Type.RETAILER) {
+    if (productRequest.retailerId.toString() !== profileId.toString()) {
+      throw new ApiError(403, "You do not have permission to reject this product request.");
+    }
+    actorRole = "Retailer";
+  } else {
+    throw new ApiError(403, "You do not have permission to reject this product request.");
   }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.ACCEPTED) {
-    throw new ApiError(400, "You can not reject a already accepted request.");
+  if (productRequest.status === "rejected") {
+    throw new ApiError(400, "This product request is already rejected.");
   }
 
-  if (pairRequest?.status === ENUM_PAIR_REQUEST_STATUS.CANCELLED) {
-    throw new ApiError(400, "You can not reject a already cancelled request.");
-  }
+  productRequest.status = "rejected";
+  productRequest.rejectedBy = actorId as any;
+  productRequest.rejectedByRole = actorRole;
+  productRequest.rejectedAt = new Date();
 
-  pairRequest.status = ENUM_PAIR_REQUEST_STATUS.REJECTED;
-  await pairRequest.save();
+  await productRequest.save();
 
-  //notification to reseller
+  // Send notifications
+  const targetId = actorRole === "Reseller" ? productRequest.retailerId : productRequest.resellerId;
+  const targetModel = actorRole === "Reseller" ? "Retailer" : "Reseller";
+
   await Promise.all([
     notification.createNotification({
       toId: profileId,
-      toModel: "Reseller",
-      title: "You have rejected a pair request.",
-      description: "You have rejected a pair request offer",
-      // message?: string;
+      toModel: actorRole,
+      title: "You have rejected a product request.",
+      description: "You have rejected a product request.",
       type: ENUM_NOTIFICATION_TYPE.REJECTED_PAIR_REQUEST,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
-
-    //notification to retailer
     notification.createNotification({
-      toId: pairRequest?.retailerId,
-      toModel: "Retailer",
-      title: "Your requested pair is rejected.",
-      description: "Reseller has rejected your pair request offer.",
-      // message?: string;
+      toId: targetId,
+      toModel: targetModel,
+      title: "A product request has been rejected.",
+      description: `${actorRole} has rejected the product request.`,
       type: ENUM_NOTIFICATION_TYPE.REJECTED_PAIR_REQUEST,
-      referenceId: pairRequest._id,
-      referenceModel: "PairRequestModel",
+      referenceId: productRequest._id,
+      referenceModel: "ProductRequest",
       metadata: {},
     }),
   ]);
 
-  return {
-    status: pairRequest?.status,
-    price: pairRequest?.askingPrice,
-  };
+  return productRequest;
 };
 
 const proposeCounterOfferToPairRequest = async (

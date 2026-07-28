@@ -192,7 +192,7 @@ const productRequestSchema = new Schema<IProductRequest>(
     note: { type: String, default: "" },
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Declined", "Countered"],
+      enum: ["Pending", "Accepted", "Declined", "Countered", "accepted", "rejected", "cancelled"],
       default: "Pending",
     },
     offerHistory: [
@@ -208,6 +208,14 @@ const productRequestSchema = new Schema<IProductRequest>(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    acceptedBy: { type: Schema.Types.ObjectId, ref: "Reseller" },
+    acceptedAt: { type: Date },
+    rejectedBy: { type: Schema.Types.ObjectId },
+    rejectedByRole: { type: String, enum: ["Retailer", "Reseller"] },
+    rejectedAt: { type: Date },
+    cancelledBy: { type: Schema.Types.ObjectId },
+    cancelledByRole: { type: String, enum: ["Retailer", "Reseller"] },
+    cancelledAt: { type: Date },
   },
   { timestamps: true },
 );

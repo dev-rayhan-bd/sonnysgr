@@ -106,6 +106,12 @@ PairsRouter.post(
 );
 
 PairsRouter.post(
+  "/reject-product-request/:id",
+  auth(["Reseller", "Retailer"]),
+  PairsController.rejectPairRequestController,
+);
+
+PairsRouter.post(
   "/propose-counter-offer",
   auth(["Reseller", "Retailer"]),
   validateRequest(PairsValidations.proposeCounterOfferValidationSchema),

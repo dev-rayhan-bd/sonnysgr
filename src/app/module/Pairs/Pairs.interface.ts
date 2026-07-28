@@ -81,6 +81,14 @@ export interface IProductRequest {
   note?: string;
   status: string;
   offerHistory?: IOfferHistory[];
+  acceptedBy?: Types.ObjectId;
+  acceptedAt?: Date;
+  rejectedBy?: Types.ObjectId;
+  rejectedByRole?: "Retailer" | "Reseller";
+  rejectedAt?: Date;
+  cancelledBy?: Types.ObjectId;
+  cancelledByRole?: "Retailer" | "Reseller";
+  cancelledAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
