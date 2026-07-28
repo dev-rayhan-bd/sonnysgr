@@ -30,6 +30,13 @@ const AuthSchema = new Schema<IAuth>({
     isResetPaswordEmailVerified: { type: Boolean, default: false },
     isProfileCompleted: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
+    status: {
+        type: String,
+        enum: ["Active", "Warning", "Banned", "Deactivated", "Suspended"],
+        default: "Active"
+    },
+    statusReason: { type: String, default: "" },
+    statusUpdatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
 // UserSchema.pre('save', async function (next) {

@@ -17,6 +17,9 @@ export interface IAuth {
     isResetPaswordEmailVerified: boolean;
     isProfileCompleted: boolean;
     isBlocked: boolean;
+    status?: "Active" | "Warning" | "Banned" | "Deactivated" | "Suspended";
+    statusReason?: string;
+    statusUpdatedAt?: Date;
 }
 
 export type TRegisterUser = {

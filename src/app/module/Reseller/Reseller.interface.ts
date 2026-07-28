@@ -23,5 +23,6 @@ export interface IReseller {
   subscriptionStartDate: Date;
   subscriptionEndDate: Date;
   isApproved: boolean;
+  trustScore?: number;
   createdAT: Date;
 }
