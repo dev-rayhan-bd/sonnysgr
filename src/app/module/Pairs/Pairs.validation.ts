@@ -82,8 +82,9 @@ const proposeCounterOfferValidationSchema = z.object({
       .array(
         z.object({
           variantId: z.string().min(24, "Variant ID must be a valid ObjectId"),
-          offerPrice: z.number().min(0),
-          quantity: z.number().min(1),
+          currentOffer: z.number().min(0, "Current offer price cannot be negative"),
+          offerPrice: z.number().min(0, "Offer price cannot be negative"),
+          quantity: z.number().min(1, "Quantity must be at least 1"),
         }),
       )
       .optional(),

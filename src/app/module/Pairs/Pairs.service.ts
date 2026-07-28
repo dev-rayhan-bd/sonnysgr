@@ -878,6 +878,15 @@ const proposeCounterOfferToPairRequest = async (
     if (!match) {
       throw new ApiError(400, `Variant with ID ${item.variantId} not found in this request.`);
     }
+
+    // Check that original offer price has not changed
+    if (match.offerPrice !== item.currentOffer) {
+      throw new ApiError(
+        400,
+        `Original offer price for variant (${match.gender} - Size ${match.size}) has changed. Original price is ${match.offerPrice} but currentOffer was sent as ${item.currentOffer}. Please refresh.`,
+      );
+    }
+
     match.offerPrice = item.offerPrice;
     match.quantity = item.quantity;
     totalCounterPrice += item.offerPrice * item.quantity;
