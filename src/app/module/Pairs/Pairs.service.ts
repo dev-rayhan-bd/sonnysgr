@@ -1019,7 +1019,7 @@ const getAllProductRequests = async (
     throw new ApiError(403, "You do not have permission to view product requests.");
   }
 
-  let { page, limit, brand, type } = query;
+  let { page, limit, brand, type, resellerId } = query;
 
   const filter: Record<string, any> = {};
 
@@ -1032,6 +1032,18 @@ const getAllProductRequests = async (
     const resellerProfile = await ResellerModel.findById(profileId);
     if (!resellerProfile) {
       const resellerByAuth = await ResellerModel.findOne({ auth: authId || profileId });
+      if (resellerByAuth) {
+        resolvedResellerId = resellerByAuth._id.toString();
+      }
+    }
+    filter.resellerId = resolvedResellerId;
+  }
+
+  if (resellerId) {
+    let resolvedResellerId = resellerId;
+    const resellerProfile = await ResellerModel.findById(resellerId);
+    if (!resellerProfile) {
+      const resellerByAuth = await ResellerModel.findOne({ auth: resellerId });
       if (resellerByAuth) {
         resolvedResellerId = resellerByAuth._id.toString();
       }
