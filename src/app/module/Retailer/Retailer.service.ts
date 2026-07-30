@@ -534,63 +534,6 @@ const addRetailerLicense = async (
 //retailer home page
 
 
-//retailer branch
-const addNewBranch = async (
-    userDetails: IJwtPayload,
-    profileImage: Express.Multer.File,
-    coverImage: Express.Multer.File,
-    payload: Partial<IRetailer>
-) => {
-
-    const { authId, profileId } = userDetails;
-
-    // console.log("Retailer branch cover and profile image:",profileImage,coverImage);
-
-    const parentStore: any = await RetailerModel.findById(profileId).select("email").lean();
-
-    const branchPayload: any = {
-        parentStore: profileId,
-        authId,
-        email: parentStore?.email,
-        ...payload
-    }
-
-    if (profileImage) {
-        branchPayload.image = `uploads/profile-image/${profileImage?.filename}`;
-
-        // deleteOldFile(profile?.image);
-    }
-
-    if (coverImage) {
-        branchPayload.coverImage = `uploads/cover-image/${coverImage?.filename}`;
-
-        // deleteOldFile(profile?.coverImage);
-    }
-
-
-    const branch = await RetailerModel.create(branchPayload);
-
-    if (!branch) {
-        throw new ApiError(500, "Failed to create new branch store.");
-    }
-
-    return null;
-}
-
-const getAllBranch = async (userDetails: IJwtPayload) => {
-
-    const { profileId } = userDetails;
-
-    const branches = await RetailerModel.find({ parentStore: profileId }).lean();
-
-    return branches;
-
-}
-
-
-
-
-
 //dashboard
 
 const getAllRetailerStoreService = async (query: Record<string, unknown>) => {
@@ -760,9 +703,6 @@ const RetailerServices = {
     getRetailerInventory,
     getAllOrdersOfRetailer,
     toggleOperationHour,
-
-    addNewBranch,
-    getAllBranch,
 
     updateRetailerProfileService,
     addRetailerLicense,
