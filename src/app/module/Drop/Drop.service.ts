@@ -19,15 +19,28 @@ const createDropService = async (
 
   const imageUrls = files ? files.map(file => `uploads/product-image/${file.filename}`) : [];
 
-  let accessDetailsObj = payload.AccessDetails;
-  if (typeof accessDetailsObj === "string") {
-    accessDetailsObj = JSON.parse(accessDetailsObj);
-  }
+  // Parse types from form-data payload
+  const vipEalryAccess = payload.vipEalryAccess === "true" || payload.vipEalryAccess === true;
+  const raffledrop = payload.raffledrop === "true" || payload.raffledrop === true;
+  const earlyMinustes = Number(payload.earlyMinustes) || 0;
+  const maximumEntries = Number(payload.maximumEntries) || 0;
+
+  const availablePairs = Number(payload.availablePairs) || 0;
+  const estimatedDemand = payload.estimatedDemand || "";
+  const staus = payload.staus || "upcomming";
 
   const dropData = {
     ...payload,
     dropImages: imageUrls,
-    AccessDetails: accessDetailsObj,
+    vipEalryAccess,
+    raffledrop,
+    earlyMinustes,
+    maximumEntries,
+    stockAvailablity: {
+      availablePairs,
+      estimatedDemand,
+      staus,
+    },
   };
 
   const result = await DropModel.create(dropData);
@@ -59,12 +72,32 @@ const editDropService = async (
     payload.dropImages = imageUrls;
   }
 
-  if (payload.AccessDetails) {
-    let accessDetailsObj = payload.AccessDetails;
-    if (typeof accessDetailsObj === "string") {
-      accessDetailsObj = JSON.parse(accessDetailsObj);
-    }
-    payload.AccessDetails = accessDetailsObj;
+  // Parse types from form-data payload if provided
+  if (payload.vipEalryAccess !== undefined) {
+    payload.vipEalryAccess = payload.vipEalryAccess === "true" || payload.vipEalryAccess === true;
+  }
+  if (payload.raffledrop !== undefined) {
+    payload.raffledrop = payload.raffledrop === "true" || payload.raffledrop === true;
+  }
+  if (payload.earlyMinustes !== undefined) {
+    payload.earlyMinustes = Number(payload.earlyMinustes) || 0;
+  }
+  if (payload.maximumEntries !== undefined) {
+    payload.maximumEntries = Number(payload.maximumEntries) || 0;
+  }
+
+  // Handle stockAvailablity nested update if flat fields are provided
+  if (payload.availablePairs !== undefined || payload.estimatedDemand !== undefined || payload.staus !== undefined) {
+    const currentStock = drop.stockAvailablity || { availablePairs: 0, estimatedDemand: "", staus: "upcomming" };
+    const availablePairs = payload.availablePairs !== undefined ? Number(payload.availablePairs) : currentStock.availablePairs;
+    const estimatedDemand = payload.estimatedDemand !== undefined ? payload.estimatedDemand : currentStock.estimatedDemand;
+    const staus = payload.staus !== undefined ? payload.staus : currentStock.staus;
+
+    payload.stockAvailablity = {
+      availablePairs,
+      estimatedDemand,
+      staus,
+    };
   }
 
   Object.assign(drop, payload);
