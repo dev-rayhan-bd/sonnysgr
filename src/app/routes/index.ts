@@ -16,6 +16,8 @@ import notificationRouter from "../module/Notification/Notification.routes";
 import ChatRouter from "../module/Chat/Chat.routes";
 import settingsRouter from "../module/Settings/Settings.routes";
 import adminUserRouter from "../module/Dashboard/users/users.route";
+import BranchRouter from "../module/Branch/Branch.route";
+import DropRouter from "../module/Drop/Drop.routes";
 
 const allRouter = Router();
 
@@ -39,6 +41,10 @@ const moduleRoutes = [
   {
     path: "/retailer",
     router: RetailerRouter,
+  },
+  {
+    path: "/branch",
+    router: BranchRouter,
   },
   {
     path: "/engagement",
@@ -88,6 +94,10 @@ const moduleRoutes = [
   {
     path: "/settings",
     router: settingsRouter,
+  },
+  {
+    path: "/drop",
+    router: DropRouter,
   },
 ];
 

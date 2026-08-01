@@ -9,14 +9,11 @@ import { initSocket } from './socket/socket.connection';
 import 'dotenv/config';
 import runCronJobEverydatAtNight from './helper/cron';
 
-
-
-//to connect database perfectly
 dns.setServers(["8.8.8.8"]);
 
 let myServer: HTTPServer | undefined;
 
-// ✅ Create HTTP server from Express app
+
 const server = http.createServer(app);
 
 const port =

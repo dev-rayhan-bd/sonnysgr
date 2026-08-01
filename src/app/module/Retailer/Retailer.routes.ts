@@ -92,35 +92,7 @@ RetailerRouter.post(
 ),
 
 
-//branch
-
-
-RetailerRouter.post(
-    "/add-new-branch",
-
-    auth(["Retailer"]),
-
-    uploadRetailerFields.fields([
-        {
-            name: "profile-image",
-            maxCount: 1,
-        },
-        {
-            name: "cover-image",
-            maxCount: 1,
-        },
-    ]),
-
-    validateRequest(RetailerValidations.addNewBranchValidationSchema),
-
-    RetailerController.addNewBranchController
-),
-
-RetailerRouter.get(
-    "/get-all-branch",
-    auth(["Retailer"]),
-    RetailerController.getAllBranchController
-);
+// profile completion
 
 
 RetailerRouter.patch("/complete-retailer-profile",
