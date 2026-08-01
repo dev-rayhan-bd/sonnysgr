@@ -21,7 +21,7 @@ const addProductService = async (
   if (!auth || auth.status !== "Active") {
     throw new ApiError(403,`${auth.status} user can not perform add product`);
   }
-console.log("product userDetails", userDetails);
+// console.log("product userDetails", userDetails);
   const {
     // retailerId,
     type,
