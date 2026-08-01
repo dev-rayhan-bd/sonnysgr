@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import { sendVerificationEmail } from "../../../helper/emailHelper";
 import { createToken } from "../../../helper/jwtHelper";
 import generateVerifyCode from "../../../utilities/codeGenerator";
-import { IUser } from "../User/User.interface";
 // import UserModel from "../User/User.model";
 import { JwtPayload, Secret, SignOptions } from "jsonwebtoken";
 import {
@@ -32,8 +31,8 @@ const generateLoginResponse = async (user: any) => {
     email: user?.email,
     profileId: user?.profile as string,
     role: user?.role as string,
+    status: user?.status as string,
   };
-
   const accessToken = createToken(
     tokenPayload,
     config.jwt.secret as Secret,
@@ -443,6 +442,7 @@ const loginWithSocialService = async (payload: any) => {
       email: user?.email,
       profileId: user?.profile,
       role: user?.role,
+      status: user?.status,
     };
 
     const accessToken = createToken(
@@ -522,6 +522,7 @@ const loginWithEmailService = async (payload: {
       email: user.email,
       profileId: user.profile,
       role: user.role,
+      status: user.status,
     };
 
     const accessToken = createToken(
@@ -584,6 +585,7 @@ const loginUserService = async (payload: TLoginUser) => {
     email: user?.email,
     profileId: user?.profile as string,
     role: user?.role as string,
+    status: user?.status as string,
   };
 
   const accessToken: string = createToken(
@@ -650,6 +652,7 @@ const emailVerifyCode = async (payload: {
     email: user?.email,
     profileId: user?.profile,
     role: user?.role,
+    status: user?.status,
   };
 
   const accessToken: string = createToken(
@@ -713,6 +716,7 @@ const resetPasswordEmailVerifyCode = async (payload: {
     email: user?.email,
     profileId: user?.profile,
     role: user?.role,
+    status: user?.status,
   };
 
   const accessToken: string = createToken(
@@ -824,6 +828,7 @@ const resetPasswordService = async (payload: IResetPassword) => {
     // profileId: user?.name,
     profileId: user?.profile as string,
     role: user?.role as string,
+    status: user?.status as string,
   };
 
   const accessToken: string = createToken(

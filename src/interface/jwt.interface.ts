@@ -5,4 +5,5 @@ export interface IJwtPayload {
     email: string;
     profileId: string;
     role: string;
+    status: string;
 }

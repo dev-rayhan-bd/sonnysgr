@@ -5,6 +5,7 @@ import deleteOldFile from "../../../utilities/deleteFile";
 import { IProduct, TAddProductPayload } from "./Product.interface";
 import { ProductModel, ProductVariantModel, RecentSearchModel } from "./Product.model";
 import { ENUM_PRODUCT_TYPE } from "../../../utilities/enum";
+import AuthModel from "../auth/auth.model";
 
 
 
@@ -15,8 +16,12 @@ const addProductService = async (
   payload: TAddProductPayload
 ) => {
 
-  const { profileId } = userDetails;
-
+  const { profileId, authId } = userDetails;
+  const auth = await AuthModel.findById(authId);
+  if (!auth || auth.status !== "Active") {
+    throw new ApiError(403,`${auth.status} user can not perform add product`);
+  }
+console.log("product userDetails", userDetails);
   const {
     // retailerId,
     type,
@@ -77,7 +82,7 @@ const addProductService = async (
       productPayload.variant = JSON.parse(variant as any);
     }
 
-    console.log("product data payload", productPayload);
+    // console.log("product data payload", productPayload);
 
     const createdProduct = await ProductModel.create([productPayload], {
       session,
@@ -122,7 +127,11 @@ const editProductService = async (
   files: Express.Multer.File[],
   productData: Partial<IProduct>
 ) => {
-  const { profileId } = userDetails;
+  const { profileId, authId } = userDetails;
+  const auth = await AuthModel.findById(authId);
+  if (!auth || auth.status !== "Active") {
+    throw new ApiError(403, `${auth.status} user can not perform add product`);
+  }
 
   const product = await ProductModel.findOne({ _id: productId, retailerId: profileId });
 
@@ -173,7 +182,11 @@ const editProductService = async (
 }
 
 const deleteProductService = async (userDetails: IJwtPayload, productId: string) => {
-  const { profileId } = userDetails;
+  const { profileId, authId } = userDetails;
+  const auth = await AuthModel.findById(authId);
+  if (!auth || auth.status !== "Active") {
+    throw new ApiError(403, `${auth.status} user can not perform add product`);
+  }
 
   const deleted = await ProductModel.findOneAndDelete({ _id: productId, retailerId: profileId });
 
