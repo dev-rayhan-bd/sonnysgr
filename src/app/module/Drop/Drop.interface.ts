@@ -7,16 +7,10 @@ export interface IDrop {
   realeaseDate: Date;
   time: string;
   timezone: string;
-  AccessDetails: {
-    vipEalryAccess: boolean;
-    earlyMinustes: number;
-    raffledrop: boolean;
-    maximumEntries: number;
-    stockAvailablity: {
-      availablePairs: number;
-      estimatedDemand: string;
-      staus: "upcomming" | "live" | "closed";
-    };
+  stockAvailablity: {
+    availablePairs: number;
+    estimatedDemand: string;
+    staus: "upcomming" | "live" | "closed";
   };
   createdAt: Date;
   updatedAt: Date;
