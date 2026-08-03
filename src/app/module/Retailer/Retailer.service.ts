@@ -297,7 +297,24 @@ const getRetailerInventory = async (userDetails: IJwtPayload, query: Record<stri
     };
 
     if (availability) {
-        filter.availability = availability
+        const availabilityStr = String(availability).toLowerCase().replace(/[-_]/g, ' ');
+        let mappedAvailability = availability;
+
+        if (availabilityStr === 'in stock' || availabilityStr === 'instock') {
+            mappedAvailability = ENUM_PRODUCT_AVAILABILITY.IN_STOCK;
+        } else if (availabilityStr === 'low stock' || availabilityStr === 'lowstock') {
+            mappedAvailability = ENUM_PRODUCT_AVAILABILITY.LOW_STOCK;
+        } else if (availabilityStr === 'coming soon' || availabilityStr === 'comming soon' || availabilityStr === 'comingsoon' || availabilityStr === 'commingsoon') {
+            mappedAvailability = ENUM_PRODUCT_AVAILABILITY.COMING_SOON;
+        } else if (availabilityStr === 'in retailer' || availabilityStr === 'inretailer' || availabilityStr === 'active') {
+            mappedAvailability = ENUM_PRODUCT_AVAILABILITY.ACTIVE;
+        } else if (availabilityStr === 'on hold' || availabilityStr === 'onhold') {
+            mappedAvailability = ENUM_PRODUCT_AVAILABILITY.ON_HOLD;
+        } else if (availabilityStr === 'sold out' || availabilityStr === 'soldout') {
+            mappedAvailability = ENUM_PRODUCT_AVAILABILITY.SOLD_OUT;
+        }
+
+        filter.availability = mappedAvailability;
     }
 
     if (type) {
@@ -308,7 +325,7 @@ const getRetailerInventory = async (userDetails: IJwtPayload, query: Record<stri
     limit = parseInt(limit as any) || 10;
     let skip = (page as number - 1) * (limit as number);
 
-    const [products, totalProducts] = await Promise.all([
+    const [products, totalProducts, statusCountsResult] = await Promise.all([
 
         ProductModel.find(filter)
             .select("-sneakerAttributes -tshirtAttributes")
@@ -316,8 +333,51 @@ const getRetailerInventory = async (userDetails: IJwtPayload, query: Record<stri
             .skip(skip).limit(limit as number)
             .lean(),
 
-        ProductModel.countDocuments(filter)
+        ProductModel.countDocuments(filter),
+
+        ProductModel.aggregate([
+            { $match: { retailerId: new mongoose.Types.ObjectId(profileId) } },
+            {
+                $project: {
+                    totalStock: {
+                        $reduce: {
+                            input: "$variant",
+                            initialValue: 0,
+                            in: { $add: ["$$value", { $ifNull: ["$$this.stock", 0] }] }
+                        }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    all: { $sum: 1 },
+                    inStock: {
+                        $sum: {
+                            $cond: [{ $gte: ["$totalStock", 5] }, 1, 0]
+                        }
+                    },
+                    lowStock: {
+                        $sum: {
+                            $cond: [{ $and: [{ $gt: ["$totalStock", 0] }, { $lt: ["$totalStock", 5] }] }, 1, 0]
+                        }
+                    },
+                    outOfStock: {
+                        $sum: {
+                            $cond: [{ $eq: ["$totalStock", 0] }, 1, 0]
+                        }
+                    }
+                }
+            }
+        ])
     ])
+
+    const counts = statusCountsResult[0] ? {
+        all: statusCountsResult[0].all || 0,
+        inStock: statusCountsResult[0].inStock || 0,
+        lowStock: statusCountsResult[0].lowStock || 0,
+        outOfStock: statusCountsResult[0].outOfStock || 0
+    } : { all: 0, inStock: 0, lowStock: 0, outOfStock: 0 };
 
     const totalPage = Math.ceil(totalProducts / (limit as number));
 
@@ -329,10 +389,10 @@ const getRetailerInventory = async (userDetails: IJwtPayload, query: Record<stri
             limit,
             total: totalProducts,
             totalPage,
-            hasNextPage
+            hasNextPage,
+            counts
         },
         products,
-        // productCount: products.length
     };
 
 
