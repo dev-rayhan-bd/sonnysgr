@@ -11,7 +11,7 @@ const PromotionRouter = express.Router();
 PromotionRouter.post(
     "/send-new-promotion",
     authorizeUser,
-    uploadPromotionalImage.single("promotion-image"),
+    uploadPromotionalImage.array("promotion-image", 5),
     validateRequest(PromotionValidations.createNewPromotionValidation),
     PromotionController.createNewPromotionController
 );
@@ -19,9 +19,9 @@ PromotionRouter.post(
 PromotionRouter.patch(
     "/edit-promotion",
     authorizeUser,
-    uploadPromotionalImage.single("promotion-image"),
+    uploadPromotionalImage.array("promotion-image", 5),
     // validateRequest(PromotionValidations.createNewPromotionValidation),
-    PromotionController.createNewPromotionController
+    PromotionController.editPromotion
 );
 
 

@@ -7,7 +7,7 @@ const createNewPromotionController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result = await PromotionServices.createNewPromotionService(user,req.file, req.body);
+    const result = await PromotionServices.createNewPromotionService(user, req.files as Express.Multer.File[] | undefined, req.body);
 
     sendResponse(res, {
         statusCode: 201,
@@ -21,7 +21,7 @@ const editPromotion = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result = await PromotionServices.editPromotionService(user,req.file,req.params.id, req.body);
+    const result = await PromotionServices.editPromotionService(user, req.files as Express.Multer.File[] | undefined, req.params.id, req.body);
 
     sendResponse(res, {
         statusCode: 200,

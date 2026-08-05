@@ -18,9 +18,9 @@ const PromotionSchema = new Schema<IPromotion>(
       default: ENUM_PROMOTION_TYPE.GENERAL_ANNOUNCEMENT,
     },
 
-    image: {
-      type: String,
-      default: ""
+    images: {
+      type: [String],
+      default: []
     },
 
     title: {
