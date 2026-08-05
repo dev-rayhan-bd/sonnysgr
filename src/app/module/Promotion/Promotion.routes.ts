@@ -35,8 +35,7 @@ PromotionRouter.get(
 PromotionRouter.get(
     "/get-buyer-promotion",
     authorizeUser,
-    validateRequest(PromotionValidations.validateLatLongSchema),
-    PromotionController.getAllPreviousPromotion
+    PromotionController.getBuyerPromotion
 );
 
 

@@ -228,14 +228,29 @@ const getAllBuyerPromotion = async (userDetails: IJwtPayload, query: Record<stri
   const {profileId} = userDetails;
   const {latitude,longitude} = query;
 
-  const profileObjectId = new mongoose.Schema.ObjectId(profileId);
+  const profileObjectId = new mongoose.Types.ObjectId(profileId);
+
+  let lat = latitude;
+  let lng = longitude;
+
+  if (!lat || !lng) {
+    const buyer = (await BuyerModel.findById(profileObjectId).lean()) as any;
+    if (buyer && buyer.location && buyer.location.coordinates) {
+      lng = buyer.location.coordinates[0];
+      lat = buyer.location.coordinates[1];
+    }
+  }
+
+  if (!lat || !lng) {
+    throw new ApiError(400, "Latitude and longitude coordinates are required in query parameters or buyer profile location.");
+  }
 
    const nearbyRetailers = await RetailerModel.aggregate([
     {
       $geoNear: {
         near: {
           type: "Point",
-          coordinates: [Number(longitude), Number(latitude)],
+          coordinates: [Number(lng), Number(lat)],
         },
         distanceField: "distance",
         maxDistance: 20 * 1000, // 20 km

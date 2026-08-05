@@ -49,7 +49,7 @@ const getBuyerPromotion = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result = await PromotionServices.getAllRetailerPromotion(user, req.query);
+    const result = await PromotionServices.getAllBuyerPromotion(user, req.query);
 
     sendResponse(res, {
         statusCode: 200,
