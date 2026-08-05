@@ -11,17 +11,17 @@ const PromotionRouter = express.Router();
 PromotionRouter.post(
     "/send-new-promotion",
     authorizeUser,
-    uploadPromotionalImage.single("promotion-image"),
+    uploadPromotionalImage.array("promotion-image", 5),
     validateRequest(PromotionValidations.createNewPromotionValidation),
     PromotionController.createNewPromotionController
 );
 
 PromotionRouter.patch(
-    "/edit-promotion",
+    "/edit-promotion/:id",
     authorizeUser,
-    uploadPromotionalImage.single("promotion-image"),
+    uploadPromotionalImage.array("promotion-image", 5),
     // validateRequest(PromotionValidations.createNewPromotionValidation),
-    PromotionController.createNewPromotionController
+    PromotionController.editPromotion
 );
 
 
@@ -35,8 +35,7 @@ PromotionRouter.get(
 PromotionRouter.get(
     "/get-buyer-promotion",
     authorizeUser,
-    validateRequest(PromotionValidations.validateLatLongSchema),
-    PromotionController.getAllPreviousPromotion
+    PromotionController.getBuyerPromotion
 );
 
 

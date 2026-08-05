@@ -108,7 +108,7 @@ const sendNowPromotion = async ( payload: IPromotion ) => {
 //create promotion
 const createNewPromotionService = async (
   userDetails: IJwtPayload,
-  file: Express.Multer.File | undefined, 
+  files: Express.Multer.File[] | undefined, 
   payload: Partial<IPromotion>
 ) => {
 
@@ -116,8 +116,10 @@ const createNewPromotionService = async (
 
     payload.retailerID = new mongoose.Types.ObjectId(profileId);
 
-    if(file){
-      payload.image = `uploads/promotion-image/${file.filename}`;
+    if (files && files.length > 0) {
+      payload.images = files.map(
+        (file) => `uploads/promotional-image/${file.filename}`
+      );
     }
 
     switch (payload.sendMethod) {
@@ -134,21 +136,11 @@ const createNewPromotionService = async (
     default: 
         throw new ApiError(400, "Invalid send method" );
   }
-
-    // const newPromotion = await PromotionModel.create({ ...payload, retaileriD: profileId });
-
-    // if (!newPromotion) {
-    //     throw new ApiError(500, "Failed to create promotion");
-    // }
-
-    // //after creating the promotion, you can implement logic to send notifications to the recipients based on the sendMethod and recepient fields. This might involve integrating with a notification service or sending emails, depending on your application's architecture.   
-
-    // return newPromotion;
 };
 
 const editPromotionService = async (
   userDetails: IJwtPayload,
-  file: Express.Multer.File | undefined,
+  files: Express.Multer.File[] | undefined,
   promotionId: string,
   payload: Partial<IPromotion>
 ) => {
@@ -159,13 +151,15 @@ const editPromotionService = async (
     ...payload
   }
 
-  if (file) {
-    updateData.image = `uploads/promotion-image/${file.filename}`;
+  if (files && files.length > 0) {
+    updateData.images = files.map(
+      (file) => `uploads/promotional-image/${file.filename}`
+    );
   }
 
   const updatedPromotion = await PromotionModel.findByIdAndUpdate(promotionId,{
     $set: {...updateData}
-  });
+  }, { new: true });
 
   if(!updatedPromotion){
     throw new ApiError(500,"Failed to update promotion.");
@@ -182,7 +176,7 @@ const getAllRetailerPromotion = async (userDetails: IJwtPayload, query: Record<s
   let {isActive,status,page ,limit} = query;
 
   let filter : any = {
-    retailerId: profileId,
+    retailerID: profileId,
   }
 
   if(isActive !== undefined){
@@ -234,14 +228,29 @@ const getAllBuyerPromotion = async (userDetails: IJwtPayload, query: Record<stri
   const {profileId} = userDetails;
   const {latitude,longitude} = query;
 
-  const profileObjectId = new mongoose.Schema.ObjectId(profileId);
+  const profileObjectId = new mongoose.Types.ObjectId(profileId);
+
+  let lat = latitude;
+  let lng = longitude;
+
+  if (!lat || !lng) {
+    const buyer = (await BuyerModel.findById(profileObjectId).lean()) as any;
+    if (buyer && buyer.location && buyer.location.coordinates) {
+      lng = buyer.location.coordinates[0];
+      lat = buyer.location.coordinates[1];
+    }
+  }
+
+  if (!lat || !lng) {
+    throw new ApiError(400, "Latitude and longitude coordinates are required in query parameters or buyer profile location.");
+  }
 
    const nearbyRetailers = await RetailerModel.aggregate([
     {
       $geoNear: {
         near: {
           type: "Point",
-          coordinates: [Number(longitude), Number(latitude)],
+          coordinates: [Number(lng), Number(lat)],
         },
         distanceField: "distance",
         maxDistance: 20 * 1000, // 20 km
@@ -361,6 +370,8 @@ const getAllBuyerPromotion = async (userDetails: IJwtPayload, query: Record<stri
         }
 
     ]);
+
+    return buyerFeed;
 
 }
 

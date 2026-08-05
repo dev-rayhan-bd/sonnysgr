@@ -172,7 +172,20 @@ const createReplyService = async (
 };
 
 const getReviewsService = async (query: Record<string, any>) => {
-  const { reviewedId, reviewerId, reviewType, limit = 10, page = 1 } = query;
+  const {
+    reviewedId,
+    reviewerId,
+    reviewType,
+    rating,
+    customerServiceRating,
+    authenticityRating,
+    pickupSpeedRating,
+    pricingRating,
+    reviewerType,
+    reviewedType,
+    limit = 10,
+    page = 1
+  } = query;
 
   const filter: Record<string, any> = {};
 
@@ -184,6 +197,27 @@ const getReviewsService = async (query: Record<string, any>) => {
   }
   if (reviewType) {
     filter.reviewType = reviewType;
+  }
+  if (reviewerType) {
+    filter.reviewerType = reviewerType;
+  }
+  if (reviewedType) {
+    filter.reviewedType = reviewedType;
+  }
+  if (rating) {
+    filter.rating = Number(rating);
+  }
+  if (customerServiceRating) {
+    filter.customerServiceRating = Number(customerServiceRating);
+  }
+  if (authenticityRating) {
+    filter.authenticityRating = Number(authenticityRating);
+  }
+  if (pickupSpeedRating) {
+    filter.pickupSpeedRating = Number(pickupSpeedRating);
+  }
+  if (pricingRating) {
+    filter.pricingRating = Number(pricingRating);
   }
 
   const skip = (Number(page) - 1) * Number(limit);

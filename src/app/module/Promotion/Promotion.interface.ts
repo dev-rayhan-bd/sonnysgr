@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 export interface IPromotion {
     retailerID: Types.ObjectId;
     type: string;
-    image: string;
+    images: string[];
     title: string;
     content: string;
     recepient: string;
