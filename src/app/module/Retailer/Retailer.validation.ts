@@ -60,7 +60,7 @@ const addVerificationInfoValidationSchema = z.object({
     
         
     }),
-});
+}); 
 
 
 
