@@ -17,7 +17,7 @@ PromotionRouter.post(
 );
 
 PromotionRouter.patch(
-    "/edit-promotion",
+    "/edit-promotion/:id",
     authorizeUser,
     uploadPromotionalImage.array("promotion-image", 5),
     // validateRequest(PromotionValidations.createNewPromotionValidation),
