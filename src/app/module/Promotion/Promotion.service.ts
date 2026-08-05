@@ -371,6 +371,8 @@ const getAllBuyerPromotion = async (userDetails: IJwtPayload, query: Record<stri
 
     ]);
 
+    return buyerFeed;
+
 }
 
 const PromotionServices = { 
