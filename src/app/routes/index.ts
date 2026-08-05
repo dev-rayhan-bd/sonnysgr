@@ -18,10 +18,15 @@ import settingsRouter from "../module/Settings/Settings.routes";
 import adminUserRouter from "../module/Dashboard/users/users.route";
 import BranchRouter from "../module/Branch/Branch.route";
 import DropRouter from "../module/Drop/Drop.routes";
+import ReviewManagementRouter from "../module/ReviewManagement/ReviewManagement.routes";
 
 const allRouter = Router();
 
 const moduleRoutes = [
+  {
+    path: "/review",
+    router: ReviewManagementRouter,
+  },
   {
     path: "/auth",
     router: authRouter,

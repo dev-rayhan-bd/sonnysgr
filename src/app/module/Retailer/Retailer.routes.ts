@@ -28,6 +28,7 @@ RetailerRouter.get(
 RetailerRouter.get(
     "/get-retailer-inventory",
     auth(["Retailer"]),
+    validateRequest(RetailerValidations.getRetailerInventoryValidationSchema),
     RetailerController.getRetailerInventoryController
 );
 

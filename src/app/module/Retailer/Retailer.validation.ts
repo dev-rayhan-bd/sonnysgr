@@ -60,7 +60,7 @@ const addVerificationInfoValidationSchema = z.object({
     
         
     }),
-});
+}); 
 
 
 
@@ -80,11 +80,21 @@ const completeRetailerProfileValidation = z.object({
     }),
 });
 
+const getRetailerInventoryValidationSchema = z.object({
+    query: z.object({
+        availability: z.string().optional(),
+        type: z.string().optional(),
+        page: z.string().optional(),
+        limit: z.string().optional(),
+    }),
+});
+
 const RetailerValidations = { 
     validateLatLongTofilterNearbyRetailers ,
     addNewBranchValidationSchema,
     addVerificationInfoValidationSchema,
-    completeRetailerProfileValidation
+    completeRetailerProfileValidation,
+    getRetailerInventoryValidationSchema
 };
 
 export default RetailerValidations;
