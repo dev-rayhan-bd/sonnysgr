@@ -176,7 +176,7 @@ const getAllRetailerPromotion = async (userDetails: IJwtPayload, query: Record<s
   let {isActive,status,page ,limit} = query;
 
   let filter : any = {
-    retailerId: profileId,
+    retailerID: profileId,
   }
 
   if(isActive !== undefined){
