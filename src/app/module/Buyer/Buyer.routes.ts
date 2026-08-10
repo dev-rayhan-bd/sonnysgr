@@ -79,4 +79,8 @@ BuyerRouter.patch(
     BuyerController.completeBuyerProfileController
 );
 
+import WishlistRouter from "./wishlist/wishlist.routes";
+
+BuyerRouter.use("/wishlist", WishlistRouter);
+
 export default BuyerRouter;
