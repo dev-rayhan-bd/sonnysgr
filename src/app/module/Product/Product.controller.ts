@@ -113,6 +113,17 @@ const deleteRecentSearchController = catchAsync(async (req, res) => {
   });
 });
 
+const getAllProductsController = catchAsync(async (req, res) => {
+  const result = await ProductServices.getAllProductsService(req.query);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Products retrieved successfully",
+    data: result,
+  });
+});
+
 const ProductController = {
   addProductController,
   editProductController,
@@ -121,6 +132,7 @@ const ProductController = {
   getTrendingNowAndRecentSearchesController,
   getProductDetailByIdController,
   deleteRecentSearchController,
+  getAllProductsController,
 };
 
 export default ProductController;
