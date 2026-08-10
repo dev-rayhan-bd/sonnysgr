@@ -6,6 +6,7 @@ import { IProduct, TAddProductPayload } from "./Product.interface";
 import { ProductModel, ProductVariantModel, RecentSearchModel } from "./Product.model";
 import { ENUM_PRODUCT_TYPE, ENUM_PRODUCT_AVAILABILITY } from "../../../utilities/enum";
 import AuthModel from "../auth/auth.model";
+import DemandServices from "../Demand/Demand.service";
 
 
 
@@ -290,6 +291,17 @@ const searchProductsService = async (userDetails: IJwtPayload, query: Record<str
     }
   }
 
+  // Asynchronously log demand search events for each found product
+  if (products && products.length > 0) {
+    products.forEach((product: any) => {
+      DemandServices.logDemandEventAsync({
+        buyerId: profileId,
+        productId: product._id.toString(),
+        retailerId: product.retailerId ? product.retailerId.toString() : undefined,
+        eventType: "search",
+      });
+    });
+  }
 
   return products;
 

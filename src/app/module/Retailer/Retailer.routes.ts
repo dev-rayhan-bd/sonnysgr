@@ -117,4 +117,8 @@ RetailerRouter.patch("/complete-retailer-profile",
 );
 
 
+import DemandRouter from "../Demand/Demand.routes";
+
+RetailerRouter.use("/demand", DemandRouter);
+
 export default RetailerRouter;
