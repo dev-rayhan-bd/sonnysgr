@@ -4,7 +4,7 @@ import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
 import { IProduct, TAddProductPayload } from "./Product.interface";
 import { ProductModel, ProductVariantModel, RecentSearchModel } from "./Product.model";
-import { ENUM_PRODUCT_TYPE } from "../../../utilities/enum";
+import { ENUM_PRODUCT_TYPE, ENUM_PRODUCT_AVAILABILITY } from "../../../utilities/enum";
 import AuthModel from "../auth/auth.model";
 
 
@@ -365,6 +365,34 @@ const deleteRecentSearchService = async (userDetails: IJwtPayload, recentSearchI
   return null;
 }
 
+const getAllProductsService = async (query: Record<string, unknown>) => {
+  let { page, limit } = query;
+  const pageNum = parseInt(page as string) || 1;
+  const limitNum = parseInt(limit as string) || 10;
+  const skip = (pageNum - 1) * limitNum;
+
+  const filter = { availability: ENUM_PRODUCT_AVAILABILITY.ACTIVE };
+
+  const products = await ProductModel.find(filter)
+    .populate("retailerId")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNum)
+    .lean();
+
+  const total = await ProductModel.countDocuments(filter);
+
+  return {
+    meta: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPage: Math.ceil(total / limitNum),
+    },
+    data: products,
+  };
+};
+
 const ProductServices = {
   addProductService,
   editProductService,
@@ -372,7 +400,8 @@ const ProductServices = {
   searchProductsService,
   getTrendingNowAndRecentSearchesSevice,
   getProductDetailsByIdService,
-  deleteRecentSearchService
+  deleteRecentSearchService,
+  getAllProductsService,
 };
 
 export default ProductServices;

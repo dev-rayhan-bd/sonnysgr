@@ -46,6 +46,12 @@ ProductRouter.get(
 );
 
 ProductRouter.get(
+    "/get-all-products",
+    authorizeUser,
+    ProductController.getAllProductsController
+);
+
+ProductRouter.get(
     "/get-product-detail/:id",
     ProductController.getProductDetailByIdController
 );
