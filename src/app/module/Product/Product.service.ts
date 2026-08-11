@@ -386,7 +386,7 @@ const getAllProductsService = async (query: Record<string, unknown>) => {
   const filter = { availability: ENUM_PRODUCT_AVAILABILITY.ACTIVE };
 
   const products = await ProductModel.find(filter)
-    .populate("retailerId")
+    .populate("retailerId", "name coverImage")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limitNum)

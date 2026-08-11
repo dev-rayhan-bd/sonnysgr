@@ -14,6 +14,12 @@ CartRouter.post(
     CartController.addToCartController
 );
 
+CartRouter.get(
+    "/my-cart",
+    authorizeUser,
+    CartController.getMyCartController
+);
+
 CartRouter.delete(
     "/delete-from-cart/:id",
     authorizeUser,
