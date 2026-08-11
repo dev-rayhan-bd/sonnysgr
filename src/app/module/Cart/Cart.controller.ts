@@ -26,7 +26,7 @@ const deleteFromCartItemController = catchAsync(async (req, res) => {
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: "Cart item updated successfully.",
+        message: "Cart item removed successfully.",
         data: result,
     });
 });
