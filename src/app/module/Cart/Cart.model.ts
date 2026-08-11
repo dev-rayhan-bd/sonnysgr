@@ -6,6 +6,7 @@ const CartSchema = new Schema<ICart>({
    buyerId: { type: Schema.Types.ObjectId, ref: "Buyer", required: true },
    productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
    retailerId: { type: Schema.Types.ObjectId, ref: "Retailer", required: true },
+   variantId: { type: Schema.Types.ObjectId, ref: "ProductVariant", required: true },
    unitPrice: { type: Number, required: true },
    quantity: { type: Number, required: true },
    totalPrice: { type: Number, required: true },
@@ -15,8 +16,7 @@ const CartSchema = new Schema<ICart>({
 
 CartSchema.index({
     buyerId: 1,
-    productId: 1,
-    selectedSize: 1,
+    variantId: 1,
 }, { unique: true });
 
 const CartModel = models.Cart || model<ICart>("Cart", CartSchema);

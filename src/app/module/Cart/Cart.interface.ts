@@ -4,6 +4,7 @@ export interface ICart {
     buyerId: Types.ObjectId;
     productId: Types.ObjectId;
     retailerId: Types.ObjectId;
+    variantId: Types.ObjectId;
     unitPrice: number;
     quantity: number;
     totalPrice: number;
@@ -13,10 +14,10 @@ export interface ICart {
 }
 
 export type TCartItem = {
-    productId: Types.ObjectId;
-    // retailerId: Types.ObjectId;
-    unitPrice: number;
+    productId?: Types.ObjectId;
+    variantId: Types.ObjectId;
+    unitPrice?: number;
     quantity: number;
-    totalPrice: number;
-    selectedSize: number;
+    totalPrice?: number;
+    selectedSize?: number;
 }
