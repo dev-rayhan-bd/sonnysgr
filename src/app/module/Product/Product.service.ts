@@ -56,6 +56,16 @@ const addProductService = async (
   try {
     session.startTransaction();
 
+    let parsedVariants: any[] = [];
+    if (variant) {
+      parsedVariants = JSON.parse(variant as any);
+    }
+
+    let finalPrice = price;
+    if (!finalPrice && parsedVariants.length > 0) {
+      finalPrice = Math.min(...parsedVariants.map((v: any) => v.price || 0));
+    }
+
     const productPayload: Record<string, unknown> = {
       retailerId: profileId,
       type: type,
@@ -64,8 +74,7 @@ const addProductService = async (
       description: description.trim(),
       styleCode,
       images: imageUrls || [],
-      price: price,
-      // gender,
+      price: finalPrice || 0,
       availability,
     };
 
@@ -80,7 +89,7 @@ const addProductService = async (
     }
 
     if (variant) {
-      productPayload.variant = JSON.parse(variant as any);
+      productPayload.variant = parsedVariants;
     }
 
     // console.log("product data payload", productPayload);
@@ -149,8 +158,14 @@ const editProductService = async (
     productData.images = imageUrls;
   }
 
+  let parsedVariants: any[] = [];
   if (productData.variant) {
-    productData.variant = JSON.parse(productData.variant as any);
+    parsedVariants = JSON.parse(productData.variant as any);
+    productData.variant = parsedVariants as any;
+  }
+
+  if (productData.variant && (!productData.price || productData.price <= 0) && parsedVariants.length > 0) {
+    productData.price = Math.min(...parsedVariants.map((v: any) => v.price || 0));
   }
 
   if (productData.sneakerAttributes) {
