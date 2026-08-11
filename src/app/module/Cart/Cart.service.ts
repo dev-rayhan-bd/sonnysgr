@@ -68,7 +68,7 @@ const addToCartService = async (userDetails: IJwtPayload, payload: TCartItem) =>
 
 const getMyCartService = async (buyerId: string) => {
   const cartItems = await CartModel.find({
-    buyerId,
+    buyerId: new mongoose.Types.ObjectId(buyerId),
     status: ENUM_CART_STATUS.ACTIVE,
   })
     .populate({path:"productId", select:"name price images brand color styleCode variant"})
@@ -571,7 +571,7 @@ const confirmCartOrderPaymentService = async (orderId: string) => {
 
 const CartServices = { 
     addToCartService,
-    // getCartItemsService,
+    getMyCartService,
     deleteCartItemService,
     increaseCartItemQuantityService,
     applypromoCodeService,

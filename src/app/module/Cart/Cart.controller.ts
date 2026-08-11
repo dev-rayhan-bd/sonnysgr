@@ -73,8 +73,22 @@ const placeOrderController = catchAsync(async (req, res) => {
     });
 });
 
+const getMyCartController = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+
+    const result = await CartServices.getMyCartService(user.profileId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Cart items retrieved successfully.",
+        data: result,
+    });
+});
+
 const CartController = { 
     addToCartController,
+    getMyCartController,
     deleteFromCartItemController,
     increaseCartItemQuantityController,
     applyPromoCodeController,
