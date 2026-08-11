@@ -15,13 +15,13 @@ const addToCartService = async (userDetails: IJwtPayload, payload: TCartItem) =>
     const { productId, quantity, selectedSize } = payload;
 
     if (!quantity || quantity < 1) {
-        throw new Error("Quantity must be at least 1");
+        throw new ApiError(400, "Quantity must be at least 1");
     }
 
     const product: any = await ProductModel.findById(productId).lean();
 
     if (!product) {
-        throw new Error("Product not found to add to cart");
+        throw new ApiError(404, "Product not found to add to cart");
     }
 
     const sizeInfo = product.variant?.find(
@@ -29,7 +29,7 @@ const addToCartService = async (userDetails: IJwtPayload, payload: TCartItem) =>
     );
 
     if (!sizeInfo) {
-        throw new Error("Selected size is not available");
+        throw new ApiError(400, "Selected size is not available");
     }
 
     const availableStock = sizeInfo.stock;
@@ -46,7 +46,7 @@ const addToCartService = async (userDetails: IJwtPayload, payload: TCartItem) =>
     }
 
     if (availableStock < quantity) {
-        throw new Error(`Only ${availableStock} items are available for this size`);
+        throw new ApiError(400, `Only ${availableStock} items are available for this size`);
     }
 
     const unitPrice = product.price;
@@ -138,7 +138,7 @@ const increaseCartItemQuantityService = async (userDetails: IJwtPayload, payload
         );
 
         if (!sizeInfo) {
-            throw new Error("Selected size is not available for this product");
+            throw new ApiError(400, "Selected size is not available for this product");
         }
 
         const duplicateItem = await CartModel.findOne({
@@ -160,7 +160,7 @@ const increaseCartItemQuantityService = async (userDetails: IJwtPayload, payload
 
     if (quantity !== undefined) {
         if (quantity < 1) {
-            throw new Error("Quantity must be at least 1");
+            throw new ApiError(400, "Quantity must be at least 1");
         }
         targetQuantity = quantity;
     }
@@ -170,13 +170,13 @@ const increaseCartItemQuantityService = async (userDetails: IJwtPayload, payload
     );
 
     if (!sizeInfo) {
-        throw new Error("Selected size is no longer available");
+        throw new ApiError(400, "Selected size is no longer available");
     }
 
     const availableStock = sizeInfo.stock - (sizeInfo.reservedStock || 0);
 
     if (availableStock < targetQuantity) {
-        throw new Error(`Only ${availableStock} items are available`);
+        throw new ApiError(400, `Only ${availableStock} items are available`);
     }
 
     cartItem.selectedSize = targetSize;
