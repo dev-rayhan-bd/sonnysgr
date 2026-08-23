@@ -14,6 +14,13 @@ const FollowSchema = new Schema<IFollow>({
     ref: "Retailer",
     required: true,
   },
+  alertPreferences: {
+    newArrivals: { type: Boolean, default: true },
+    exclusiveDrops: { type: Boolean, default: true },
+    flashSales: { type: Boolean, default: false },
+    restocks: { type: Boolean, default: true },
+    isCustomized: { type: Boolean, default: false }
+  },
   createdAt: {
     type: Date,
     default: Date.now,

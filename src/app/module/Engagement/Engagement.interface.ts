@@ -1,8 +1,17 @@
 import { Types } from "mongoose";
 
+export interface IStoreAlertPreferences {
+  newArrivals: boolean;
+  exclusiveDrops: boolean;
+  flashSales: boolean;
+  restocks: boolean;
+  isCustomized: boolean;
+}
+
 export interface IFollow {
   buyerId: Types.ObjectId;      // ref Buyer.id
   retailerId: Types.ObjectId;   // ref Retailer.id
+  alertPreferences?: IStoreAlertPreferences;
   createdAt: Date;
 }
 

@@ -91,8 +91,10 @@ BuyerRouter.patch(
 
 import WishlistRouter from "./wishlist/wishlist.routes";
 import FollowingRouter from "./following/following.routes";
+import AlertPreferencesRouter from "./alertSettings/alertSettings.routes";
 
 BuyerRouter.use("/wishlist", WishlistRouter);
 BuyerRouter.use("/following", FollowingRouter);
+BuyerRouter.use("/alert-preferences", AlertPreferencesRouter);
 
 export default BuyerRouter;
