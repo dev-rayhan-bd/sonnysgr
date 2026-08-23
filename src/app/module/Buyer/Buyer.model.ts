@@ -49,6 +49,17 @@ const BuyerSchema = new Schema<IBuyer>({
     subscriptionStartDate:{type:Date},
     subscriptionEndDate:{type:Date},
     isProfileCompleted: { type: Boolean, default: false },
+    alertPreferences: {
+        newArrivals: { type: Boolean, default: true },
+        exclusiveDrops: { type: Boolean, default: true },
+        flashSales: { type: Boolean, default: false },
+        restocks: { type: Boolean, default: true },
+        quietHours: {
+            active: { type: Boolean, default: false },
+            start: { type: String, default: "10:00 PM" },
+            end: { type: String, default: "08:00 AM" }
+        }
+    }
 }, { timestamps: true });
 
 //to enable geospatial queries on the location field, we need to create a 2dsphere index on it. This allows us to perform queries like finding nearby buyers based on their location.

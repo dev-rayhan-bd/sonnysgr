@@ -13,7 +13,8 @@ export interface IProduct {
   variant: {
     gender: TGender,
     size: string,
-    stock: number
+    stock: number,
+    price: number
   }[];
   sneakerAttributes?: {};
   tshirtAttributes?: {};

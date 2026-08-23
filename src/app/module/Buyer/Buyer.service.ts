@@ -9,6 +9,7 @@ import { IBuyer, IBuyerNotification } from "./Buyer.interface";
 import BuyerModel from "./Buyer.model";
 import { ProductModel } from "../Product/Product.model";
 import AuthModel from "../auth/auth.model";
+import QueryBuilder from "../../builders/QueryBuilder";
 
 const setBuyerNotificationAlerts = async (userDetails: IJwtPayload, payload: IBuyerNotification) => {
 
@@ -588,6 +589,56 @@ const completeBuyerProfileService = async (
     };
 };
 
+const getAllRetailersByBuyer = async (userDetails: IJwtPayload, query: Record<string, any>) => {
+    const { profileId } = userDetails;
+
+    // Use QueryBuilder for search, pagination, and sorting on RetailerModel
+    const retailerQueryObj = RetailerModel.find();
+    const queryBuilder = new QueryBuilder(retailerQueryObj, query)
+        .search(["name", "email", "address", "phone"])
+        .filter()
+        .sort()
+        .paginate();
+
+    const retailers = await queryBuilder.modelQuery.lean();
+    const meta = await queryBuilder.countTotal();
+
+    // Fetch buyer's followed retailers
+    const follows = await FollowModel.find({ buyerId: profileId }).select("retailerId").lean();
+    const followedRetailerIds = new Set(follows.map((f: any) => f.retailerId.toString()));
+
+    const data = retailers.map((retailer: any) => ({
+        ...retailer,
+        isFollowing: followedRetailerIds.has(retailer._id.toString()),
+    }));
+
+    return {
+        meta,
+        data,
+    };
+};
+
+const getSingleRetailerByBuyer = async (userDetails: IJwtPayload, retailerId: string) => {
+    const { profileId } = userDetails;
+
+    if (!mongoose.Types.ObjectId.isValid(retailerId)) {
+        throw new ApiError(400, "Invalid retailer ID format");
+    }
+
+    const retailer = await RetailerModel.findById(retailerId).lean();
+    if (!retailer) {
+        throw new ApiError(404, "Retailer not found");
+    }
+
+    // Check if buyer follows this retailer
+    const follow = await FollowModel.findOne({ buyerId: profileId, retailerId }).lean();
+
+    return {
+        ...retailer,
+        isFollowing: !!follow,
+    };
+};
+
 const BuyerServices = { 
     setBuyerNotificationAlerts,
     addSelectedShoeSize,
@@ -599,7 +650,10 @@ const BuyerServices = {
     getNearbyProductsForBuyer,
     getBuyersStoreBrandWishlistdataService,
     getBuyerFollowedBrandsProducts,
-    getBuyerFollowedRetailersProducts
+    getBuyerFollowedRetailersProducts,
+
+    getAllRetailersByBuyer,
+    getSingleRetailerByBuyer
 };
 
 export default BuyerServices;

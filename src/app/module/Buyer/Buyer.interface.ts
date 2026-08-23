@@ -43,7 +43,20 @@ export interface IBuyer {
   subscriptionEndDate: Date;
   discoveryRadius: number;
   isProfileCompleted: boolean;
+  alertPreferences?: IBuyerAlertPreferences;
   createdAT: Date;
+}
+
+export interface IBuyerAlertPreferences {
+  newArrivals: boolean;
+  exclusiveDrops: boolean;
+  flashSales: boolean;
+  restocks: boolean;
+  quietHours: {
+    active: boolean;
+    start: string;
+    end: string;
+  };
 }
 
 export interface IBuyerNotification {

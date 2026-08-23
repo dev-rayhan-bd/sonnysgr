@@ -1,14 +1,29 @@
 import { Types } from "mongoose";
 
+export interface IStoreAlertPreferences {
+  newArrivals: boolean;
+  exclusiveDrops: boolean;
+  flashSales: boolean;
+  restocks: boolean;
+  isCustomized: boolean;
+}
+
 export interface IFollow {
   buyerId: Types.ObjectId;      // ref Buyer.id
   retailerId: Types.ObjectId;   // ref Retailer.id
+  alertPreferences?: IStoreAlertPreferences;
   createdAt: Date;
 }
 
 export interface IUserFollow {
   senderId: Types.ObjectId;      // ref Buyer.id
   receiverId: Types.ObjectId;   // ref Retailer.id
+  createdAt: Date;
+}
+
+export interface IFollowProduct {
+  buyerId: Types.ObjectId;      // ref Buyer.id
+  productId: Types.ObjectId;    // ref Product.id
   createdAt: Date;
 }
 

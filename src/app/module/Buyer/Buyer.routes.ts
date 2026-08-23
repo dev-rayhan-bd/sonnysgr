@@ -70,7 +70,17 @@ BuyerRouter.get(
     BuyerController.getBuyerFollowedBrandStoreWishlistData
 );
 
-// Rabeyas code:
+BuyerRouter.get(
+    "/retailers",
+    auth(["Buyer"]),
+    BuyerController.getAllRetailersByBuyerController
+);
+
+BuyerRouter.get(
+    "/retailers/:id",
+    auth(["Buyer"]),
+    BuyerController.getSingleRetailerByBuyerController
+);
 
 BuyerRouter.patch(
     "/complete-buyer-profile",
@@ -80,7 +90,11 @@ BuyerRouter.patch(
 );
 
 import WishlistRouter from "./wishlist/wishlist.routes";
+import FollowingRouter from "./following/following.routes";
+import AlertPreferencesRouter from "./alertSettings/alertSettings.routes";
 
 BuyerRouter.use("/wishlist", WishlistRouter);
+BuyerRouter.use("/following", FollowingRouter);
+BuyerRouter.use("/alert-preferences", AlertPreferencesRouter);
 
 export default BuyerRouter;
