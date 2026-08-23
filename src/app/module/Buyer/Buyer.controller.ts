@@ -146,6 +146,32 @@ const completeBuyerProfileController = catchAsync(async (req, res) => {
     });
 });
 
+const getAllRetailersByBuyerController = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+    const result = await BuyerServices.getAllRetailersByBuyer(user, req.query);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Retailers retrieved successfully.",
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
+const getSingleRetailerByBuyerController = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+    const { id } = req.params;
+    const result = await BuyerServices.getSingleRetailerByBuyer(user, id);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Retailer details retrieved successfully.",
+        data: result,
+    });
+});
+
 const BuyerController = { 
     setBuyerNotificationAlertsController,
     addSelectedShoeSizeController,
@@ -157,8 +183,10 @@ const BuyerController = {
     getNearbyProductsForBuyerController,
     getBuyerFollowedBrandsProductsController,
     getBuyerFollowedRetailersProductsController,
-    getBuyerFollowedBrandStoreWishlistData
-}
+    getBuyerFollowedBrandStoreWishlistData,
 
+    getAllRetailersByBuyerController,
+    getSingleRetailerByBuyerController
+}
 
 export default BuyerController;

@@ -16,7 +16,7 @@ EngagementRouter.post(
     EngagementController.followRetailerController   
 );
 
-EngagementRouter.post(
+EngagementRouter.post( 
     "/unfollow-retailer/:id",
     authorizeUser,
     // validateRequest(EngagementValidations.followRetailerZodSchema),

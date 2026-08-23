@@ -70,7 +70,17 @@ BuyerRouter.get(
     BuyerController.getBuyerFollowedBrandStoreWishlistData
 );
 
-// Rabeyas code:
+BuyerRouter.get(
+    "/retailers",
+    auth(["Buyer"]),
+    BuyerController.getAllRetailersByBuyerController
+);
+
+BuyerRouter.get(
+    "/retailers/:id",
+    auth(["Buyer"]),
+    BuyerController.getSingleRetailerByBuyerController
+);
 
 BuyerRouter.patch(
     "/complete-buyer-profile",
