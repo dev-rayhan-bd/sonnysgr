@@ -12,6 +12,12 @@ export interface IUserFollow {
   createdAt: Date;
 }
 
+export interface IFollowProduct {
+  buyerId: Types.ObjectId;      // ref Buyer.id
+  productId: Types.ObjectId;    // ref Product.id
+  createdAt: Date;
+}
+
 export interface IwishList {
   buyerId: Types.ObjectId;      // ref Buyer.id
   retailerId: Types.ObjectId;   // ref Retailer.id

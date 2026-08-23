@@ -80,7 +80,9 @@ BuyerRouter.patch(
 );
 
 import WishlistRouter from "./wishlist/wishlist.routes";
+import FollowingRouter from "./following/following.routes";
 
 BuyerRouter.use("/wishlist", WishlistRouter);
+BuyerRouter.use("/following", FollowingRouter);
 
 export default BuyerRouter;
