@@ -3,6 +3,8 @@ import Stripe from "stripe";
 import OrderPaymentModel from "./OrderPayment.model";
 import OrderServices from "../Order/Order.service";
 import ApiError from "../../../error/ApiError";
+import CartModel from "../Cart/Cart.model";
+import { ENUM_CART_STATUS } from "../../../utilities/enum";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-09-30.acacia" as any,
@@ -72,8 +74,8 @@ export const paymentCheckoutService = async (payload: CheckoutPayload) => {
         },
         quantity: item.quantity,
       })),
-      success_url: `http://localhost:5000/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5000/payment-cancel`,
+      success_url: `https://yourdomain.com/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://yourdomain.com/payment-cancel`,
       metadata: {
         orderId: createdOrder._id.toString(),
         transactionId: payment[0].transactionId,
@@ -85,6 +87,12 @@ export const paymentCheckoutService = async (payload: CheckoutPayload) => {
     // Save Stripe session to gateway response in database
     payment[0].gatewayResponse = stripeSession;
     await payment[0].save({ session });
+
+    // 5. Empty active cart items for the buyer
+    await CartModel.deleteMany({
+      buyerId: payload.buyerId,
+      status: ENUM_CART_STATUS.ACTIVE,
+    }).session(session);
 
     await session.commitTransaction();
 

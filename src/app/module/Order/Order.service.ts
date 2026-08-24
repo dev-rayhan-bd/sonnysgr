@@ -853,6 +853,20 @@ const createDirectPendingOrderService = async (
   return createdOrder;
 };
 
+const getMyOrdersService = async (buyerId: string) => {
+  const orders = await OrderModel.find({ buyerId }).sort({ createdAt: -1 }).lean();
+  const ordersWithItems = await Promise.all(
+    orders.map(async (order: any) => {
+      const items = await OrderItemModel.find({ orderId: order._id }).populate("productId").lean();
+      return {
+        ...order,
+        items,
+      };
+    })
+  );
+  return ordersWithItems;
+};
+
 const OrderServices = {
     buyNowOrderService,
     holdOrderService,
@@ -862,6 +876,7 @@ const OrderServices = {
     getOrderDetailsById,
     createPendingOrderService,
     createDirectPendingOrderService,
+    getMyOrdersService,
 };
 
 export default OrderServices;
