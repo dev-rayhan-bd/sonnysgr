@@ -3,7 +3,7 @@ import { OrderItemModel, OrderModel } from "../Order/Order.model";
 import OrderPaymentModel from "./OrderPayment.model";
 import { ProductModel } from "../Product/Product.model";
 import CartModel from "../Cart/Cart.model";
-import { ENUM_CART_STATUS } from "../../../utilities/enum";
+import { ENUM_CART_STATUS, ENUM_PAYMENT_STATUS, ENUM_ORDER_STATUS } from "../../../utilities/enum";
 
 interface CompleteOrderPayload {
   orderId: string;
@@ -38,8 +38,8 @@ export const completeOrderAfterPayment = async (payload: CompleteOrderPayload) =
     );
 
     // 3. UPDATE ORDER STATUS
-    order.paymentStatus = "PAID";
-    order.orderStatus = "PROCESSING";
+    order.paymentStatus = ENUM_PAYMENT_STATUS.PAID;
+    order.orderStatus = ENUM_ORDER_STATUS.PROCESSING;
     await order.save({ session });
 
     // 4. GET ORDER ITEMS

@@ -74,8 +74,8 @@ export const paymentCheckoutService = async (payload: CheckoutPayload) => {
         },
         quantity: item.quantity,
       })),
-      success_url: `https://yourdomain.com/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://yourdomain.com/payment-cancel`,
+      success_url: `http://localhost:5001/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:5001/payment-cancel`,
       metadata: {
         orderId: createdOrder._id.toString(),
         transactionId: payment[0].transactionId,
