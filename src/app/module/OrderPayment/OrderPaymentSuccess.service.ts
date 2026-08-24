@@ -3,6 +3,7 @@ import { OrderItemModel, OrderModel } from "../Order/Order.model";
 import OrderPaymentModel from "./OrderPayment.model";
 import { ProductModel } from "../Product/Product.model";
 import CartModel from "../Cart/Cart.model";
+import { ENUM_CART_STATUS } from "../../../utilities/enum";
 
 interface CompleteOrderPayload {
   orderId: string;
@@ -66,10 +67,10 @@ export const completeOrderAfterPayment = async (payload: CompleteOrderPayload) =
     await CartModel.updateMany(
       {
         buyerId: order.buyerId,
-        status: "ACTIVE",
+        status: ENUM_CART_STATUS.ACTIVE,
       },
       {
-        status: "ORDERED",
+        status: ENUM_CART_STATUS.ORDERED,
       },
       { session }
     );

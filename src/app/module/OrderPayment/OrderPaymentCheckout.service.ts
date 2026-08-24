@@ -1,22 +1,28 @@
 import mongoose from "mongoose";
-import CartModel from "../Cart/Cart.model";
+import Stripe from "stripe";
 import OrderPaymentModel from "./OrderPayment.model";
-import { completeOrderAfterPayment } from "./OrderPaymentSuccess.service";
 import OrderServices from "../Order/Order.service";
 import ApiError from "../../../error/ApiError";
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2024-09-30.acacia" as any,
+});
+
 interface CheckoutPayload {
   buyerId: string;
-  paymentMethod: "STRIPE" | "SSL_COMMERZ" | "BKASH" | "COD";
   shippingAddress: {
     name: string;
     phone: string;
+    email?: string | null;
     address: string;
-    city: string;
-    area?: string;
-    lat: number;
-    lng: number;
   };
+  orderItems: {
+    productId: string;
+    variantId: string;
+    quantity: number;
+    price: number;
+    selectedSize: number;
+  }[];
 }
 
 export const paymentCheckoutService = async (payload: CheckoutPayload) => {
@@ -25,26 +31,17 @@ export const paymentCheckoutService = async (payload: CheckoutPayload) => {
   try {
     session.startTransaction();
 
-    // 1. Fetch active cart items
-    const carts = await CartModel.find({
-      buyerId: payload.buyerId,
-      status: "ACTIVE",
-    })
-      .populate("productId")
-      .session(session);
-
-    if (!carts || carts.length === 0) {
-      throw new ApiError(400, "Cart is empty");
-    }
-
-    // 2. Delegate pending order creation to Order Module
-    const createdOrder = await OrderServices.createPendingOrderService(
+    // 1. Delegate direct pending order creation to Order Module
+    const createdOrder = await OrderServices.createDirectPendingOrderService(
       payload.buyerId,
-      carts,
+      payload.orderItems,
       payload.shippingAddress,
-      payload.paymentMethod,
+      "STRIPE",
       session
     );
+
+    // 2. Generate a custom transaction ID
+    const transactionId = `TXN-${Date.now()}`;
 
     // 3. Create payment record
     const payment = await OrderPaymentModel.create(
@@ -53,31 +50,55 @@ export const paymentCheckoutService = async (payload: CheckoutPayload) => {
           orderId: createdOrder._id,
           buyerId: payload.buyerId,
           amount: createdOrder.totalAmount,
-          gateway: payload.paymentMethod,
-          transactionId: `TXN-${Date.now()}`,
-          status: payload.paymentMethod === "COD" ? "SUCCESS" : "PENDING",
+          gateway: "STRIPE",
+          transactionId,
+          status: "PENDING",
         },
       ],
       { session }
     );
 
-    // 4. Auto-complete order status if Cash On Delivery (COD)
-    if (payload.paymentMethod === "COD") {
-      await completeOrderAfterPayment({
+    // 4. Create Stripe Checkout Session
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: payload.orderItems.map((item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Order Purchase - Shoe Size: ${item.selectedSize}`,
+          },
+          unit_amount: Math.round(item.price * 100), // convert to cents
+        },
+        quantity: item.quantity,
+      })),
+      success_url: `http://localhost:5000/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:5000/payment-cancel`,
+      metadata: {
         orderId: createdOrder._id.toString(),
         transactionId: payment[0].transactionId,
-        session,
-      });
-    }
+      },
+    });
+
+    const paymentLink = stripeSession.url || "";
+
+    // Save Stripe session to gateway response in database
+    payment[0].gatewayResponse = stripeSession;
+    await payment[0].save({ session });
 
     await session.commitTransaction();
 
     return {
       success: true,
-      message: "Checkout successful",
+      message: "Order placed successfully. Complete payment via link.",
       data: {
-        order: createdOrder,
-        payment: payment[0],
+        paymentLink,
+        paymentBreakdown: {
+          subtotal: createdOrder.subtotal,
+          shippingCharge: createdOrder.shippingCharge,
+          discountAmount: createdOrder.discountAmount,
+          totalAmount: createdOrder.totalAmount,
+        },
       },
     };
   } catch (error: any) {
