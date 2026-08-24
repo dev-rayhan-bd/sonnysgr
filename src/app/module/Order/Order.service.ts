@@ -13,8 +13,7 @@ import {
 } from "../../../utilities/enum";
 import mongoose from "mongoose";
 import { ProductModel } from "../Product/Product.model";
-import { PaymentModel } from "../Payment/Payment.model";
-import { completeOrderAfterPayment } from "../Payment/PaymentSuccess.service";
+import { completeOrderAfterPayment } from "../OrderPayment/OrderPaymentSuccess.service";
 import notification from "../../../helper/notification";
 import CartModel from "../Cart/Cart.model";
 
@@ -622,6 +621,107 @@ const getOrderDetailsById = async (orderId: string) => {
     return order;
 }
 
+const createPendingOrderService = async (
+  buyerId: string,
+  carts: any[],
+  shippingAddress: {
+    name: string;
+    phone: string;
+    address: string;
+    city: string;
+    area?: string;
+    lat: number;
+    lng: number;
+  },
+  paymentMethod: "STRIPE" | "SSL_COMMERZ" | "BKASH" | "COD",
+  session: mongoose.ClientSession
+) => {
+  if (!carts.length) {
+    throw new ApiError(400, "Cart is empty");
+  }
+
+  let subtotal = 0;
+
+  for (const cart of carts) {
+    const product: any = cart.productId;
+
+    if (!product) {
+      throw new ApiError(404, "Product not found");
+    }
+
+    const sizeVariant = product.sizes?.find(
+      (s: any) => s.size === cart.selectedSize
+    ) || product.variant?.find(
+      (s: any) => s.size === cart.selectedSize
+    );
+
+    if (!sizeVariant) {
+      throw new ApiError(400, `Size ${cart.selectedSize} unavailable`);
+    }
+
+    if (sizeVariant.stock < cart.quantity) {
+      throw new ApiError(400, `${product.name} out of stock`);
+    }
+
+    cart.unitPrice = product.price;
+    cart.totalPrice = product.price * cart.quantity;
+    subtotal += cart.totalPrice;
+  }
+
+  const shippingCharge = calculateShippingCharge({
+    subtotal,
+    shippingAddress,
+  });
+
+  const discountAmount = 0;
+  const totalAmount = subtotal + shippingCharge - discountAmount;
+
+  const order = await OrderModel.create(
+    [
+      {
+        buyerId,
+        orderNumber: generateOrderNumber(),
+        subtotal,
+        shippingCharge,
+        discountAmount,
+        totalAmount,
+        totalItems: carts.length,
+        paymentStatus: "PENDING",
+        orderStatus: "PLACED",
+        paymentMethod,
+        shippingAddress,
+        pickupTime: new Date(),
+      },
+    ],
+    { session }
+  );
+
+  const createdOrder = order[0];
+
+  const orderItems = carts.map((cart: any) => {
+    const product = cart.productId;
+    return {
+      orderId: createdOrder._id,
+      buyerId,
+      retailerId: cart.retailerId,
+      productId: product._id,
+      productSnapshot: {
+        name: product.name,
+        image: product.images?.[0] || product.image || "",
+        brand: product.brand || "",
+      },
+      selectedSize: cart.selectedSize,
+      quantity: cart.quantity,
+      unitPrice: cart.unitPrice,
+      totalPrice: cart.totalPrice,
+      status: "PLACED",
+    };
+  });
+
+  await OrderItemModel.insertMany(orderItems, { session });
+
+  return createdOrder;
+};
 
 const OrderServices = {
     buyNowOrderService,
@@ -630,6 +730,7 @@ const OrderServices = {
     getRetailerHomePageOrderStatDataService,
     retailerAcceptOrderService,
     getOrderDetailsById,
+    createPendingOrderService,
 };
 
 export default OrderServices;
