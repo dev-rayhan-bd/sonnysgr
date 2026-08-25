@@ -52,11 +52,11 @@ export const completeOrderAfterPayment = async (payload: CompleteOrderPayload) =
       await ProductModel.updateOne(
         {
           _id: item.productId,
-          "sizes.size": item.selectedSize,
+          "variant.size": String(item.selectedSize),
         },
         {
           $inc: {
-            "sizes.$.stock": -item.quantity,
+            "variant.$.stock": -item.quantity,
           },
         },
         { session }

@@ -1,6 +1,7 @@
 import ApiError from "../../../error/ApiError";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import { OrderItemModel, OrderModel } from "./Order.model";
+import QueryBuilder from "../../builders/QueryBuilder";
 import {
     ENUM_NOTIFICATION_TYPE,
     ENUM_ORDER_STATUS,
@@ -853,8 +854,17 @@ const createDirectPendingOrderService = async (
   return createdOrder;
 };
 
-const getMyOrdersService = async (buyerId: string) => {
-  const orders = await OrderModel.find({ buyerId }).sort({ createdAt: -1 }).lean();
+const getMyOrdersService = async (buyerId: string, query: Record<string, unknown>) => {
+  const baseQuery = OrderModel.find({ buyerId });
+  const queryBuilder = new QueryBuilder(baseQuery, query)
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const orders = await queryBuilder.modelQuery.lean();
+  const meta = await queryBuilder.countTotal();
+
   const ordersWithItems = await Promise.all(
     orders.map(async (order: any) => {
       const items = await OrderItemModel.find({ orderId: order._id }).populate("productId").lean();
@@ -864,7 +874,11 @@ const getMyOrdersService = async (buyerId: string) => {
       };
     })
   );
-  return ordersWithItems;
+
+  return {
+    meta,
+    data: ordersWithItems,
+  };
 };
 
 const OrderServices = {

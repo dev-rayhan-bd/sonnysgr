@@ -49,13 +49,14 @@ const retailerAcceptOrder = catchAsync(async (req, res) => {
 
 const getMyOrders = catchAsync(async (req, res) => {
     const { user } = req as AuthRequest;
-    const result = await OrderServices.getMyOrdersService(user.profileId);
+    const result = await OrderServices.getMyOrdersService(user.profileId, req.query);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Retrieved buyer's orders successfully.",
-        data: result,
+        data: result.data,
+        meta: result.meta,
     });
 });
 
