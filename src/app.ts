@@ -9,10 +9,12 @@ import allRouter from './app/routes';
 
 
 
+import { orderPaymentWebhookRouter } from './app/module/OrderPayment/OrderPayment.routes';
+
 const app: Application = express();
 
 //use webhook route before app.use(express.json())
-// app.use("/paystack", webhookRouter);
+app.use("/api/v1/order-payment/webhook", orderPaymentWebhookRouter);
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));

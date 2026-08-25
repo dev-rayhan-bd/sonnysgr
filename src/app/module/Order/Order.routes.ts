@@ -25,6 +25,11 @@ OrderRouter.post(
     OrderController.getOrderDetailController
 );
 
+OrderRouter.get(
+    "/my-orders",
+    auth(["Buyer"]),
+    OrderController.getMyOrders
+);
 
 export default OrderRouter;
 

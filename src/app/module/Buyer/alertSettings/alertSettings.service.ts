@@ -17,7 +17,7 @@ const getAlertPreferencesService = async (buyerId: string) => {
     .populate({
       path: "retailerId",
       select: "name image",
-    })
+    }) 
     .lean();
 
   const formattedStores = followedStores.map((follow: any) => {

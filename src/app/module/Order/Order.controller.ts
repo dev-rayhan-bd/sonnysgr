@@ -47,10 +47,23 @@ const retailerAcceptOrder = catchAsync(async (req, res) => {
     });
 });
 
+const getMyOrders = catchAsync(async (req, res) => {
+    const { user } = req as AuthRequest;
+    const result = await OrderServices.getMyOrdersService(user.profileId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Retrieved buyer's orders successfully.",
+        data: result,
+    });
+});
+
 const OrderController = { 
     getRetailerHomePageOrderStatDataController,
     getOrderDetailController,
     retailerAcceptOrder,
+    getMyOrders,
 };
 
 export default OrderController;

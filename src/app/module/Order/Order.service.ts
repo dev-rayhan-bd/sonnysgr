@@ -13,8 +13,7 @@ import {
 } from "../../../utilities/enum";
 import mongoose from "mongoose";
 import { ProductModel } from "../Product/Product.model";
-import { PaymentModel } from "../Payment/Payment.model";
-import { completeOrderAfterPayment } from "../Payment/PaymentSuccess.service";
+import { completeOrderAfterPayment } from "../OrderPayment/OrderPaymentSuccess.service";
 import notification from "../../../helper/notification";
 import CartModel from "../Cart/Cart.model";
 
@@ -622,6 +621,251 @@ const getOrderDetailsById = async (orderId: string) => {
     return order;
 }
 
+const createPendingOrderService = async (
+  buyerId: string,
+  carts: any[],
+  shippingAddress: {
+    name: string;
+    phone: string;
+    address: string;
+    city: string;
+    area?: string;
+    lat: number;
+    lng: number;
+  },
+  paymentMethod: "STRIPE" | "SSL_COMMERZ" | "BKASH" | "COD",
+  session: mongoose.ClientSession
+) => {
+  const paymentMethodMap: Record<string, string> = {
+    STRIPE: ENUM_PAYMENT_METHOD.STRIPE,
+    PAYPAL: ENUM_PAYMENT_METHOD.PAYPAL,
+    CREDIT_CARD: ENUM_PAYMENT_METHOD.CREDIT_CARD,
+    COD: ENUM_PAYMENT_METHOD.STRIPE, // fallback
+  };
+
+  const finalPaymentMethod = paymentMethodMap[paymentMethod.toUpperCase()] || ENUM_PAYMENT_METHOD.STRIPE;
+
+  if (!carts.length) {
+    throw new ApiError(400, "Cart is empty");
+  }
+
+  let subtotal = 0;
+
+  for (const cart of carts) {
+    const product: any = cart.productId;
+
+    if (!product) {
+      throw new ApiError(404, "Product not found");
+    }
+
+    const sizeVariant = product.sizes?.find(
+      (s: any) => String(s.size) === String(cart.selectedSize)
+    ) || product.variant?.find(
+      (s: any) => String(s.size) === String(cart.selectedSize)
+    );
+
+    if (!sizeVariant) {
+      throw new ApiError(400, `Size ${cart.selectedSize} unavailable`);
+    }
+
+    if (sizeVariant.stock < cart.quantity) {
+      throw new ApiError(400, `${product.name} out of stock`);
+    }
+
+    cart.unitPrice = product.price;
+    cart.totalPrice = product.price * cart.quantity;
+    subtotal += cart.totalPrice;
+  }
+
+  const shippingCharge = calculateShippingCharge({
+    subtotal,
+    shippingAddress,
+  });
+
+  const discountAmount = 0;
+  const totalAmount = subtotal + shippingCharge - discountAmount;
+
+  const order = await OrderModel.create(
+    [
+      {
+        buyerId,
+        orderNumber: generateOrderNumber(),
+        subtotal,
+        shippingCharge,
+        discountAmount,
+        totalAmount,
+        totalItems: carts.length,
+        paymentStatus: ENUM_PAYMENT_STATUS.PENDING,
+        orderStatus: ENUM_ORDER_STATUS.PLACED,
+        paymentMethod: finalPaymentMethod,
+        shippingAddress,
+        pickupTime: new Date(),
+      },
+    ],
+    { session }
+  );
+
+  const createdOrder = order[0];
+
+  const orderItems = carts.map((cart: any) => {
+    const product = cart.productId;
+    return {
+      orderId: createdOrder._id,
+      buyerId,
+      retailerId: cart.retailerId,
+      productId: product._id,
+      productSnapshot: {
+        name: product.name,
+        image: product.images?.[0] || product.image || "",
+        brand: product.brand || "",
+      },
+      selectedSize: cart.selectedSize,
+      quantity: cart.quantity,
+      unitPrice: cart.unitPrice,
+      totalPrice: cart.totalPrice,
+      status: "PLACED",
+    };
+  });
+
+  await OrderItemModel.insertMany(orderItems, { session });
+
+  return createdOrder;
+};
+
+const createDirectPendingOrderService = async (
+  buyerId: string,
+  orderItems: {
+    productId: string;
+    variantId: string;
+    quantity: number;
+    price: number;
+    selectedSize: number;
+  }[],
+  shippingAddress: {
+    name: string;
+    phone: string;
+    email?: string | null;
+    address: string;
+  },
+  paymentMethod: "STRIPE" | "SSL_COMMERZ" | "BKASH" | "COD",
+  session: mongoose.ClientSession
+) => {
+  const paymentMethodMap: Record<string, string> = {
+    STRIPE: ENUM_PAYMENT_METHOD.STRIPE,
+    PAYPAL: ENUM_PAYMENT_METHOD.PAYPAL,
+    CREDIT_CARD: ENUM_PAYMENT_METHOD.CREDIT_CARD,
+    COD: ENUM_PAYMENT_METHOD.STRIPE, // fallback for schema compliance
+  };
+
+  const finalPaymentMethod = paymentMethodMap[paymentMethod.toUpperCase()] || ENUM_PAYMENT_METHOD.STRIPE;
+
+  let subtotal = 0;
+  const processedItems = [];
+
+  for (const item of orderItems) {
+    const product = (await ProductModel.findById(item.productId).session(session)) as any;
+    if (!product) {
+      throw new ApiError(404, `Product not found for ID: ${item.productId}`);
+    }
+
+    const sizeVariant = product.sizes?.find(
+      (s: any) => String(s.size) === String(item.selectedSize)
+    ) || product.variant?.find(
+      (s: any) => String(s.size) === String(item.selectedSize)
+    );
+
+    if (!sizeVariant) {
+      throw new ApiError(400, `Size ${item.selectedSize} unavailable for product: ${product.name}`);
+    }
+
+    if (sizeVariant.stock < item.quantity) {
+      throw new ApiError(400, `${product.name} out of stock for size ${item.selectedSize}`);
+    }
+
+    const unitPrice = sizeVariant.price || product.price;
+    const itemTotalPrice = unitPrice * item.quantity;
+    subtotal += itemTotalPrice;
+
+    processedItems.push({
+      retailerId: product.retailerId,
+      productId: product._id,
+      productSnapshot: {
+        name: product.name,
+        image: product.images?.[0] || product.image || "",
+        brand: product.brand || "",
+      },
+      selectedSize: item.selectedSize,
+      quantity: item.quantity,
+      unitPrice,
+      totalPrice: itemTotalPrice,
+      status: ENUM_ORDER_ITEM_STATUS.PLACED,
+    });
+  }
+
+  // Schema-compliant address structure: city and lat/lng are default filled since they are missing from user payload
+  const finalShippingAddress = {
+    name: shippingAddress.name,
+    phone: shippingAddress.phone,
+    address: shippingAddress.address,
+    city: "Default",
+    lat: 0,
+    lng: 0,
+  };
+
+  const shippingCharge = calculateShippingCharge({
+    subtotal,
+    shippingAddress: finalShippingAddress,
+  });
+
+  const discountAmount = 0;
+  const totalAmount = subtotal + shippingCharge - discountAmount;
+
+  const order = await OrderModel.create(
+    [
+      {
+        buyerId,
+        orderNumber: generateOrderNumber(),
+        subtotal,
+        shippingCharge,
+        discountAmount,
+        totalAmount,
+        totalItems: orderItems.length,
+        paymentStatus: ENUM_PAYMENT_STATUS.PENDING,
+        orderStatus: ENUM_ORDER_STATUS.PLACED,
+        paymentMethod: finalPaymentMethod,
+        shippingAddress: finalShippingAddress,
+        pickupTime: new Date(),
+      },
+    ],
+    { session }
+  );
+
+  const createdOrder = order[0];
+
+  const finalOrderItems = processedItems.map((item) => ({
+    ...item,
+    orderId: createdOrder._id,
+    buyerId,
+  }));
+
+  await OrderItemModel.insertMany(finalOrderItems, { session });
+
+  return createdOrder;
+};
+
+const getMyOrdersService = async (buyerId: string) => {
+  const orders = await OrderModel.find({ buyerId }).sort({ createdAt: -1 }).lean();
+  const ordersWithItems = await Promise.all(
+    orders.map(async (order: any) => {
+      const items = await OrderItemModel.find({ orderId: order._id }).populate("productId").lean();
+      return {
+        ...order,
+        items,
+      };
+    })
+  );
+  return ordersWithItems;
+};
 
 const OrderServices = {
     buyNowOrderService,
@@ -630,6 +874,9 @@ const OrderServices = {
     getRetailerHomePageOrderStatDataService,
     retailerAcceptOrderService,
     getOrderDetailsById,
+    createPendingOrderService,
+    createDirectPendingOrderService,
+    getMyOrdersService,
 };
 
 export default OrderServices;
