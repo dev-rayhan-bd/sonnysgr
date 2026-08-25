@@ -13,9 +13,16 @@ const adjustTrustScoreValidationSchema = z.object({
   }),
 });
 
+const reviewStoreValidationSchema = z.object({
+  body: z.object({
+    action: z.enum(["Approve", "Reject"]),
+  }),
+});
+
 const UsersValidations = {
   updateUserStatusValidationSchema,
   adjustTrustScoreValidationSchema,
+  reviewStoreValidationSchema,
 };
 
 export default UsersValidations;
