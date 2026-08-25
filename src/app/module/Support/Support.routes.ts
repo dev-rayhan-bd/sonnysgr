@@ -18,13 +18,21 @@ SupportRouter.post(
     if (typeof req.body.isTimeSensitive === 'string') {
       req.body.isTimeSensitive = req.body.isTimeSensitive === 'true';
     }
-    // Parse attachments array if sent as string/serialized JSON or single item
-    if (typeof req.body.attachments === 'string') {
+    // Handle uploaded files through multipart/form-data
+    if (req.files && Array.isArray(req.files)) {
+      const fileUrls = req.files.map((file: any) => {
+        // If file.location is present (MulterS3), use it, otherwise use local path
+        return file.location || `uploads/profile-image/${file.filename}`;
+      });
+      req.body.attachments = fileUrls;
+    } else if (typeof req.body.attachments === 'string') {
       try {
         req.body.attachments = JSON.parse(req.body.attachments);
       } catch {
         req.body.attachments = [req.body.attachments];
       }
+    } else if (!req.body.attachments) {
+      req.body.attachments = [];
     }
     next();
   },
