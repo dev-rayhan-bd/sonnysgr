@@ -26,6 +26,17 @@ export const completeOrderAfterPayment = async (payload: CompleteOrderPayload) =
       throw new Error("Order not found");
     }
 
+    // Check if order payment is already finalized to ensure it occurs exactly once
+    if (order.paymentStatus === ENUM_PAYMENT_STATUS.PAID) {
+      if (ownSession) {
+        await session.commitTransaction();
+      }
+      return {
+        success: true,
+        message: "Order already completed",
+      };
+    }
+
     // 2. UPDATE PAYMENT
     await OrderPaymentModel.updateOne(
       {
@@ -47,7 +58,7 @@ export const completeOrderAfterPayment = async (payload: CompleteOrderPayload) =
       orderId: order._id,
     }).session(session);
 
-    // 5. REDUCE INVENTORY
+    // 5. REDUCE INVENTORY AND RELEASE RESERVATIONS
     for (const item of orderItems) {
       await ProductModel.updateOne(
         {
@@ -57,6 +68,7 @@ export const completeOrderAfterPayment = async (payload: CompleteOrderPayload) =
         {
           $inc: {
             "variant.$.stock": -item.quantity,
+            "variant.$.reservedStock": -item.quantity,
           },
         },
         { session }

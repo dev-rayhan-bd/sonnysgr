@@ -669,9 +669,24 @@ const createPendingOrderService = async (
       throw new ApiError(400, `Size ${cart.selectedSize} unavailable`);
     }
 
-    if (sizeVariant.stock < cart.quantity) {
-      throw new ApiError(400, `${product.name} out of stock`);
+    const availableStock = sizeVariant.stock - (sizeVariant.reservedStock || 0);
+    if (availableStock < cart.quantity) {
+      throw new ApiError(400, `${product.name} out of stock or reserved for size ${cart.selectedSize}`);
     }
+
+    // Increment reservedStock
+    await ProductModel.updateOne(
+      {
+        _id: product._id,
+        "variant.size": String(cart.selectedSize),
+      },
+      {
+        $inc: {
+          "variant.$.reservedStock": cart.quantity,
+        },
+      },
+      { session }
+    );
 
     cart.unitPrice = product.price;
     cart.totalPrice = product.price * cart.quantity;
@@ -779,9 +794,24 @@ const createDirectPendingOrderService = async (
       throw new ApiError(400, `Size ${item.selectedSize} unavailable for product: ${product.name}`);
     }
 
-    if (sizeVariant.stock < item.quantity) {
-      throw new ApiError(400, `${product.name} out of stock for size ${item.selectedSize}`);
+    const availableStock = sizeVariant.stock - (sizeVariant.reservedStock || 0);
+    if (availableStock < item.quantity) {
+      throw new ApiError(400, `${product.name} out of stock or reserved for size ${item.selectedSize}`);
     }
+
+    // Increment reservedStock
+    await ProductModel.updateOne(
+      {
+        _id: product._id,
+        "variant.size": String(item.selectedSize),
+      },
+      {
+        $inc: {
+          "variant.$.reservedStock": item.quantity,
+        },
+      },
+      { session }
+    );
 
     const unitPrice = sizeVariant.price || product.price;
     const itemTotalPrice = unitPrice * item.quantity;

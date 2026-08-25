@@ -42,13 +42,27 @@ const stripeWebhookHandler = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(400, `Webhook Error: ${err.message}`);
   }
 
-  // Handle the event
-  if (event.type === "payment_intent.succeeded") {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const { orderId, transactionId } = paymentIntent.metadata || {};
+  // Handle checkout session webhook events
+  if (event.type === "checkout.session.completed") {
+    const sessionObj = event.data.object as Stripe.Checkout.Session;
+    const { orderId, transactionId } = sessionObj.metadata || {};
 
     if (orderId && transactionId) {
       await completeOrderAfterPayment({
+        orderId,
+        transactionId,
+      });
+    }
+  } else if (
+    event.type === "checkout.session.expired" ||
+    event.type === "checkout.session.async_payment_failed"
+  ) {
+    const sessionObj = event.data.object as Stripe.Checkout.Session;
+    const { orderId, transactionId } = sessionObj.metadata || {};
+
+    if (orderId) {
+      const { releaseOrderReservation } = require("./OrderPaymentFailure.service");
+      await releaseOrderReservation({
         orderId,
         transactionId,
       });

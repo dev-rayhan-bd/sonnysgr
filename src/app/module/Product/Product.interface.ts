@@ -14,7 +14,8 @@ export interface IProduct {
     gender: TGender,
     size: string,
     stock: number,
-    price: number
+    price: number,
+    reservedStock?: number
   }[];
   sneakerAttributes?: {};
   tshirtAttributes?: {};
