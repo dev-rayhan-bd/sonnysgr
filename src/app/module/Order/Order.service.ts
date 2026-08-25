@@ -1,6 +1,7 @@
 import ApiError from "../../../error/ApiError";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import { OrderItemModel, OrderModel } from "./Order.model";
+import QueryBuilder from "../../builders/QueryBuilder";
 import {
     ENUM_NOTIFICATION_TYPE,
     ENUM_ORDER_STATUS,
@@ -668,9 +669,24 @@ const createPendingOrderService = async (
       throw new ApiError(400, `Size ${cart.selectedSize} unavailable`);
     }
 
-    if (sizeVariant.stock < cart.quantity) {
-      throw new ApiError(400, `${product.name} out of stock`);
+    const availableStock = sizeVariant.stock - (sizeVariant.reservedStock || 0);
+    if (availableStock < cart.quantity) {
+      throw new ApiError(400, `${product.name} out of stock or reserved for size ${cart.selectedSize}`);
     }
+
+    // Increment reservedStock
+    await ProductModel.updateOne(
+      {
+        _id: product._id,
+        "variant.size": String(cart.selectedSize),
+      },
+      {
+        $inc: {
+          "variant.$.reservedStock": cart.quantity,
+        },
+      },
+      { session }
+    );
 
     cart.unitPrice = product.price;
     cart.totalPrice = product.price * cart.quantity;
@@ -778,9 +794,24 @@ const createDirectPendingOrderService = async (
       throw new ApiError(400, `Size ${item.selectedSize} unavailable for product: ${product.name}`);
     }
 
-    if (sizeVariant.stock < item.quantity) {
-      throw new ApiError(400, `${product.name} out of stock for size ${item.selectedSize}`);
+    const availableStock = sizeVariant.stock - (sizeVariant.reservedStock || 0);
+    if (availableStock < item.quantity) {
+      throw new ApiError(400, `${product.name} out of stock or reserved for size ${item.selectedSize}`);
     }
+
+    // Increment reservedStock
+    await ProductModel.updateOne(
+      {
+        _id: product._id,
+        "variant.size": String(item.selectedSize),
+      },
+      {
+        $inc: {
+          "variant.$.reservedStock": item.quantity,
+        },
+      },
+      { session }
+    );
 
     const unitPrice = sizeVariant.price || product.price;
     const itemTotalPrice = unitPrice * item.quantity;
@@ -853,8 +884,17 @@ const createDirectPendingOrderService = async (
   return createdOrder;
 };
 
-const getMyOrdersService = async (buyerId: string) => {
-  const orders = await OrderModel.find({ buyerId }).sort({ createdAt: -1 }).lean();
+const getMyOrdersService = async (buyerId: string, query: Record<string, unknown>) => {
+  const baseQuery = OrderModel.find({ buyerId });
+  const queryBuilder = new QueryBuilder(baseQuery, query)
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const orders = await queryBuilder.modelQuery.lean();
+  const meta = await queryBuilder.countTotal();
+
   const ordersWithItems = await Promise.all(
     orders.map(async (order: any) => {
       const items = await OrderItemModel.find({ orderId: order._id }).populate("productId").lean();
@@ -864,7 +904,11 @@ const getMyOrdersService = async (buyerId: string) => {
       };
     })
   );
-  return ordersWithItems;
+
+  return {
+    meta,
+    data: ordersWithItems,
+  };
 };
 
 const OrderServices = {

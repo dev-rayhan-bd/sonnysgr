@@ -23,6 +23,7 @@ const ProductSchema = new Schema<IProduct>({
       size: { type: String, required: true },
       stock: { type: Number, required: true },
       price: { type: Number, required: true },
+      reservedStock: { type: Number, default: 0 },
     }
   ],
 

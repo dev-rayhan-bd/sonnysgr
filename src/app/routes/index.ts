@@ -20,6 +20,7 @@ import adminUserRouter from "../module/Dashboard/users/users.route";
 import BranchRouter from "../module/Branch/Branch.route";
 import DropRouter from "../module/Drop/Drop.routes";
 import ReviewManagementRouter from "../module/ReviewManagement/ReviewManagement.routes";
+import SupportRouter from "../module/Support/Support.routes";
 
 const allRouter = Router();
 
@@ -104,6 +105,10 @@ const moduleRoutes = [
   {
     path: "/settings",
     router: settingsRouter,
+  },
+  {
+    path: "/support",
+    router: SupportRouter,
   },
   {
     path: "/drop",
