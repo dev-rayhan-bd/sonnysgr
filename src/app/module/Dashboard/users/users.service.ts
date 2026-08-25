@@ -105,6 +105,22 @@ const approveRetailerStoreService = async (id: string) => {
   return retailer;
 };
 
+const reviewRetailerStoreService = async (id: string, action: "Approve" | "Reject") => {
+  const retailer = await RetailerModel.findById(id);
+  if (!retailer) {
+    throw new ApiError(404, "Retailer store not found.");
+  }
+
+  if (action === "Approve") {
+    retailer.isApproved = true;
+  } else {
+    retailer.isApproved = false;
+  }
+
+  await retailer.save();
+  return retailer;
+};
+
 const suspendReactivateStoreService = async (id: string, action: "Suspend" | "Reactivate") => {
   const retailer = await RetailerModel.findById(id);
   if (!retailer) {
@@ -207,6 +223,7 @@ const usersDashboardServices = {
   getSingleUserService,
   updateUserStatusService,
   approveRetailerStoreService,
+  reviewRetailerStoreService,
   suspendReactivateStoreService,
   getRetailerDocumentsService,
   getRetailerAnalyticsService,

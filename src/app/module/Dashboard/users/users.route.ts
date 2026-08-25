@@ -32,6 +32,13 @@ adminUserRouter.post(
 );
 
 adminUserRouter.post(
+  "/retailer/review-store/:id",
+  auth(["Admin", "Super_Admin"]),
+  validateRequest(UsersValidations.reviewStoreValidationSchema),
+  userManagementController.reviewRetailerStore
+);
+
+adminUserRouter.post(
   "/retailer/suspend-store/:id",
   auth(["Admin", "Super_Admin"]),
   userManagementController.suspendStore

@@ -113,11 +113,22 @@ const adjustResellerTrustScore = catchAsync(async (req, res) => {
     });
 });
 
+const reviewRetailerStore = catchAsync(async (req, res) => {
+    const result = await usersDashboardServices.reviewRetailerStoreService(req.params.id, req.body.action);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: `Retailer store review processed successfully. Store is now ${req.body.action === 'Approve' ? 'Approved' : 'Disapproved'}.`,
+        data: result,
+    });
+});
+
 const userManagementController = {
     getAllUsers,
     getSingleUser,
     updateUserStatus,
     approveRetailerStore,
+    reviewRetailerStore,
     suspendStore,
     reactivateStore,
     getRetailerDocuments,
