@@ -18,6 +18,8 @@ const placeOrder = catchAsync(async (req: Request, res: Response) => {
     ...req.body,
   });
 
+  console.log("Order result", result);
+
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -28,23 +30,30 @@ const placeOrder = catchAsync(async (req: Request, res: Response) => {
 
 const stripeWebhookHandler = catchAsync(async (req: Request, res: Response) => {
   const sig = req.headers["stripe-signature"] as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_TEST || process.env.STRIPE_WEBHOOK_SECRET || "";
-
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+// console.log("sig", webhookSecret);
   let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
       req.body, // Must be the raw request body buffer
       sig,
-      webhookSecret
+      webhookSecret,
     );
   } catch (err: any) {
+    // console.log(`Webhook Error: ${err.message}`);
     throw new ApiError(400, `Webhook Error: ${err.message}`);
   }
 
   // Handle checkout session webhook events
   if (event.type === "checkout.session.completed") {
     const sessionObj = event.data.object as Stripe.Checkout.Session;
+    // console.log("checkout session", sessionObj);
+    // console.log("Session ID:", sessionObj.id);
+    // console.log("Payment status:", sessionObj.payment_status);
+    // console.log("Customer email:", sessionObj.customer_details?.email);
+    // console.log("Amount total:", sessionObj.amount_total);
+    // console.log("Metadata:", sessionObj.metadata);
     const { orderId, transactionId } = sessionObj.metadata || {};
 
     if (orderId && transactionId) {
@@ -61,7 +70,9 @@ const stripeWebhookHandler = catchAsync(async (req: Request, res: Response) => {
     const { orderId, transactionId } = sessionObj.metadata || {};
 
     if (orderId) {
-      const { releaseOrderReservation } = require("./OrderPaymentFailure.service");
+      const {
+        releaseOrderReservation,
+      } = require("./OrderPaymentFailure.service");
       await releaseOrderReservation({
         orderId,
         transactionId,
