@@ -116,6 +116,20 @@ const respondToSourcingRequestController = catchAsync(async (req, res) => {
   });
 });
 
+const getResellerProductsController = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await SourcingServices.getResellerProducts(id, req.query);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Reseller products fetched successfully.",
+    meta: result.meta,
+    data: result.products,
+  });
+});
+
 const SourcingController = {
   toggleTrustResellerController,
   getAllActiveResellersController,
@@ -124,6 +138,7 @@ const SourcingController = {
   getRetailerSourcingRequestsController,
   getResellerSourcingRequestsController,
   respondToSourcingRequestController,
+  getResellerProductsController,
 };
 
 export default SourcingController;

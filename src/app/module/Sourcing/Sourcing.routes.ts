@@ -15,6 +15,13 @@ SourcingRouter.get(
   SourcingController.getAllActiveResellersController
 );
 
+// Get reseller products by reseller ID
+SourcingRouter.get(
+  "/resellers/:id/products",
+  auth(["Retailer"]),
+  SourcingController.getResellerProductsController
+);
+
 // Toggle trusted status of a reseller (Like / Unlike)
 SourcingRouter.post(
   "/toggle-trust",

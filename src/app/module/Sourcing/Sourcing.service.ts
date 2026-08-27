@@ -309,6 +309,101 @@ const respondToSourcingRequest = async (
   }
 };
 
+/**
+ * Get reseller products by reseller ID with filtering and pagination
+ */
+const getResellerProducts = async (
+  resellerId: string,
+  query: Record<string, unknown>
+) => {
+  const reseller = await ResellerModel.findById(resellerId);
+  if (!reseller) {
+    throw new ApiError(404, "Reseller not found");
+  }
+
+  let {
+    type,
+    page,
+    limit,
+    brand,
+    variant,
+    gender,
+    size,
+  } = query;
+
+  const filter: Record<string, any> = {
+    resellerId: new mongoose.Types.ObjectId(resellerId),
+    productStatus: { $ne: "inactive" },
+    isSold: { $ne: true },
+    isVisibleToStore: { $ne: false },
+  };
+
+  if (type) {
+    filter.type = type;
+  }
+
+  if (brand) {
+    filter.brand = brand;
+  }
+
+  const variantFilter: Record<string, any> = {};
+
+  const targetGender = (gender as string) || (variant as string);
+  if (targetGender) {
+    const formattedGender =
+      targetGender.trim().charAt(0).toUpperCase() +
+      targetGender.trim().slice(1).toLowerCase();
+
+    const validGenders = ["Men", "Women", "Kids"];
+    if (!validGenders.includes(formattedGender)) {
+      throw new ApiError(
+        400,
+        `Invalid gender value. Supported values are: ${validGenders.join(", ")}`
+      );
+    }
+    variantFilter.gender = formattedGender;
+  }
+
+  if (size !== undefined && size !== null) {
+    const formattedSize = String(size).trim();
+    if (formattedSize.length === 0) {
+      throw new ApiError(400, "Size filter value cannot be empty.");
+    }
+    variantFilter.size = formattedSize;
+  }
+
+  if (Object.keys(variantFilter).length > 0) {
+    filter.variant = { $elemMatch: variantFilter };
+  }
+
+  page = parseInt(page as any) || 1;
+  limit = parseInt(limit as any) || 10;
+  let skip = ((page as number) - 1) * (limit as number);
+
+  const [pairs, totalPairs] = await Promise.all([
+    PairsModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit as number)
+      .lean(),
+    PairsModel.countDocuments(filter),
+  ]);
+
+  const totalPage = Math.ceil(totalPairs / (limit as number));
+  const hasNextPage = (page as number) < totalPage;
+
+  return {
+    meta: {
+      page: page as number,
+      limit: limit as number,
+      total: totalPairs,
+      totalPage,
+      hasNextPage,
+    },
+    products: pairs,
+  };
+};
+
 const SourcingServices = {
   toggleTrustReseller,
   getAllActiveResellers,
@@ -317,6 +412,7 @@ const SourcingServices = {
   getRetailerSourcingRequests,
   getResellerSourcingRequests,
   respondToSourcingRequest,
+  getResellerProducts,
 };
 
 export default SourcingServices;
