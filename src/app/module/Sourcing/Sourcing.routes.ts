@@ -8,6 +8,13 @@ const SourcingRouter = express.Router();
 
 // --- Retailer Endpoints ---
 
+// Get all active approved resellers with trust badges
+SourcingRouter.get(
+  "/resellers",
+  auth(["Retailer"]),
+  SourcingController.getAllActiveResellersController
+);
+
 // Toggle trusted status of a reseller (Like / Unlike)
 SourcingRouter.post(
   "/toggle-trust",

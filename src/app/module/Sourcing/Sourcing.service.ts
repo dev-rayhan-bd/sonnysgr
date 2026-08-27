@@ -1,36 +1,56 @@
 import mongoose from "mongoose";
 import ApiError from "../../../error/ApiError";
-import { IJwtPayload } from "../../../interface/jwt.interface";
 import { SourcingRequestModel, TrustedResellerModel } from "./Sourcing.model";
 import ResellerModel from "../Reseller/Reseller.model";
 import { PairsModel } from "../Pairs/Pairs.model";
 import { ISourcingRequest } from "./Sourcing.interface";
 
 /**
+ * Helper to dynamically enrich a Reseller profile with trust status and trust count.
+ */
+const enrichResellerProfile = async (reseller: any, retailerId: string) => {
+  if (!reseller) return reseller;
+  const resellerIdStr = reseller._id.toString();
+
+  const trustCount = await TrustedResellerModel.countDocuments({
+    resellerId: resellerIdStr,
+    status: "active",
+  });
+
+  const personalTrust = await TrustedResellerModel.findOne({
+    retailerId,
+    resellerId: resellerIdStr,
+    status: "active",
+  });
+
+  return {
+    ...reseller,
+    trustCount,
+    trustStatus: personalTrust ? "Trusted" : "Normal",
+  };
+};
+
+/**
  * Toggle trusted status of a Reseller (Like / Unlike)
  */
 const toggleTrustReseller = async (retailerId: string, resellerId: string) => {
-  // Validate that reseller exists
   const reseller = await ResellerModel.findById(resellerId);
   if (!reseller) {
     throw new ApiError(404, "Reseller not found");
   }
 
-  // Check if trust relationship already exists
   const existingTrust = await TrustedResellerModel.findOne({
     retailerId,
     resellerId,
   });
 
   if (existingTrust) {
-    // Unlike / Remove trust
     await TrustedResellerModel.deleteOne({ _id: existingTrust._id });
     return {
       isTrusted: false,
       message: "Reseller removed from trusted list successfully.",
     };
   } else {
-    // Like / Add trust
     await TrustedResellerModel.create({
       retailerId,
       resellerId,
@@ -44,10 +64,22 @@ const toggleTrustReseller = async (retailerId: string, resellerId: string) => {
 };
 
 /**
+ * List all active approved resellers with their trust details
+ */
+const getAllActiveResellers = async (retailerId: string) => {
+  const resellers = await ResellerModel.find({ isApproved: true }).lean();
+
+  const enrichedResellers = await Promise.all(
+    resellers.map((reseller) => enrichResellerProfile(reseller, retailerId))
+  );
+
+  return enrichedResellers;
+};
+
+/**
  * List trusted resellers populated with their profile and product info
  */
 const getTrustedResellers = async (retailerId: string) => {
-  // Find all active trusted relationships for the retailer
   const trustedRelations = await TrustedResellerModel.find({
     retailerId,
     status: "active",
@@ -55,28 +87,28 @@ const getTrustedResellers = async (retailerId: string) => {
 
   const resellerIds = trustedRelations.map((rel) => rel.resellerId);
 
-  // Retrieve reseller profiles
   const resellers = await ResellerModel.find({
     _id: { $in: resellerIds },
   }).lean();
 
-  // Retrieve reseller inventory (Pairs)
   const inventory = await PairsModel.find({
     resellerId: { $in: resellerIds },
     productStatus: "active",
     isSold: false,
   }).lean();
 
-  // Combine resellers with their respective inventory items
-  const result = resellers.map((reseller: any) => {
-    const resellerProducts = inventory.filter(
-      (item: any) => item.resellerId.toString() === reseller._id.toString()
-    );
-    return {
-      ...reseller,
-      products: resellerProducts,
-    };
-  });
+  const result = await Promise.all(
+    resellers.map(async (reseller: any) => {
+      const resellerProducts = inventory.filter(
+        (item: any) => item.resellerId.toString() === reseller._id.toString()
+      );
+      const enrichedReseller = await enrichResellerProfile(reseller, retailerId);
+      return {
+        ...enrichedReseller,
+        products: resellerProducts,
+      };
+    })
+  );
 
   return result;
 };
@@ -94,7 +126,6 @@ const createSourcingRequest = async (
     throw new ApiError(400, "Missing required sourcing parameters.");
   }
 
-  // 1. Verify reseller is trusted by the retailer
   const isTrusted = await TrustedResellerModel.findOne({
     retailerId,
     resellerId,
@@ -107,7 +138,6 @@ const createSourcingRequest = async (
     );
   }
 
-  // 2. Verify pair product exists and belongs to the reseller
   const pair = await PairsModel.findOne({
     _id: pairId,
     resellerId,
@@ -121,7 +151,6 @@ const createSourcingRequest = async (
     );
   }
 
-  // 3. Verify variant stock availability
   const matchedVariant = pair.variant?.find(
     (v: any) =>
       v.gender === variant.gender && v.size.toString() === variant.size.toString()
@@ -141,7 +170,6 @@ const createSourcingRequest = async (
     );
   }
 
-  // 4. Create the request
   const sourcingRequest = await SourcingRequestModel.create({
     retailerId,
     resellerId,
@@ -162,10 +190,22 @@ const getRetailerSourcingRequests = async (retailerId: string, status?: string) 
     query.status = status;
   }
 
-  return await SourcingRequestModel.find(query)
+  const requests = await SourcingRequestModel.find(query)
     .populate("resellerId")
     .populate("pairId")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const enrichedRequests = await Promise.all(
+    requests.map(async (req: any) => {
+      if (req.resellerId) {
+        req.resellerId = await enrichResellerProfile(req.resellerId, retailerId);
+      }
+      return req;
+    })
+  );
+
+  return enrichedRequests;
 };
 
 /**
@@ -217,7 +257,6 @@ const respondToSourcingRequest = async (
       request.rejectionReason = rejectionReason || "Product not available";
       await request.save({ session });
     } else if (status === "Accepted") {
-      // 1. Double check pair variant stock in transaction
       const pair = await PairsModel.findOne({
         _id: request.pairId,
         resellerId,
@@ -246,10 +285,8 @@ const respondToSourcingRequest = async (
         );
       }
 
-      // 2. Deduct inventory stock
       pair.variant[matchedVariantIndex].stock -= request.variant.quantity;
 
-      // If total stock of all variants drops to 0, mark the Pair as sold
       const totalStock = pair.variant.reduce((sum: number, v: any) => sum + v.stock, 0);
       if (totalStock <= 0) {
         pair.isSold = true;
@@ -274,6 +311,7 @@ const respondToSourcingRequest = async (
 
 const SourcingServices = {
   toggleTrustReseller,
+  getAllActiveResellers,
   getTrustedResellers,
   createSourcingRequest,
   getRetailerSourcingRequests,

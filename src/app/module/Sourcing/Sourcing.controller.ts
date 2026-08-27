@@ -20,6 +20,19 @@ const toggleTrustResellerController = catchAsync(async (req, res) => {
   });
 });
 
+const getAllActiveResellersController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+
+  const result = await SourcingServices.getAllActiveResellers(user.profileId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Active resellers fetched successfully.",
+    data: result,
+  });
+});
+
 const getTrustedResellersController = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
 
@@ -105,6 +118,7 @@ const respondToSourcingRequestController = catchAsync(async (req, res) => {
 
 const SourcingController = {
   toggleTrustResellerController,
+  getAllActiveResellersController,
   getTrustedResellersController,
   createSourcingRequestController,
   getRetailerSourcingRequestsController,
