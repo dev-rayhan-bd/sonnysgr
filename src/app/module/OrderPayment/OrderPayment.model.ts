@@ -19,7 +19,7 @@ const OrderPaymentSchema = new Schema<IOrderPayment>(
     },
     gateway: {
       type: String,
-      enum: ["STRIPE", "SSL_COMMERZ", "BKASH", "COD"],
+      enum: ["STRIPE"],
       required: true,
     },
     transactionId: {

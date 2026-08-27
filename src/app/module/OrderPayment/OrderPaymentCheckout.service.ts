@@ -103,7 +103,7 @@ export const paymentCheckoutService = async (payload: CheckoutPayload) => {
         paymentLink,
         paymentBreakdown: {
           subtotal: createdOrder.subtotal,
-          shippingCharge: createdOrder.shippingCharge,
+          // shippingCharge: createdOrder.shippingCharge,
           discountAmount: createdOrder.discountAmount,
           totalAmount: createdOrder.totalAmount,
         },
