@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 import ApiError from "../../../error/ApiError";
-import { SourcingRequestModel, TrustedResellerModel } from "./Sourcing.model";
+import { TrustedResellerModel } from "./Sourcing.model";
 import ResellerModel from "../Reseller/Reseller.model";
 import { PairsModel } from "../Pairs/Pairs.model";
-import { ISourcingRequest } from "./Sourcing.interface";
 
 /**
  * Helper to dynamically enrich a Reseller profile with trust status and trust count.
@@ -114,202 +113,6 @@ const getTrustedResellers = async (retailerId: string) => {
 };
 
 /**
- * Send a Sourcing Request
- */
-const createSourcingRequest = async (
-  retailerId: string,
-  payload: Partial<ISourcingRequest>
-) => {
-  const { resellerId, pairId, variant } = payload;
-
-  if (!resellerId || !pairId || !variant) {
-    throw new ApiError(400, "Missing required sourcing parameters.");
-  }
-
-  const isTrusted = await TrustedResellerModel.findOne({
-    retailerId,
-    resellerId,
-    status: "active",
-  });
-  if (!isTrusted) {
-    throw new ApiError(
-      400,
-      "You can only send sourcing requests to trusted resellers."
-    );
-  }
-
-  const pair = await PairsModel.findOne({
-    _id: pairId,
-    resellerId,
-    productStatus: "active",
-    isSold: false,
-  });
-  if (!pair) {
-    throw new ApiError(
-      404,
-      "Product variant not found or not active in the reseller's inventory."
-    );
-  }
-
-  const matchedVariant = pair.variant?.find(
-    (v: any) =>
-      v.gender === variant.gender && v.size.toString() === variant.size.toString()
-  );
-
-  if (!matchedVariant) {
-    throw new ApiError(
-      400,
-      `Requested variant (${variant.gender}, Size: ${variant.size}) does not exist for this product.`
-    );
-  }
-
-  if (matchedVariant.stock < variant.quantity) {
-    throw new ApiError(
-      400,
-      `Insufficient stock. Available stock is ${matchedVariant.stock}, but requested ${variant.quantity}.`
-    );
-  }
-
-  const sourcingRequest = await SourcingRequestModel.create({
-    retailerId,
-    resellerId,
-    pairId,
-    variant,
-    status: "Pending",
-  });
-
-  return sourcingRequest;
-};
-
-/**
- * Fetch sourcing requests sent by a Retailer
- */
-const getRetailerSourcingRequests = async (retailerId: string, status?: string) => {
-  const query: Record<string, any> = { retailerId };
-  if (status) {
-    query.status = status;
-  }
-
-  const requests = await SourcingRequestModel.find(query)
-    .populate("resellerId")
-    .populate("pairId")
-    .sort({ createdAt: -1 })
-    .lean();
-
-  const enrichedRequests = await Promise.all(
-    requests.map(async (req: any) => {
-      if (req.resellerId) {
-        req.resellerId = await enrichResellerProfile(req.resellerId, retailerId);
-      }
-      return req;
-    })
-  );
-
-  return enrichedRequests;
-};
-
-/**
- * Fetch sourcing requests received by a Reseller
- */
-const getResellerSourcingRequests = async (resellerId: string, status?: string) => {
-  const query: Record<string, any> = { resellerId };
-  if (status) {
-    query.status = status;
-  }
-
-  return await SourcingRequestModel.find(query)
-    .populate("retailerId")
-    .populate("pairId")
-    .sort({ createdAt: -1 });
-};
-
-/**
- * Accept or reject a sourcing request (by Reseller)
- */
-const respondToSourcingRequest = async (
-  resellerId: string,
-  requestId: string,
-  status: "Accepted" | "Rejected",
-  rejectionReason?: string
-) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const request = await SourcingRequestModel.findOne({
-      _id: requestId,
-      resellerId,
-    }).session(session);
-
-    if (!request) {
-      throw new ApiError(404, "Sourcing request not found.");
-    }
-
-    if (request.status !== "Pending") {
-      throw new ApiError(
-        400,
-        `Sourcing request has already been ${request.status.toLowerCase()}.`
-      );
-    }
-
-    if (status === "Rejected") {
-      request.status = "Rejected";
-      request.rejectionReason = rejectionReason || "Product not available";
-      await request.save({ session });
-    } else if (status === "Accepted") {
-      const pair = await PairsModel.findOne({
-        _id: request.pairId,
-        resellerId,
-      }).session(session);
-
-      if (!pair || pair.isSold || pair.productStatus !== "active") {
-        throw new ApiError(400, "Product is no longer active or sold out.");
-      }
-
-      const matchedVariantIndex = pair.variant?.findIndex(
-        (v: any) =>
-          v.gender === request.variant.gender &&
-          v.size.toString() === request.variant.size.toString()
-      );
-
-      if (matchedVariantIndex === -1 || matchedVariantIndex === undefined) {
-        throw new ApiError(400, "Product variant is no longer available.");
-      }
-
-      const matchedVariant = pair.variant[matchedVariantIndex];
-
-      if (matchedVariant.stock < request.variant.quantity) {
-        throw new ApiError(
-          400,
-          `Insufficient stock to fulfill request. Available stock: ${matchedVariant.stock}`
-        );
-      }
-
-      pair.variant[matchedVariantIndex].stock -= request.variant.quantity;
-
-      const totalStock = pair.variant.reduce((sum: number, v: any) => sum + v.stock, 0);
-      if (totalStock <= 0) {
-        pair.isSold = true;
-      }
-
-      await pair.save({ session });
-
-      request.status = "Accepted";
-      await request.save({ session });
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return request;
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    throw error;
-  }
-};
-
-/**
  * Get reseller products by reseller ID with filtering and pagination
  */
 const getResellerProducts = async (
@@ -408,11 +211,8 @@ const SourcingServices = {
   toggleTrustReseller,
   getAllActiveResellers,
   getTrustedResellers,
-  createSourcingRequest,
-  getRetailerSourcingRequests,
-  getResellerSourcingRequests,
-  respondToSourcingRequest,
   getResellerProducts,
+  enrichResellerProfile,
 };
 
 export default SourcingServices;

@@ -22,7 +22,7 @@ SourcingRouter.get(
   SourcingController.getResellerProductsController
 );
 
-// Toggle trusted status of a reseller (Like / Unlike)
+// Toggle trusted status of a reseller (Like / Unlike / Favourite)
 SourcingRouter.post(
   "/toggle-trust",
   auth(["Retailer"]),
@@ -35,39 +35,6 @@ SourcingRouter.get(
   "/trusted-resellers",
   auth(["Retailer"]),
   SourcingController.getTrustedResellersController
-);
-
-// Send sourcing request to a trusted reseller
-SourcingRouter.post(
-  "/request",
-  auth(["Retailer"]),
-  validateRequest(SourcingValidations.createSourcingRequestValidation),
-  SourcingController.createSourcingRequestController
-);
-
-// View outgoing sourcing requests
-SourcingRouter.get(
-  "/requests/retailer",
-  auth(["Retailer"]),
-  SourcingController.getRetailerSourcingRequestsController
-);
-
-
-// --- Reseller Endpoints ---
-
-// View incoming sourcing requests
-SourcingRouter.get(
-  "/requests/reseller",
-  auth(["Reseller"]),
-  SourcingController.getResellerSourcingRequestsController
-);
-
-// Respond to sourcing request (Accept / Reject)
-SourcingRouter.patch(
-  "/request/:id/respond",
-  auth(["Reseller"]),
-  validateRequest(SourcingValidations.respondSourcingRequestValidation),
-  SourcingController.respondToSourcingRequestController
 );
 
 export default SourcingRouter;

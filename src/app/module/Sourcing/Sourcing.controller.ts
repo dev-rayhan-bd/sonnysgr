@@ -46,76 +46,6 @@ const getTrustedResellersController = catchAsync(async (req, res) => {
   });
 });
 
-const createSourcingRequestController = catchAsync(async (req, res) => {
-  const { user } = req as AuthRequest;
-
-  const result = await SourcingServices.createSourcingRequest(
-    user.profileId,
-    req.body
-  );
-
-  sendResponse(res, {
-    statusCode: 201,
-    success: true,
-    message: "Sourcing request created successfully.",
-    data: result,
-  });
-});
-
-const getRetailerSourcingRequestsController = catchAsync(async (req, res) => {
-  const { user } = req as AuthRequest;
-  const { status } = req.query;
-
-  const result = await SourcingServices.getRetailerSourcingRequests(
-    user.profileId,
-    status as string
-  );
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Outgoing sourcing requests fetched successfully.",
-    data: result,
-  });
-});
-
-const getResellerSourcingRequestsController = catchAsync(async (req, res) => {
-  const { user } = req as AuthRequest;
-  const { status } = req.query;
-
-  const result = await SourcingServices.getResellerSourcingRequests(
-    user.profileId,
-    status as string
-  );
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Incoming sourcing requests fetched successfully.",
-    data: result,
-  });
-});
-
-const respondToSourcingRequestController = catchAsync(async (req, res) => {
-  const { user } = req as AuthRequest;
-  const { id } = req.params;
-  const { status, rejectionReason } = req.body;
-
-  const result = await SourcingServices.respondToSourcingRequest(
-    user.profileId,
-    id,
-    status,
-    rejectionReason
-  );
-
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: `Sourcing request ${status.toLowerCase()} successfully.`,
-    data: result,
-  });
-});
-
 const getResellerProductsController = catchAsync(async (req, res) => {
   const { id } = req.params;
 
@@ -134,10 +64,6 @@ const SourcingController = {
   toggleTrustResellerController,
   getAllActiveResellersController,
   getTrustedResellersController,
-  createSourcingRequestController,
-  getRetailerSourcingRequestsController,
-  getResellerSourcingRequestsController,
-  respondToSourcingRequestController,
   getResellerProductsController,
 };
 
