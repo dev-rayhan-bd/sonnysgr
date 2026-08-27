@@ -16,7 +16,6 @@ import {
 } from "./Pairs.model";
 import PairsValidations from "./Pairs.validation";
 import ResellerModel from "../Reseller/Reseller.model";
-import { TrustedResellerModel } from "../Sourcing/Sourcing.model";
 
 //add new pairs to the reseller's listing
 const addNewPairsToReseller = async (
@@ -1434,20 +1433,6 @@ const createProductRequest = async (
     throw new ApiError(404, "Reseller not found.");
   }
   resolvedResellerId = reseller._id;
-
-  // 2. Validate that the reseller is trusted/favourite by this retailer
-  const isTrusted = await TrustedResellerModel.findOne({
-    retailerId: profileId,
-    resellerId: resolvedResellerId,
-    status: "active",
-  });
-
-  if (!isTrusted) {
-    throw new ApiError(
-      400,
-      "You must add this reseller to your trusted/favourite list before submitting a product request."
-    );
-  }
 
   // Normalize gender to Capitalized
   const formattedVariants = validatedData.variant.map((v: any) => {
