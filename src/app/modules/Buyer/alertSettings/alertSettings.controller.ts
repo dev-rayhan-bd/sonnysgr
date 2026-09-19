@@ -31,7 +31,7 @@ const updateGlobalAlerts = catchAsync(async (req: Request, res: Response) => {
 const updateStoreAlerts = catchAsync(async (req: Request, res: Response) => {
   const { user } = req as AuthRequest;
   const { retailerId } = req.params;
-  const result = await AlertSettingsServices.updateStoreAlertsService(user.profileId, retailerId, req.body);
+  const result = await AlertSettingsServices.updateStoreAlertsService(user.profileId, retailerId as string, req.body);
 
   sendResponse(res, {
     statusCode: 200,

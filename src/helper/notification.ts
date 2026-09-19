@@ -1,4 +1,4 @@
-import { NotificationModel } from "../app/module/Notification/Notification.model";
+import { NotificationModel } from "../app/modules/Notification/Notification.model";
 import { getIO } from "../socket/socket.connection";
 import { ENUM_NOTIFICATION_TYPE } from "../utilities/enum";
 

@@ -20,7 +20,7 @@ const removeFromFollowing = catchAsync(async (req: Request, res: Response) => {
   const { user } = req as AuthRequest;
   const { productId } = req.params;
 
-  const result = await FollowingServices.removeFromFollowingService(user.profileId, productId);
+  const result = await FollowingServices.removeFromFollowingService(user.profileId, productId as string);
 
   sendResponse(res, {
     statusCode: 200,

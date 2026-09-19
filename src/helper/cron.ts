@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { handleActivePromotion, handleExpiredPromotion } from "../app/module/Promotion/Promotion.service";
+import { handleActivePromotion, handleExpiredPromotion } from "../app/modules/Promotion/Promotion.service";
 
 
 

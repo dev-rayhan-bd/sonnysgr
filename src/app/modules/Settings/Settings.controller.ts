@@ -67,7 +67,7 @@ const getPrivacyPolicy = catchAsync(async (req: Request, res: Response) => {
 
 const editPrivacyPolicy = catchAsync(async (req: Request, res: Response) => {
 
-  const result = await SettingsServices.editPrivacyPolicy(req.params.id, req.body);
+  const result = await SettingsServices.editPrivacyPolicy(req.params.id as string, req.body);
 
   sendResponse(res, {
     statusCode: 200,
@@ -81,7 +81,7 @@ const editPrivacyPolicy = catchAsync(async (req: Request, res: Response) => {
 const editTermsConditions = catchAsync(async (req: Request, res: Response) => {
     
   const result = await SettingsServices.editTermsConditions(
-    req.params.id,
+    req.params.id as string,
     req.body,
   );
   sendResponse(res, {
@@ -120,7 +120,7 @@ const getAllFaq = catchAsync(async (req: Request, res: Response) => {
 
 const editFaq = catchAsync(async (req: Request, res: Response) => {
     
-  const result = await SettingsServices.editFaqService(req.params.id,req.body);
+  const result = await SettingsServices.editFaqService(req.params.id as string, req.body);
 
   sendResponse(res, {
     statusCode: 200,
@@ -132,7 +132,7 @@ const editFaq = catchAsync(async (req: Request, res: Response) => {
 
 const deleteFaq = catchAsync(async (req: Request, res: Response) => {
     
-  const result = await SettingsServices.deleteFaqService(req.params.id);
+  const result = await SettingsServices.deleteFaqService(req.params.id as string);
 
   sendResponse(res, {
     statusCode: 200,

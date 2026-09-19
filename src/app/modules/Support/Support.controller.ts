@@ -58,7 +58,7 @@ const resolveTicket = catchAsync(async (req: Request, res: Response) => {
   const { user } = req as AuthRequest;
   const { ticketId } = req.params;
 
-  const result = await SupportServices.resolveTicket(ticketId, user.profileId, req.body);
+  const result = await SupportServices.resolveTicket(ticketId as string, user.profileId, req.body);
 
   sendResponse(res, {
     statusCode: 200,

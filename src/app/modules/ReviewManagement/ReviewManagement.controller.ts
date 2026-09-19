@@ -41,7 +41,7 @@ const getReviews = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getSingleReview = catchAsync(async (req: Request, res: Response) => {
-  const result = await ReviewManagementServices.getSingleReviewService(req.params.id);
+  const result = await ReviewManagementServices.getSingleReviewService(req.params.id as string);
 
   sendResponse(res, {
     statusCode: 200,

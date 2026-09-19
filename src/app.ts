@@ -1,55 +1,90 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import globalErrorHandler from './app/middlewares/globalErrorHandler';
-import notFound from './app/middlewares/notFound';
-// import multer from "multer";
-import allRouter from './app/routes';
-// import {webhookRouter} from './app/module/Payment/Payment.routes';
-
-
-
-import { orderPaymentWebhookRouter } from './app/module/OrderPayment/OrderPayment.routes';
+import path from 'path';
+import helmet from 'helmet';
+import router from './app/routes/index';
+import globalErrorHandler from './app/middleware/globalErrorHandler';
+import notFound from './app/middleware/notFound';
+import mongoSanitizeMiddleware from './app/middleware/mongosanitize';
+import { globalLimiter } from './app/middleware/rateLimiter';
+import { orderPaymentWebhookRouter } from './app/modules/OrderPayment/OrderPayment.routes';
 
 const app: Application = express();
 
-//use webhook route before app.use(express.json())
-app.use("/api/v1/order-payment/webhook", orderPaymentWebhookRouter);
+// --- CRITICAL FOR PROXY / NGINX / AWS ---
+app.set('trust proxy', 1);
 
-app.use(express.json());
-app.use(express.urlencoded({extended: true}));
-app.use(cookieParser());
-app.use(cors());
+// --- HIGH SECURITY MIDDLEWARES ---
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  }),
+);
 
-app.use('/uploads', express.static('uploads'));
+app.use(mongoSanitizeMiddleware);
 
-// application routers ----------------
-app.use('/', allRouter);
+// --- STRIPE WEBHOOK (BEFORE express.json) ---
+app.use('/api/v1/order-payment/webhook', orderPaymentWebhookRouter);
 
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.get('/', (req, res) => {
-  res.send("Sneaker hub server is running ---- Welcome to Sneaker Hub API.");
+// Handle JSON parse errors gracefully
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err && (err as any).type === 'entity.parse.failed') {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid JSON in request body',
+    });
+  } else {
+    next(err);
+  }
 });
 
+app.use(cookieParser());
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// app.use((err:any, req:any, res:any, next:any) => {
-//   if (err instanceof multer.MulterError) {
-//     console.log(err.code);
-//     console.log(err.field);
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  }),
+);
 
-//     return res.status(400).json({
-//       message: err.message,
-//       field: err.field,
-//     });
-//   }
+// --- RATE LIMITING ---
+app.use('/api/v1', globalLimiter);
 
-//   next(err);
-// });
+// --- TEST IP ENDPOINT ---
+app.get('/api/v1/test-ip', (req: Request, res: Response) => {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  const clientIp = xForwardedFor
+    ? (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor).split(',')[0].trim()
+    : req.ip || req.socket.remoteAddress;
 
+  res.json({
+    success: true,
+    message: 'Client IP Details',
+    data: {
+      reqIp: req.ip,
+      clientIp: clientIp,
+      xForwardedFor: req.headers['x-forwarded-for'] || null,
+      xRealIp: req.headers['x-real-ip'] || null,
+    },
+  });
+});
 
-// global error handler
+// --- APPLICATION ROUTES ---
+app.use('/api/v1', router);
+
+// Root Health Endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.send('Sneaker Hub - Server is Breathing...');
+});
+
+// --- GLOBAL ERROR & NOT FOUND ---
 app.use(globalErrorHandler);
-// not found
 app.use(notFound);
 
 export default app;

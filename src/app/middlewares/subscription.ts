@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import UserModel from "../module/User/User.model";
+import UserModel from "../modules/User/User.model";
 import ApiError from "../../error/ApiError";
 import { IJwtPayload } from "../../interface/jwt.interface";
 

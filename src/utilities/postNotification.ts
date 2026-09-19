@@ -1,6 +1,6 @@
-import {NotificationModel,AdminNotificationModel} from "../app/module/Notification/Notification.model";;
+import {NotificationModel,AdminNotificationModel} from "../app/modules/Notification/Notification.model";
 import ApiError from "../error/ApiError";
-import { IAdminNotification, INotification, INotificationPayload } from "../app/module/Notification/Notification.interface";
+import { IAdminNotification, INotification, INotificationPayload } from "../app/modules/Notification/Notification.interface";
 
 
 export const postNotification = async (data: INotificationPayload) => {

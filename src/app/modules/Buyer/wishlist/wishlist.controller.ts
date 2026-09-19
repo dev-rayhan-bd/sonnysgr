@@ -20,7 +20,7 @@ const removeFromWishlist = catchAsync(async (req: Request, res: Response) => {
   const { user } = req as AuthRequest;
   const { productId } = req.params;
 
-  const result = await WishlistServices.removeFromWishlistService(user.profileId, productId);
+  const result = await WishlistServices.removeFromWishlistService(user.profileId, productId as string);
 
   sendResponse(res, {
     statusCode: 200,
