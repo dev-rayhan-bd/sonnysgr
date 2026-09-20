@@ -6,9 +6,7 @@ import ApiError from "../../../error/ApiError";
 import CartModel from "../Cart/Cart.model";
 import { ENUM_CART_STATUS } from "../../../utilities/enum";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-09-30.acacia" as any,
-});
+import stripe from "../../../config/stripe";
 
 interface CheckoutPayload {
   buyerId: string;

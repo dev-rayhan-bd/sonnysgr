@@ -7,13 +7,16 @@
     "dev": "nodemon --watch src --exec ts-node src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "create-module": "ts-node src/app/create_module_tem.ts module"
+    "create-module": "ts-node src/app/create_module_tem.ts module",
+    "docs:lint": "redocly lint src/app/docs/openapi.json",
+    "docs:build": "redocly build-docs src/app/docs/openapi.json -o docs.html"
   },
   "keywords": [],
   "author": "Soubir Saian Mallick",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@redocly/cli": "^2.53.3",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",

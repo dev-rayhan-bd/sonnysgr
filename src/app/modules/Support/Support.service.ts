@@ -4,11 +4,7 @@ import { SupportTicketModel, SupportAuditLogModel } from "./Support.model";
 import { OrderModel } from "../Order/Order.model";
 import { s3 } from "../../../config/awsS3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-09-30.acacia" as any,
-});
+import stripe from "../../../config/stripe";
 
 const generatePresignedUrl = async (fileName: string, fileType: string) => {
   const bucketName = process.env.AWS_BUCKET_NAME || "sonnysgr-bucket";

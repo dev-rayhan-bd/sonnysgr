@@ -7,9 +7,7 @@ import OrderPaymentCheckoutServices from "./OrderPaymentCheckout.service";
 import { completeOrderAfterPayment } from "./OrderPaymentSuccess.service";
 import ApiError from "../../../error/ApiError";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-09-30.acacia" as any,
-});
+import stripe from "../../../config/stripe";
 
 const placeOrder = catchAsync(async (req: Request, res: Response) => {
   const { user } = req as AuthRequest;

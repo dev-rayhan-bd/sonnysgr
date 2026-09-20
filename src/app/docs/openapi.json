@@ -1,0 +1,884 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sneaker Hub API Documentation",
+    "description": "Comprehensive RESTful API documentation for Sneaker Hub — a modern Sneaker & Streetwear Multi-Vendor E-Commerce Platform.\n\n### Authentication\nMost endpoints require an `Authorization` header with a Bearer JWT token:\n```\nAuthorization: Bearer <your-jwt-token>\n```\nTokens are obtained via the `/auth/login-user` or `/auth/register-user` endpoints.\n\n### Standard Response Format\nAll API endpoints follow the standardized response envelope:\n```json\n{\n  \"statusCode\": 200,\n  \"success\": true,\n  \"message\": \"Operation successful\",\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 100,\n    \"totalPage\": 10\n  },\n  \"data\": { ... }\n}\n```",
+    "version": "1.0.0",
+    "license": {
+      "name": "ISC",
+      "url": "https://opensource.org/licenses/ISC"
+    },
+    "contact": {
+      "name": "Sneaker Hub Engineering Team",
+      "email": "support@sneakerhub.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://api.sneakerhub.com/api/v1",
+      "description": "Production Server"
+    }
+  ],
+  "tags": [
+    { "name": "Authentication", "description": "User registration, login, email verification, and password management" },
+    { "name": "Products", "description": "Sneaker & clothing catalog, product variants, search, and recent searches" },
+    { "name": "Cart", "description": "Shopping cart items, quantities, and checkout preparation" },
+    { "name": "Orders", "description": "Multi-vendor order placement, tracking, retailer order acceptance, and fulfillment" },
+    { "name": "Order Payment", "description": "Stripe checkout session creation and webhook event handling" },
+    { "name": "Retailer & Branches", "description": "Retailer store profiles, verification, operating hours, and multi-branch management" },
+    { "name": "Buyer", "description": "Buyer preferences, nearby store discovery (GeoJSON), and wishlist" },
+    { "name": "Reseller & Pairs", "description": "Secondary market sneaker pair listings, condition grading, and negotiation" },
+    { "name": "Drops", "description": "Exclusive sneaker drops, release calendars, and countdowns" },
+    { "name": "Chat", "description": "Real-time 1-on-1 messaging and conversation history" },
+    { "name": "Notifications", "description": "System alerts, order updates, and notification preferences" },
+    { "name": "Promotions", "description": "Flash sales, restock alerts, and targeted broadcast announcements" },
+    { "name": "Reviews & Feedback", "description": "Product and store reviews and ratings" },
+    { "name": "Support & Disputes", "description": "Customer support tickets, dispute resolution, and reports" },
+    { "name": "Admin Dashboard", "description": "Platform analytics, user moderation (ban/unban), and system configuration" }
+  ],
+  "paths": {
+    "/auth/register-user": {
+      "post": {
+        "operationId": "registerUser",
+        "tags": ["Authentication"],
+        "summary": "Register a new user",
+        "description": "Registers a new account as Buyer, Retailer, or Reseller with email and password.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "confirmPassword", "userType"],
+                "properties": {
+                  "name": { "type": "string", "example": "Rayhan Ahmed" },
+                  "email": { "type": "string", "format": "email", "example": "rayhan@example.com" },
+                  "password": { "type": "string", "format": "password", "minLength": 6, "example": "SecurePass123!" },
+                  "confirmPassword": { "type": "string", "format": "password", "minLength": 6, "example": "SecurePass123!" },
+                  "userType": { "type": "string", "enum": ["Buyer", "Retailer", "Reseller"], "example": "Buyer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 201,
+                  "success": true,
+                  "message": "User registered successfully. Verification code sent to email.",
+                  "data": {
+                    "userId": "664b1f4a9b1c2d3e4f5a6b7c",
+                    "email": "rayhan@example.com",
+                    "userType": "Buyer",
+                    "isEmailVerified": false
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "500": { "$ref": "#/components/responses/500InternalError" }
+        }
+      }
+    },
+    "/auth/login-user": {
+      "post": {
+        "operationId": "loginUser",
+        "tags": ["Authentication"],
+        "summary": "Login with email and password",
+        "description": "Authenticates user credentials and returns JWT access and refresh tokens.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "rayhan@example.com" },
+                  "password": { "type": "string", "format": "password", "example": "SecurePass123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "User logged in successfully",
+                  "data": {
+                    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "user": {
+                      "userId": "664b1f4a9b1c2d3e4f5a6b7c",
+                      "profileId": "664b1f4a9b1c2d3e4f5a6b7d",
+                      "name": "Rayhan Ahmed",
+                      "email": "rayhan@example.com",
+                      "role": "Buyer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/auth/send-email-verify-code": {
+      "post": {
+        "operationId": "sendEmailVerifyCode",
+        "tags": ["Authentication"],
+        "summary": "Send email verification code",
+        "description": "Generates a 6-digit OTP code and dispatches it to the user's email address.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "rayhan@example.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification code sent successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Verification code sent to your email.",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "404": { "$ref": "#/components/responses/404NotFound" }
+        }
+      }
+    },
+    "/auth/email-verify-code": {
+      "post": {
+        "operationId": "verifyEmailOtpCode",
+        "tags": ["Authentication"],
+        "summary": "Verify email OTP code",
+        "description": "Verifies the 6-digit OTP code to mark the account email as verified.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "verifyCode"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "rayhan@example.com" },
+                  "verifyCode": { "type": "string", "example": "489201" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Email verified successfully.",
+                  "data": { "isEmailVerified": true }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" }
+        }
+      }
+    },
+    "/auth/get-my-profile": {
+      "get": {
+        "operationId": "getMyProfile",
+        "tags": ["Authentication"],
+        "summary": "Get current logged-in user profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Profile retrieved successfully",
+                  "data": {
+                    "_id": "664b1f4a9b1c2d3e4f5a6b7c",
+                    "email": "rayhan@example.com",
+                    "role": "Buyer",
+                    "profile": {
+                      "name": "Rayhan Ahmed",
+                      "phone": "+1234567890",
+                      "shoeSize": 10.5,
+                      "preferredBrands": ["Nike", "Jordan", "Yeezy"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/product/get-all-products": {
+      "get": {
+        "operationId": "getAllProducts",
+        "tags": ["Products"],
+        "summary": "Get all products with filters & pagination",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "searchTerm", "in": "query", "description": "Search by product name, brand, or model", "schema": { "type": "string" } },
+          { "name": "brand", "in": "query", "description": "Filter by brand name (e.g. Nike, Adidas)", "schema": { "type": "string" } },
+          { "name": "gender", "in": "query", "description": "Men, Women, or Kids", "schema": { "type": "string", "enum": ["Men", "Women", "Kids"] } },
+          { "name": "category", "in": "query", "description": "Shoes, Clothing", "schema": { "type": "string", "enum": ["Shoes", "Clothing"] } },
+          { "name": "page", "in": "query", "description": "Page number", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "description": "Items per page", "schema": { "type": "integer", "default": 10 } },
+          { "name": "sort", "in": "query", "description": "Sorting criteria (e.g. -createdAt, price, -price)", "schema": { "type": "string", "default": "-createdAt" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products retrieved successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Products retrieved successfully",
+                  "meta": {
+                    "page": 1,
+                    "limit": 10,
+                    "total": 45,
+                    "totalPage": 5
+                  },
+                  "data": [
+                    {
+                      "_id": "664b2a1e9b1c2d3e4f5a6b80",
+                      "name": "Air Jordan 1 Retro High OG 'Chicago'",
+                      "brand": "Jordan",
+                      "category": "Shoes",
+                      "gender": "Men",
+                      "retailPrice": 180,
+                      "images": ["https://res.cloudinary.com/.../jordan1.png"],
+                      "variants": [
+                        { "size": "9.5", "stock": 5, "price": 180, "sku": "AJ1-CHI-95" },
+                        { "size": "10.0", "stock": 2, "price": 180, "sku": "AJ1-CHI-100" }
+                      ],
+                      "availability": "In Stock"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/product/get-product-detail/{id}": {
+      "get": {
+        "operationId": "getProductDetailById",
+        "tags": ["Products"],
+        "summary": "Get product details by ID",
+        "security": [],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "description": "Product ID", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Product details retrieved successfully",
+                  "data": {
+                    "_id": "664b2a1e9b1c2d3e4f5a6b80",
+                    "name": "Air Jordan 1 Retro High OG 'Chicago'",
+                    "description": "The legendary classic sneaker in original 1985 colorway.",
+                    "brand": "Jordan",
+                    "retailPrice": 180,
+                    "variants": [
+                      { "size": "9.5", "stock": 5, "price": 180 },
+                      { "size": "10.0", "stock": 2, "price": 180 }
+                    ],
+                    "retailer": {
+                      "_id": "664b1f4a9b1c2d3e4f5a6b7d",
+                      "storeName": "Kicks Palace",
+                      "location": "Downtown Manhattan"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "404": { "$ref": "#/components/responses/404NotFound" }
+        }
+      }
+    },
+    "/product/add-new-product": {
+      "post": {
+        "operationId": "addNewProduct",
+        "tags": ["Products"],
+        "summary": "Add a new product (Retailers only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "brand", "category", "gender", "retailPrice"],
+                "properties": {
+                  "name": { "type": "string", "example": "Yeezy Boost 350 V2 'Zebra'" },
+                  "brand": { "type": "string", "example": "Adidas" },
+                  "category": { "type": "string", "enum": ["Shoes", "Clothing"], "example": "Shoes" },
+                  "gender": { "type": "string", "enum": ["Men", "Women", "Kids"], "example": "Men" },
+                  "retailPrice": { "type": "number", "example": 230 },
+                  "description": { "type": "string", "example": "Primeknit upper with signature stripe" },
+                  "product-image": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "binary" },
+                    "description": "Upload up to 8 product photos"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 201,
+                  "success": true,
+                  "message": "Product created successfully",
+                  "data": {
+                    "_id": "664b301a9b1c2d3e4f5a6b85",
+                    "name": "Yeezy Boost 350 V2 'Zebra'",
+                    "availability": "In Stock"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "401": { "$ref": "#/components/responses/401Unauthorized" },
+          "403": { "$ref": "#/components/responses/403Forbidden" }
+        }
+      }
+    },
+    "/cart/get-my-cart": {
+      "get": {
+        "operationId": "getMyCart",
+        "tags": ["Cart"],
+        "summary": "Get current buyer cart items",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Cart items retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Cart items retrieved successfully",
+                  "data": {
+                    "items": [
+                      {
+                        "_id": "664b3501a9b1c2d3e4f5a6b90",
+                        "product": {
+                          "_id": "664b2a1e9b1c2d3e4f5a6b80",
+                          "name": "Air Jordan 1 Retro High OG 'Chicago'",
+                          "price": 180
+                        },
+                        "size": "9.5",
+                        "quantity": 1,
+                        "status": "Active"
+                      }
+                    ],
+                    "totalAmount": 180,
+                    "itemCount": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/cart/add-to-cart": {
+      "post": {
+        "operationId": "addToCart",
+        "tags": ["Cart"],
+        "summary": "Add an item to the shopping cart",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["productId", "variantId", "quantity"],
+                "properties": {
+                  "productId": { "type": "string", "example": "664b2a1e9b1c2d3e4f5a6b80" },
+                  "variantId": { "type": "string", "example": "664b2a1e9b1c2d3e4f5a6b81" },
+                  "quantity": { "type": "integer", "default": 1, "example": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item added to cart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 201,
+                  "success": true,
+                  "message": "Item added to cart successfully",
+                  "data": { "cartItemId": "664b3501a9b1c2d3e4f5a6b90" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/order-payment/checkout": {
+      "post": {
+        "operationId": "createCheckoutSession",
+        "tags": ["Order Payment"],
+        "summary": "Create Stripe Checkout session",
+        "description": "Creates an order and initiates a Stripe Checkout Session for multi-vendor items in cart.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["shippingAddress", "orderItems"],
+                "properties": {
+                  "shippingAddress": {
+                    "type": "object",
+                    "required": ["name", "phone", "address"],
+                    "properties": {
+                      "name": { "type": "string", "example": "Rayhan Ahmed" },
+                      "phone": { "type": "string", "example": "+1555123456" },
+                      "address": { "type": "string", "example": "123 Sneaker St, NY 10001" },
+                      "email": { "type": "string", "example": "rayhan@example.com" }
+                    }
+                  },
+                  "orderItems": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["productId", "variantId", "quantity", "price"],
+                      "properties": {
+                        "productId": { "type": "string", "example": "664b2a1e9b1c2d3e4f5a6b80" },
+                        "variantId": { "type": "string", "example": "664b2a1e9b1c2d3e4f5a6b81" },
+                        "quantity": { "type": "integer", "example": 1 },
+                        "price": { "type": "number", "example": 180 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Checkout session created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 201,
+                  "success": true,
+                  "message": "Stripe checkout session created",
+                  "data": {
+                    "sessionId": "cs_test_a1b2c3d4e5f6g7h8",
+                    "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_...",
+                    "orderId": "664b4200a9b1c2d3e4f5a700"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/order/get-my-orders": {
+      "get": {
+        "operationId": "getMyOrders",
+        "tags": ["Orders"],
+        "summary": "Get all orders for the current user",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "description": "Filter by order status", "schema": { "type": "string", "enum": ["Placed", "Accepted", "Ready for Pickup", "On the Way", "Completed", "Cancelled"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "User orders retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Orders retrieved successfully",
+                  "data": [
+                    {
+                      "_id": "664b4200a9b1c2d3e4f5a700",
+                      "orderNumber": "ORD-2026-94812",
+                      "totalAmount": 180,
+                      "orderStatus": "Placed",
+                      "paymentStatus": "Paid",
+                      "createdAt": "2026-09-20T10:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/order/retailer-orders": {
+      "get": {
+        "operationId": "getRetailerOrders",
+        "tags": ["Orders"],
+        "summary": "Get orders received by the logged-in Retailer",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Retailer orders retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Store orders retrieved successfully",
+                  "data": []
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" },
+          "403": { "$ref": "#/components/responses/403Forbidden" }
+        }
+      }
+    },
+    "/pair/get-all-pairs": {
+      "get": {
+        "operationId": "getAllPairs",
+        "tags": ["Reseller & Pairs"],
+        "summary": "Get secondary market sneaker pair listings",
+        "security": [],
+        "parameters": [
+          { "name": "condition", "in": "query", "schema": { "type": "string", "enum": ["Deadstock", "Near Deadstock", "Very Good", "Good"] } },
+          { "name": "size", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sneaker pairs retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Pairs retrieved successfully",
+                  "data": []
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" }
+        }
+      }
+    },
+    "/pair/create-pair": {
+      "post": {
+        "operationId": "createPair",
+        "tags": ["Reseller & Pairs"],
+        "summary": "List a sneaker pair for sale/trade (Reseller only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sneakerName", "brand", "size", "condition", "askingPrice"],
+                "properties": {
+                  "sneakerName": { "type": "string", "example": "Travis Scott x Air Jordan 1 Low 'Reverse Mocha'" },
+                  "brand": { "type": "string", "example": "Jordan" },
+                  "size": { "type": "string", "example": "10" },
+                  "condition": { "type": "string", "enum": ["Deadstock", "Near Deadstock", "Very Good", "Good"], "example": "Deadstock" },
+                  "askingPrice": { "type": "number", "example": 1200 },
+                  "hasOriginalBox": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pair listed successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 201,
+                  "success": true,
+                  "message": "Pair listed successfully",
+                  "data": { "_id": "664b5001a9b1c2d3e4f5a750" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" },
+          "401": { "$ref": "#/components/responses/401Unauthorized" },
+          "403": { "$ref": "#/components/responses/403Forbidden" }
+        }
+      }
+    },
+    "/buyer/nearby-stores": {
+      "get": {
+        "operationId": "getNearbyStores",
+        "tags": ["Buyer"],
+        "summary": "Find nearby sneaker retailer stores",
+        "description": "Calculates nearby retailer locations within specified radius using MongoDB 2dsphere GeoJSON index.",
+        "security": [],
+        "parameters": [
+          { "name": "latitude", "in": "query", "required": true, "schema": { "type": "number", "example": 40.7128 } },
+          { "name": "longitude", "in": "query", "required": true, "schema": { "type": "number", "example": -74.006 } },
+          { "name": "distanceKm", "in": "query", "description": "Search radius in kilometers", "schema": { "type": "number", "default": 10 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nearby stores retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Nearby stores retrieved successfully",
+                  "data": [
+                    {
+                      "_id": "664b1f4a9b1c2d3e4f5a6b7d",
+                      "storeName": "Flight Club NYC",
+                      "distance": "1.2 km",
+                      "rating": 4.8
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/400BadRequest" }
+        }
+      }
+    },
+    "/chat/conversations": {
+      "get": {
+        "operationId": "getConversations",
+        "tags": ["Chat"],
+        "summary": "Get user chat conversations list",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Conversations retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Conversations retrieved successfully",
+                  "data": []
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/notification/get-my-notifications": {
+      "get": {
+        "operationId": "getMyNotifications",
+        "tags": ["Notifications"],
+        "summary": "Get notifications for logged-in user",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Notifications retrieved successfully",
+                  "data": []
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
+    "/dashboard/overview-metrics": {
+      "get": {
+        "operationId": "getDashboardMetrics",
+        "tags": ["Admin Dashboard"],
+        "summary": "Get Admin overview analytics (Admin only)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Admin overview metrics",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Dashboard metrics retrieved successfully",
+                  "data": {
+                    "totalUsers": 1250,
+                    "totalRetailers": 85,
+                    "totalOrders": 420,
+                    "totalRevenue": 95400
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" },
+          "403": { "$ref": "#/components/responses/403Forbidden" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT token in the format: Bearer <token>"
+      }
+    },
+    "responses": {
+      "400BadRequest": {
+        "description": "Bad Request — invalid input or validation error",
+        "content": {
+          "application/json": {
+            "example": {
+              "statusCode": 400,
+              "success": false,
+              "message": "Validation Error",
+              "errorSources": [{ "path": "email", "message": "Email must be a valid email" }]
+            }
+          }
+        }
+      },
+      "401Unauthorized": {
+        "description": "Unauthorized — missing or invalid JWT bearer token",
+        "content": {
+          "application/json": {
+            "example": {
+              "statusCode": 401,
+              "success": false,
+              "message": "You are not authorized!",
+              "errorSources": [{ "path": "", "message": "Token is expired or invalid" }]
+            }
+          }
+        }
+      },
+      "403Forbidden": {
+        "description": "Forbidden — user does not have necessary role permissions",
+        "content": {
+          "application/json": {
+            "example": {
+              "statusCode": 403,
+              "success": false,
+              "message": "Access Forbidden: You do not have permission to perform this action",
+              "errorSources": [{ "path": "", "message": "Role not authorized" }]
+            }
+          }
+        }
+      },
+      "404NotFound": {
+        "description": "Not Found — the requested resource does not exist",
+        "content": {
+          "application/json": {
+            "example": {
+              "statusCode": 404,
+              "success": false,
+              "message": "Resource Not Found",
+              "errorSources": [{ "path": "", "message": "No document found with that ID" }]
+            }
+          }
+        }
+      },
+      "500InternalError": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "example": {
+              "statusCode": 500,
+              "success": false,
+              "message": "Something went wrong!",
+              "errorSources": [{ "path": "", "message": "Internal server error occurred" }]
+            }
+          }
+        }
+      }
+    }
+  }
+}

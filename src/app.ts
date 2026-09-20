@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import helmet from 'helmet';
 import router from './app/routes/index';
+import docsRouter from './app/docs/docs.routes';
 import globalErrorHandler from './app/middleware/globalErrorHandler';
 import notFound from './app/middleware/notFound';
 import mongoSanitizeMiddleware from './app/middleware/mongosanitize';
@@ -74,6 +75,10 @@ app.get('/api/v1/test-ip', (req: Request, res: Response) => {
     },
   });
 });
+
+// --- API DOCUMENTATION (REDOCLY) ---
+app.use('/docs', docsRouter);
+app.use('/api/v1/docs', docsRouter);
 
 // --- APPLICATION ROUTES ---
 app.use('/api/v1', router);
