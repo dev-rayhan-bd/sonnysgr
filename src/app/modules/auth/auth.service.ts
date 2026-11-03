@@ -9,6 +9,7 @@ import generateVerifyCode from "../../../utilities/codeGenerator";
 import { JwtPayload, Secret, SignOptions } from "jsonwebtoken";
 import {
   IAuth,
+  IChangePassword,
   IResetPassword,
   TLoginUser,
   TRegisterUser,
@@ -22,6 +23,7 @@ import {
 import ResellerModel from "../Reseller/Reseller.model";
 import RetailerModel from "../Retailer/Retailer.model";
 import BuyerModel from "../Buyer/Buyer.model";
+import deleteOldFile from "../../../utilities/deleteFile";
 import { comparePassword, hashPassword } from "../../../helper/bcryptHelper";
 
 //utility function to generate token
@@ -612,7 +614,7 @@ const emailVerifyCode = async (payload: {
 }) => {
   const { email, verifyCode } = payload;
 
-  const user = await AuthModel.findOne({ email: email }).select(
+  const user = await AuthModel.findOne({ email: email.toLowerCase() }).select(
     "profile email role verificationCode isEmailVerified",
   );
 
@@ -676,7 +678,7 @@ const resetPasswordEmailVerifyCode = async (payload: {
 }) => {
   const { email, verifyCode } = payload;
 
-  const user = await AuthModel.findOne({ email: email }).select(
+  const user = await AuthModel.findOne({ email: email.toLowerCase() }).select(
     "profile email role verificationCode isEmailVerified isResetPaswordEmailVerified",
   );
 
@@ -736,7 +738,7 @@ const resetPasswordEmailVerifyCode = async (payload: {
 
 //send email verification code service
 const sendEmailVerifyCodeService = async (payload: { email: string }) => {
-  const { email } = payload;
+  const email = payload.email.toLowerCase();
 
   const user = await AuthModel.findOne({ email: email }).populate({
     path: "profile",
@@ -763,7 +765,7 @@ const sendEmailVerifyCodeService = async (payload: { email: string }) => {
 };
 
 const sendResetEmailVerifyCodeService = async (payload: { email: string }) => {
-  const { email } = payload;
+  const email = payload.email.toLowerCase();
 
   const user = await AuthModel.findOne({ email: email }).populate({
     path: "profile",
@@ -793,7 +795,7 @@ const sendResetEmailVerifyCodeService = async (payload: { email: string }) => {
 const resetPasswordService = async (payload: IResetPassword) => {
   const { email, newPassword } = payload;
 
-  const user = await AuthModel.findOne({ email: email });
+  const user = await AuthModel.findOne({ email: email.toLowerCase() });
 
   if (!user) {
     throw new ApiError(404, "This user does not exist to reset password");
@@ -843,7 +845,7 @@ const resetPasswordService = async (payload: IResetPassword) => {
   //     config.jwt_refresh_expires_in as string
   // );
 
-  return { user: { name: user.name, email: user.email }, accessToken };
+  return { user: { email: user.email, role: user.role }, accessToken };
 };
 
 const getMyProfileService = async (userDetails: JwtPayload) => {
@@ -884,8 +886,25 @@ const updateMyProfileService = async (
       throw new ApiError(400, "Invalid user role");
   }
 
-  const updateData: any = { ...payload };
+  let updateData: any = { ...payload };
+  if (typeof payload?.data === "string") {
+    try {
+      updateData = { ...updateData, ...JSON.parse(payload.data) };
+      delete updateData.data;
+    } catch (e) {
+      // not a json string
+    }
+  }
+
+  const existingProfile: any = await ProfileModel.findById(authUser.profile);
+  if (!existingProfile) {
+    throw new ApiError(404, "Profile not found to update");
+  }
+
   if (imagePath) {
+    if (existingProfile.image) {
+      deleteOldFile(existingProfile.image);
+    }
     updateData.image = imagePath;
   }
 
@@ -911,6 +930,33 @@ const updateMyProfileService = async (
   return updatedUser;
 };
 
+const changePasswordService = async (
+  userDetails: JwtPayload,
+  payload: { currentPassword?: string; oldPassword?: string; newPassword: string }
+) => {
+  const { authId } = userDetails;
+  const currentPassword = payload.currentPassword || payload.oldPassword;
+
+  if (!currentPassword) {
+    throw new ApiError(400, "Current password is required.");
+  }
+
+  const user = await AuthModel.findById(authId);
+  if (!user) {
+    throw new ApiError(404, "User not found to change password.");
+  }
+
+  const isPasswordMatched = await comparePassword(currentPassword, user.password);
+  if (!isPasswordMatched) {
+    throw new ApiError(400, "Current password is incorrect.");
+  }
+
+  user.password = await hashPassword(payload.newPassword);
+  await user.save();
+
+  return null;
+};
+
 const AuthServices = {
   registerWithEmailService,
   registerWithSocialService,
@@ -928,5 +974,6 @@ const AuthServices = {
 
   getMyProfileService,
   updateMyProfileService,
+  changePasswordService,
 };
 export default AuthServices;

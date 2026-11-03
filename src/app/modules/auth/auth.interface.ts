@@ -43,3 +43,10 @@ export interface IResetPassword {
     newPassword: string;
     confirmPassword: string;
 }
+
+export interface IChangePassword {
+    currentPassword?: string;
+    oldPassword?: string;
+    newPassword: string;
+    confirmPassword?: string;
+}

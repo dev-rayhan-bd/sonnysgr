@@ -65,6 +65,13 @@ authRouter.patch(
   AuthController.resetPassword,
 );
 
+authRouter.patch(
+  "/change-password",
+  authorizeUser,
+  validateRequest(AuthValidations.changePasswordValidationSchema),
+  AuthController.changePassword,
+);
+
 authRouter.get("/get-my-profile", authorizeUser, AuthController.getMyProfile);
 
 authRouter.patch(

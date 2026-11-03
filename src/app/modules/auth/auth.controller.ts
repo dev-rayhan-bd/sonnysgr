@@ -190,6 +190,19 @@ const resetPassword = catchAsync(async (req, res) => {
   });
 });
 
+const changePassword = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+
+  const result = await authServices.changePasswordService(user, req.body);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Password changed successfully.",
+    data: result,
+  });
+});
+
 const getMyProfile = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
 
@@ -235,6 +248,7 @@ const AuthController = {
   sendResetPasswordEmailVerifyCode,
 
   resetPassword,
+  changePassword,
 
   getMyProfile,
   updateMyProfile,
