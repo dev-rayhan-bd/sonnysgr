@@ -13,20 +13,14 @@ const createBranch = catchAsync(async (req, res) => {
   const profileImage = files?.["profile-image"]?.[0];
   const coverImage = files?.["cover-image"]?.[0];
 
-  if (req.body.operationHours) {
-    req.body.operationHours = JSON.parse(req.body.operationHours);
+  if (req.body.operationHours && typeof req.body.operationHours === "string") {
+    try {
+      req.body.operationHours = JSON.parse(req.body.operationHours);
+    } catch {
+      // keep raw if not JSON
+    }
   }
 
-  // if (req.body.pickupRules) {
-  //   req.body.pickupRules = JSON.parse(req.body.pickupRules);
-  // }
-
-  // if (req.body.branchSettings) {
-  //   req.body.branchSettings = JSON.parse(req.body.branchSettings);
-  // }
-
-  console.log(typeof req.body.operationHours); // object
-  console.log(Array.isArray(req.body.operationHours)); // true
   const result = await BranchServices.createBranchInDB(
     user,
     profileImage,
@@ -52,6 +46,14 @@ const updateBranch = catchAsync(async (req, res) => {
 
   const profileImage = files?.["profile-image"]?.[0];
   const coverImage = files?.["cover-image"]?.[0];
+
+  if (req.body.operationHours && typeof req.body.operationHours === "string") {
+    try {
+      req.body.operationHours = JSON.parse(req.body.operationHours);
+    } catch {
+      // keep raw
+    }
+  }
 
   const result = await BranchServices.updateBranchInDB(
     user,
@@ -111,6 +113,18 @@ const getSingleBranch = catchAsync(async (req, res) => {
   });
 });
 
+const getBranchSwitcherFeed = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BranchServices.getBranchSwitcherFeed(user);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Retrieved branch switcher feed successfully.",
+    data: result,
+  });
+});
+
 const getAllBranchesForAdmin = catchAsync(async (req, res) => {
   const result = await BranchServices.getAllBranchesForAdmin(req.query);
 
@@ -142,6 +156,7 @@ export const BranchController = {
   deleteBranch,
   getMyBranches,
   getSingleBranch,
+  getBranchSwitcherFeed,
   getAllBranchesForAdmin,
   getSingleBranchForAdmin,
 };

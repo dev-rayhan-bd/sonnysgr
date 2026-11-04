@@ -1,274 +1,82 @@
 import multer from "multer";
-import { createDiskStorage } from "../../helper/multer";
-import { multerS3Storage } from "../../helper/multerS3";
 
-const imageFileFilter = (req: any, file: any, cb: any) => {
-  const allowedMimeTypes = ["image/png", "image/jpg", "image/jpeg"];
-  if (allowedMimeTypes.includes(file.mimetype)) {
+// Memory storage for direct cloud streaming (Cloudinary / AWS S3)
+const memoryStorage = multer.memoryStorage();
+
+const imageFileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  const allowedMimeTypes = [
+    "image/png",
+    "image/jpg",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+    "application/pdf",
+  ];
+  if (allowedMimeTypes.includes(file.mimetype) || file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else {
-    cb(new Error("Only .jpg, .png or .jpeg format allowed!"));
+    cb(new Error("Only image formats (.jpg, .png, .jpeg, .webp) and PDF documents are allowed!"));
   }
 };
 
-//multer configuration for local storage
+const MAX_UPLOAD_SIZE = 500 * 1024 * 1024; // 500 MB upload limit
 
-// upload user image
- export const uploadProfile = multer({
-   storage: createDiskStorage("profile-image"),
- 
-   limits: {
-     fileSize: 5 * 1024 * 1024, // 5MB . less than 5mb file allowed
-    //  fieldSize: 3 * 1024 *1024
-   },
-
-   fileFilter: imageFileFilter,
- });
-
- // upload post image
- export const uploadPostImage = multer({
-   storage: createDiskStorage("post-image"),
- 
-   limits: {
-     fileSize: 3145728, // 3MB . less than 3mb file allowed
-    //  fieldSize: 3 * 1024 *1024
-   },
- 
-   fileFilter: (req, file, cb) => {
-    
-       if (file.mimetype === "image/png" || file.mimetype === "image/jpg" || file.mimetype === "image/jpeg" ) {
- 
-         cb(null, true);
- 
-       } else {
-         cb(new Error("Only .jpg, .png or .jpeg format allowed!"));
-       }
-     
-   },
- });
-
- // upload category image
- export const uploadCategoryImage = multer({
-   storage: createDiskStorage("category-image"),
- 
-   limits: {
-     fileSize: 3145728, // 3MB . less than 3mb file allowed
-    //  fieldSize: 3 * 1024 *1024
-   },
- 
-   fileFilter: (req, file, cb) => {
-    
-       if (file.mimetype === "image/png" || file.mimetype === "image/jpg" || file.mimetype === "image/jpeg" ) {
- 
-         cb(null, true);
- 
-       } else {
-         cb(new Error("Only .jpg, .png or .jpeg format allowed!"));
-       }
-     
-   },
- });
-
- // upload promotional image
- export const uploadPromotionalImage = multer({
-   storage: createDiskStorage("promotional-image"),
- 
-   limits: {
-     fileSize: 3145728, // 3MB . less than 3mb file allowed
-    //  fieldSize: 3 * 1024 *1024
-   },
- 
-   fileFilter: (req, file, cb) => {
-    
-       if (file.mimetype === "image/png" || file.mimetype === "image/jpg" || file.mimetype === "image/jpeg" ) {
- 
-         cb(null, true);
- 
-       } else {
-         cb(new Error("Only .jpg, .png or .jpeg format allowed!"));
-       }
-     
-   },
- });
-
-// upload promotional video
-export const uploadPromotionalVideo = multer({
-  storage: createDiskStorage("promotional-video"),
-
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max
-  },
-
-  fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = [
-      "video/mp4",
-      "video/webm",
-      "video/ogg",
-      "video/quicktime",
-      "video/avi",
-      "video/mov",
-      "video/wmv",
-      "video/flv",
-      "video/mkv",
-      "video/3gp"
-    ];
-
-    if (allowedMimeTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(
-        new Error(
-          "Only video files are allowed (mp4, webm, ogg, mov)"
-        )
-      );
-    }
-  },
-});
-
-// Dedicated uploaders for other entities to preserve directory structure without relying on file.fieldname
-export const uploadPairImage = multer({
-  storage: createDiskStorage("pair-image"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadProductImage = multer({
-  storage: createDiskStorage("product-image"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadChatFiles = multer({
-  storage: createDiskStorage("chat-files"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadAdminImage = multer({
-  storage: createDiskStorage("admin-image"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadReportImage = multer({
-  storage: createDiskStorage("report-image"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadRetailerFile = multer({
-  storage: createDiskStorage("retailer-file"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadCoverImage = multer({
-  storage: createDiskStorage("cover-image"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
-
-export const uploadRetailerFields = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      let folder = "profile-image";
-      if (file.fieldname === "cover-image") folder = "cover-image";
-      else if (file.fieldname === "retailer-file" || file.fieldname === "licence") folder = "retailer-file";
-      
-      const fs = require('fs');
-      const path = require('path');
-      const uploadPath = path.join("uploads", folder);
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath, { recursive: true });
-      }
-      cb(null, uploadPath);
+// Reusable cloud-ready multer configuration
+const createCloudMulter = () =>
+  multer({
+    storage: memoryStorage,
+    limits: {
+      fileSize: MAX_UPLOAD_SIZE,
+      fieldSize: MAX_UPLOAD_SIZE,
     },
-    filename: (req, file, cb) => {
-      const path = require('path');
-      const fileExtension = path.extname(file.originalname);
-      const fileName = file.originalname.replace(fileExtension, "").toLowerCase().split(" ").join("-") + "-" + Date.now();
-      cb(null, fileName + fileExtension);
-    }
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFileFilter,
-});
+    fileFilter: imageFileFilter,
+  });
 
+// Profile avatar uploader
+export const uploadProfile = createCloudMulter();
 
- // preapre the final multer upload object
-//  export const uploadDocument = multer({
-//    storage: profileStorage,
- 
-//    limits: {
-//      fileSize: 3145728, // 3MB . less than 3mb file allowed
-//     //  fieldSize: 3 * 1024 *1024
-//    },
- 
-//    fileFilter: (req, file, cb) => {
-    
-//        if (file.mimetype === "application/pdf" ) {
- 
-//          cb(null, true);
- 
-//        } else {
-//          cb(new Error("Only pdf file format allowed!"));
-//        }
-     
-//    },
-//  });
+// Post / Feed image uploader
+export const uploadPostImage = createCloudMulter();
 
+// Category image uploader
+export const uploadCategoryImage = createCloudMulter();
 
-//aws s3 multer middleware configuration
+// Promotional image uploader
+export const uploadPromotionalImage = createCloudMulter();
 
-//upload image to s3
-export const uploadImageToS3 = multer({
-  storage: multerS3Storage,
-
-  limits: {
-    fileSize: 3 * 1024 * 1024, // 50MB
-  },
-
+// Promotional video uploader (500MB)
+export const uploadPromotionalVideo = multer({
+  storage: memoryStorage,
+  limits: { fileSize: MAX_UPLOAD_SIZE },
   fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = [
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-    ];
-
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    if (file.mimetype.startsWith("video/") || file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only PNG, JPEG, and JPG are allowed."));
+      cb(new Error("Only video or image files are allowed."));
     }
   },
 });
 
-//upload video s3
-export const uploadVideoToS3 = multer({
-  storage: multerS3Storage,
+// Pair / Reseller listing uploader
+export const uploadPairImage = createCloudMulter();
 
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
-  },
+// Product image uploader (multi-image catalog)
+export const uploadProductImage = createCloudMulter();
 
-  fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = [
-      "video/mp4",
-      "video/webm",
-      "video/ogg",
-      "video/quicktime",
-      "video/avi",
-      "video/mov",
-      "video/wmv",
-      "video/flv",
-      "video/mkv",
-      "video/3gp"
-    ];
+// Chat attachment uploader
+export const uploadChatFiles = createCloudMulter();
 
-    if (allowedMimeTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only MP4 and WEBM are allowed."));
-    }
-  },
-});
+// Admin assets uploader
+export const uploadAdminImage = createCloudMulter();
+
+// Report & dispute uploader
+export const uploadReportImage = createCloudMulter();
+
+// Retailer documents & licenses uploader
+export const uploadRetailerFile = createCloudMulter();
+
+// Store cover image uploader
+export const uploadCoverImage = createCloudMulter();
+
+// Retailer multiple field uploader (profile-image, cover-image, licence, retailer-file)
+export const uploadRetailerFields = createCloudMulter();

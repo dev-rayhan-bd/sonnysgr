@@ -1,58 +1,58 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middleware/auth";
-import validateRequest from "../../middleware/validateRequest";
-import OrderValidations from "./Order.validation";
+import { auth, authorizeUser } from "../../middleware/auth";
 import OrderController from "./Order.controller";
-
 
 const OrderRouter = express.Router();
 
+// Retailer 4-Stage Order Management Feed (Needs Action, Holds, Ready, History)
 OrderRouter.get(
-    "/retailer-order-stat",
-    authorizeUser,
-    OrderController.getRetailerHomePageOrderStatDataController
+  "/retailer-orders",
+  auth(["Retailer"]),
+  OrderController.getRetailerOrdersByStageController
 );
 
 OrderRouter.get(
-    "/get-order-detail/:id",
-    // authorizeUser,
-    OrderController.getOrderDetailController
+  "/retailer-order-stat",
+  auth(["Retailer"]),
+  OrderController.getRetailerHomePageOrderStatDataController
 );
 
+OrderRouter.get(
+  "/get-order-detail/:id",
+  authorizeUser,
+  OrderController.getOrderDetailController
+);
+
+// Retailer Fulfillment Action Routes
 OrderRouter.post(
-    "/retailer-accept-order/:id",
-    // authorizeUser,
-    OrderController.getOrderDetailController
+  "/retailer-accept-order/:id",
+  auth(["Retailer"]),
+  OrderController.retailerAcceptOrder
 );
 
+OrderRouter.patch(
+  "/retailer-mark-ready/:id",
+  auth(["Retailer"]),
+  OrderController.retailerMarkReadyController
+);
+
+OrderRouter.patch(
+  "/retailer-complete-order/:id",
+  auth(["Retailer"]),
+  OrderController.retailerCompleteOrderController
+);
+
+OrderRouter.patch(
+  "/retailer-cancel-order/:id",
+  auth(["Retailer"]),
+  OrderController.retailerCancelOrderController
+);
+
+// Buyer Order Route
 OrderRouter.get(
-    "/my-orders",
-    auth(["Buyer"]),
-    OrderController.getMyOrders
+  "/my-orders",
+  auth(["Buyer"]),
+  OrderController.getMyOrders
 );
 
 export default OrderRouter;
-
-/*
-    #Direct buy or hold item
-
-    1. buyer select a item
-    2. click
-    3. create order and orderItem collection
-    4. make payment and create payment schema collection
-    5. Webhook confirm payment
-    5. Adjust inventory
-
-
-    #Cart item handling
-    1.multiple item available
-    2. calculate total price
-    3. apply promo code to total price
-    4.final price and click
-    5.create a order and multiple orderItem 
-    6. Make payment and create payment schema collection
-    7.webhook comfirm payment
-    8. adjust inventory
-
-
-*/

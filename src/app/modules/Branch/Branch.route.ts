@@ -36,6 +36,13 @@ BranchRouter.delete(
   BranchController.deleteBranch
 );
 
+// Branch switcher feed for mobile navigation
+BranchRouter.get(
+  "/switcher-feed",
+  auth(["Retailer"]),
+  BranchController.getBranchSwitcherFeed
+);
+
 BranchRouter.get(
   "/my-branches",
   auth(["Retailer"]),
