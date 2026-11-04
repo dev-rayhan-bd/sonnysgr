@@ -5,7 +5,7 @@ import RetailerModel from "../../Retailer/Retailer.model";
 import ResellerModel from "../../Reseller/Reseller.model";
 import { PairsModel, ProductRequestModel } from "../../Pairs/Pairs.model";
 import { ProductModel } from "../../Product/Product.model";
-import QueryBuilder from "../../../builders/QueryBuilder";
+import QueryBuilder from "../../../builder/QueryBuilder";
 import { IUpdateUserStatusPayload } from "./users.interface";
 
 const getAllUsersService = async (query: Record<string, any>) => {

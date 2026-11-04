@@ -1,7 +1,7 @@
 import ApiError from "../../../error/ApiError";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import { OrderItemModel, OrderModel } from "./Order.model";
-import QueryBuilder from "../../builders/QueryBuilder";
+import QueryBuilder from "../../builder/QueryBuilder";
 import {
   ENUM_NOTIFICATION_TYPE,
   ENUM_ORDER_STATUS,

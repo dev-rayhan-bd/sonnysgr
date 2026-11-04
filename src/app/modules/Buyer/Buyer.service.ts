@@ -9,7 +9,7 @@ import { IBuyer, IBuyerNotification } from "./Buyer.interface";
 import BuyerModel from "./Buyer.model";
 import { ProductModel } from "../Product/Product.model";
 import AuthModel from "../auth/auth.model";
-import QueryBuilder from "../../builders/QueryBuilder";
+import QueryBuilder from "../../builder/QueryBuilder";
 
 const setBuyerNotificationAlerts = async (userDetails: IJwtPayload, payload: IBuyerNotification) => {
 

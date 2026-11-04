@@ -1,6 +1,6 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import {auth, authorizeUser} from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import NotificationValidations from "./Notification.validation";
 import NotificationController from "./Notification.controller";
 

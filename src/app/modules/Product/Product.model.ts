@@ -1,7 +1,7 @@
 import { model, Schema, models } from "mongoose";
 import { IProduct, IProductVariant, IRecentSearch } from "./Product.interface";
 import { ENUM_GENDER_TYPE, ENUM_PRODUCT_AVAILABILITY, ENUM_PRODUCT_TYPE } from "../../../utilities/enum";
-import { getAvailability } from "../../middlewares/mongooseMiddleware";
+import { getAvailability } from "../../middleware/mongooseMiddleware";
 
 
 //Product schema

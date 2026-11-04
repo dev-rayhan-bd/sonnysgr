@@ -1,9 +1,9 @@
 import express from "express";
-import { auth, authorizeUser } from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import { auth, authorizeUser } from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import PairsValidations from "./Pairs.validation";
 import PairsController from "./Pairs.controller";
-import { uploadPairImage } from "../../middlewares/multerMiddleware";
+import { uploadPairImage } from "../../middleware/multerMiddleware";
 
 const PairsRouter = express.Router();
 

@@ -1,6 +1,6 @@
 import express from "express";
-import {auth} from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import {auth} from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import AnalyticsValidations from "./Analytics.validation";
 import AnalyticsController from "./Analytics.controller";
 

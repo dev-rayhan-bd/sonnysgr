@@ -1,9 +1,9 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import {auth, authorizeUser} from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import ChatValidations from "./Chat.validation";
 import ChatController from "./Chat.controller";
-import { uploadChatFiles } from "../../middlewares/multerMiddleware";
+import { uploadChatFiles } from "../../middleware/multerMiddleware";
 
 
 const ChatRouter = express.Router();

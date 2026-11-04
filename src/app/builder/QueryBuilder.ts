@@ -1,4 +1,4 @@
-import { Query } from 'mongoose';
+import { FilterQuery, Query } from 'mongoose';
 
 class QueryBuilder<T> {
   public modelQuery: Query<T[], T>;
@@ -17,7 +17,7 @@ class QueryBuilder<T> {
           (field) =>
             ({
               [field]: { $regex: search, $options: 'i' },
-            } as any),
+            }) as FilterQuery<T>,
         ),
       });
     }
@@ -27,16 +27,16 @@ class QueryBuilder<T> {
   filter() {
     const queryObj = { ...this.query };
     const excludeFields = ['search', 'searchTerm', 'sort', 'limit', 'page', 'fields'];
-    
+
     excludeFields.forEach((el) => delete queryObj[el]);
 
-    Object.keys(queryObj).forEach(key => {
-        if (queryObj[key] === '' || queryObj[key] == null) {
-            delete queryObj[key];
-        }
+    Object.keys(queryObj).forEach((key) => {
+      if (queryObj[key] === '' || queryObj[key] == null) {
+        delete queryObj[key];
+      }
     });
 
-    this.modelQuery = this.modelQuery.find(queryObj as any);
+    this.modelQuery = this.modelQuery.find(queryObj as FilterQuery<T>);
     return this;
   }
 

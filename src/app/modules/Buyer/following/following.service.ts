@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import ApiError from "../../../../error/ApiError";
 import { FollowProductModel } from "../../Engagement/Engagement.model";
 import { ProductModel } from "../../Product/Product.model";
-import QueryBuilder from "../../../builders/QueryBuilder";
+import QueryBuilder from "../../../builder/QueryBuilder";
 
 const addToFollowingService = async (
   buyerId: string,

@@ -1,6 +1,6 @@
 import express from "express";
-import { auth } from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import { auth } from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import { ReviewManagementControllers } from "./ReviewManagement.controller";
 import { ReviewManagementValidations } from "./ReviewManagement.validation";
 

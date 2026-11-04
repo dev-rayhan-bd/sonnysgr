@@ -1,6 +1,6 @@
 import express from "express";
-import validateRequest from "../../../middlewares/validateRequest";
-import { auth, authorizeUser } from "../../../middlewares/auth";
+import validateRequest from "../../../middleware/validateRequest";
+import { auth, authorizeUser } from "../../../middleware/auth";
 import {
   adminLoginValidation,
   changeAdminPasswordValidation,
@@ -9,7 +9,7 @@ import {
 } from "./Dashboard.validation";
 import DashboardController from "./Dashboard.controller";
 import AuthValidations from "../../auth/auth.validation";
-import { uploadAdminImage } from "../../../middlewares/multerMiddleware";
+import { uploadAdminImage } from "../../../middleware/multerMiddleware";
 
 const dashboardRouter = express.Router();
 

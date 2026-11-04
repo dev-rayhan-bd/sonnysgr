@@ -1,9 +1,9 @@
 import express from "express";
-import { auth, authorizeUser } from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import { auth, authorizeUser } from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import AuthValidations from "./auth.validation";
 import AuthController from "./auth.controller";
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import { uploadProfile } from "../../middleware/multerMiddleware";
 
 const authRouter = express.Router();
 

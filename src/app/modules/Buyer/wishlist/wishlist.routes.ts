@@ -1,6 +1,6 @@
 import express from "express";
-import { auth } from "../../../middlewares/auth";
-import validateRequest from "../../../middlewares/validateRequest";
+import { auth } from "../../../middleware/auth";
+import validateRequest from "../../../middleware/validateRequest";
 import WishlistValidations from "./wishlist.validation";
 import WishlistController from "./wishlist.controller";
 

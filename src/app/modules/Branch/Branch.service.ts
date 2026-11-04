@@ -1,6 +1,6 @@
 import ApiError from "../../../error/ApiError";
 import { IJwtPayload } from "../../../interface/jwt.interface";
-import QueryBuilder from "../../builders/QueryBuilder";
+import QueryBuilder from "../../builder/QueryBuilder";
 import { BranchModel } from "./Branch.model";
 import deleteOldFile from "../../../utilities/deleteFile";
 

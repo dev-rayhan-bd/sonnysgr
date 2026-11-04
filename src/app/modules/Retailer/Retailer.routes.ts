@@ -1,9 +1,9 @@
 import express from "express";
-import {auth} from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import {auth} from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import RetailerValidations from "./Retailer.validation";
 import RetailerController from "./Retailer.controller";
-import { uploadRetailerFields } from "../../middlewares/multerMiddleware";
+import { uploadRetailerFields } from "../../middleware/multerMiddleware";
 
 
 const RetailerRouter = express.Router();

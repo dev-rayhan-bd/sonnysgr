@@ -1,9 +1,9 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import {auth, authorizeUser} from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import PromotionValidations from "./Promotion.validation";
 import PromotionController from "./Promotion.controller";
-import { uploadPromotionalImage } from "../../middlewares/multerMiddleware";
+import { uploadPromotionalImage } from "../../middleware/multerMiddleware";
 
 
 const PromotionRouter = express.Router();

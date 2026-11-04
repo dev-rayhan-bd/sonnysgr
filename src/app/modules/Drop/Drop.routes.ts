@@ -1,7 +1,7 @@
 import express from "express";
-import { auth } from "../../middlewares/auth";
+import { auth } from "../../middleware/auth";
 import { ENUM_USER_Type } from "../../../utilities/enum";
-import { uploadProductImage } from "../../middlewares/multerMiddleware";
+import { uploadProductImage } from "../../middleware/multerMiddleware";
 import DropController from "./Drop.controller";
 
 const DropRouter = express.Router();

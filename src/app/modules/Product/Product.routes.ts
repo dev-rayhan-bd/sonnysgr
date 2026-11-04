@@ -1,10 +1,10 @@
 import express from "express";
-import { auth, authorizeUser } from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import { auth, authorizeUser } from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import ProductValidations from "./Product.validation";
 import ProductController from "./Product.controller";
 import { check } from "zod/v4/mini";
-import { uploadProductImage } from "../../middlewares/multerMiddleware";
+import { uploadProductImage } from "../../middleware/multerMiddleware";
 
 
 const ProductRouter = express.Router();

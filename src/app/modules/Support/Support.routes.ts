@@ -1,10 +1,10 @@
 import express from "express";
-import { auth } from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import { auth } from "../../middleware/auth";
+import validateRequest from "../../middleware/validateRequest";
 import SupportValidations from "./Support.validation";
 import SupportController from "./Support.controller";
 
-import { uploadProfile } from "../../middlewares/multerMiddleware";
+import { uploadProfile } from "../../middleware/multerMiddleware";
 
 const SupportRouter = express.Router();
 
