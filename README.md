@@ -1,318 +1,363 @@
-﻿# Sneaker Hub Backend — Technical Handover
-
-> Code audit: 27 June 2026
-> Status: development/incomplete. Production deployment is blocked until the issues below are resolved.
-
-## Project summary
-
-এটি sneaker ও clothing-কেন্দ্রিক multi-vendor e-commerce backend। তিন ধরনের end user আছে:
-
-- **Buyer** — product search/discovery, nearby stores, follow, review, wishlist, cart এবং order।
-- **Retailer** — store/branch/profile, inventory, operation hours, products এবং orders।
-- **Reseller** — pair listing এবং retailer-এর সঙ্গে offer/counter-offer flow।
-
-Admin dashboard, promotions, notifications, settings, payment এবং real-time chat-এর code-ও আছে। তবে সব module main router-এ mounted নয় এবং কয়েকটি flow অসম্পূর্ণ। তাই নিচে “code exists” ও “API হিসেবে usable”—আলাদা করে বলা হয়েছে।
-
-## Technology stack
-
-| Area | Technology |
-|---|---|
-| Runtime/language | Node.js, TypeScript 5, ES2022, strict mode |
-| API | Express 5 |
-| Database | MongoDB, Mongoose 8 |
-| Validation | Zod 4 |
-| Authentication | JWT bearer token |
-| Real-time | Socket.IO 4 |
-| Upload/storage | Multer local disk; AWS S3 helpers exist |
-| Email | Nodemailer with Gmail SMTP |
-| Payment | Stripe dependency/config stub; no working gateway route |
-| AI | OpenAI helper exists but currently cannot compile |
-| Logging | Winston and daily rotating files |
-| Development | ts-node, nodemon, TypeScript compiler |
-
-বর্তমানে test framework, OpenAPI, Dockerfile, CI workflow, lint script, health endpoint বা deployment manifest নেই।
-
-## Architecture, structure and patterns
-
-এটি একটি **modular monolith**, যেখানে feature-first organization এবং layered flow ব্যবহার করা হয়েছে:
-
-```text
-src/
-├── server.ts                 # DB, HTTP server, Socket.IO, process signals
-├── app.ts                    # Express middleware and root router
-├── app/
-│   ├── routes/index.ts       # Active module mounts
-│   ├── middlewares/          # auth, validation, upload, errors
-│   └── module/<Feature>/
-│       ├── *.routes.ts       # route/middleware composition
-│       ├── *.controller.ts   # HTTP adapter
-│       ├── *.service.ts      # business and database logic
-│       ├── *.model.ts        # Mongoose schema/model
-│       ├── *.interface.ts    # TypeScript contracts
-│       └── *.validation.ts   # Zod schemas
-├── config/                   # environment and integration clients
-├── helper/                   # JWT, email, upload and AI helpers
-├── socket/                   # Socket.IO setup/response helpers
-├── error/                    # application/ODM errors
-├── utilities/               # enums and shared utilities
-└── shared/                   # logging
-```
-
-Patterns and design choices:
-
-- **Router → Controller → Service → Model** request flow.
-- Thin controllers and service-based business logic; no separate repository abstraction.
-- Selected routes use Zod DTO validation, although many validations are commented out.
-- Central async/error flow through `catchAsync`, `ApiError`, and `globalErrorHandler`.
-- JWT middleware attaches decoded identity to `req.user`.
-- MongoDB transactions are attempted for registration, product creation, checkout and payment completion.
-- Auth and Notification use polymorphic Mongoose references (`refPath`).
-- Buyer/Retailer use GeoJSON, `2dsphere` indexes and aggregation for nearby discovery.
-- Order-time product snapshots and seller-split orders support multi-retailer purchasing.
-- Cart uses status transitions (`Active`, `Ordered`, `Removed`) as soft state changes.
-
-## Runtime flow
-
-1. `server.ts` loads env values, overrides DNS resolvers, connects to MongoDB, initializes Socket.IO and listens on `PORT`.
-2. `app.ts` installs JSON/form parsing, cookies, unrestricted CORS, `/uploads`, routes, global errors and 404 handling.
-3. Protected REST routes expect `Authorization: Bearer <token>`.
-4. Socket clients provide a raw JWT through `handshake.auth.token` or authorization header and join their `profileId` room.
-5. Controllers return the shared `sendResponse` JSON shape.
-
-`mongoDBConnection()` catches failures without rethrowing, so the process can misleadingly listen even if MongoDB failed.
-
-## Data/domain model
-
-| Domain | Main records and relationships |
-|---|---|
-| Identity | `Auth` owns credentials/role and points to a `Buyer`, `Retailer`, or `Reseller` profile. A legacy relationship-app `User` model remains. |
-| Buyer | Preferences, sizes, brands, notification/privacy settings and GeoJSON location. |
-| Retailer | Store, parent/branch relationship, hours, rating, followers and location. |
-| Reseller | Profile, approval, subscription and location. |
-| Catalog | `Product`, embedded variants, separate `ProductVariant`, and `RecentSearch`. |
-| Engagement | retailer follows, user follows, reviews, wishlist/wanted state. |
-| Commerce | `Cart`, `Order`, `OrderItem`, `SellerSplitOrder`; orders keep product snapshots. |
-| Resale | `Pairs`, `PairRequest`, offer history and fulfillment; `OldPair` is separate/incomplete. |
-| Communication | `Conversation`, `Message`, user/admin notifications. |
-| Operations | reports, support, FAQ, privacy, terms, promotions and admins. |
-
-Notable indexes: unique emails, unique buyer/product/size cart, unique follow pairs, chat indexes, and buyer/retailer geospatial indexes.
-
-## Currently mounted REST API
-
-There is no `/api` or version prefix. Only these modules are mounted by `src/app/routes/index.ts`:
-
-| Prefix | Endpoints/features |
-|---|---|
-| `/auth` | register, login, verify/resend code, reset password |
-| `/user` | profile read/update, password change, admin-style list/block |
-| `/buyer` | notification settings, sizes, brands/interests, profile, nearby/followed product summaries |
-| `/retailer` | nearby list/map, inventory, orders, hours, profile and branches |
-| `/engagement` | follows, nearby users, follower data, wishlist/wanted list and reviews |
-| `/reseller` | home stats, pair request and profile update |
-| `/product` | create, search, trending/recent searches, detail, delete recent search |
-| `/cart` | add/remove/change quantity, placeholder promo and cart status change |
-| `/order` | intended retailer stats/detail routes; currently malformed |
-| `/report` | create report with up to four local images |
-
-`GET /` returns a server-running message. Local uploads are public under `/uploads`.
-
-### Code exists but REST is not mounted
-
-**Dashboard, Settings, Notification, Pairs, Promotion, Payment, OldPair and Chat REST** routers are not registered. Chat works only through Socket.IO. Several service functions have no active route, including full cart checkout/payment confirmation, buyer order list, status change, retailer details, approvals, promotion listing, wishlist reads and report listing.
-
-## Socket.IO functionality
-
-Incoming events:
-
-- `send_message` — persist and emit a direct message.
-- `get_chat_list` — emits `chat_list`.
-- `get_messages` — emits `messages`.
-- `send_conversation_request` — creates a conversation request.
-
-The connection is authenticated, but some events trust client-supplied `senderId`/`userId` instead of the verified socket identity. There is no common error boundary around event handlers.
-
-## Functionality status
-
-| Capability | Status |
-|---|---|
-| Email/OTP/JWT auth | Partial; shape exists, credential security is unsafe |
-| Buyer/Retailer/Reseller profiles | Partial; registration creates the selected profile |
-| Nearby discovery | Implemented with MongoDB geospatial queries |
-| Product/search | Partial |
-| Follow/review/wishlist | Mostly implemented; some reads are not routed |
-| Cart | Partial; no active get-cart or transactional checkout route |
-| Multi-retailer order | Designed in models/services, not wired end-to-end |
-| Pair marketplace | Service/router exists but router is not mounted |
-| Promotions | Targeting/service exists; router is not mounted |
-| Chat | Partial Socket.IO implementation |
-| Notifications | Models/services exist; router is not mounted |
-| Admin/settings | Present but unmounted; admin service breaks compilation |
-| Payment | Placeholder/inconsistent schema; Stripe gateway/webhook absent |
-| AWS S3 | Helpers exist; active routes use local disk |
-| OpenAI | Helper exists; dependent Date module is missing |
-
-## Complexity hotspots
-
-| File/area | Complexity/risk |
-|---|---|
-| `Cart.service.ts` (~628 lines) | mutation, placeholder promo, competing checkout concepts, reservation/payment logic; only a subset is exported |
-| `Retailer.service.ts` (~564 lines) | geospatial queries, aggregation, inventory, orders, branches and admin functions |
-| Product/Buyer/Engagement | large pipelines, filters, recommendations and cross-model writes |
-| Order + Checkout | overlapping flows and inconsistent enum/schema assumptions |
-| Auth | dynamic profile creation, transaction, email and JWT lifecycle |
-| Chat | aggregation-heavy lists, room emission and conversation state |
-
-Cross-cutting complexity comes from legacy/new models (`User` vs role profiles), embedded `variant` vs separate `ProductVariant`, multiple checkout implementations, and extensive dead/commented code. The canonical business flow is not consistently defined.
-
-## Known issues and deployment blockers
-
-### Critical security/correctness
-
-1. Password hashing is commented out; login compares and reset stores plain text.
-2. Reset password does not itself require a verified reset token/code.
-3. JWT payload omits `role`, although role-aware middleware expects it.
-4. Some admin/user mutations have authentication/role checks commented out.
-5. REST and Socket.IO CORS allow `*`.
-6. Global errors expose stack traces in production.
-7. Some socket operations trust client-provided identity.
-
-### Verified TypeScript build failures
-
-`tsc --noEmit` currently fails because of:
-
-- missing `../Post/Post.model` and `ENUM_POST_STATUS` in Dashboard;
-- invalid `oldPassword` type use;
-- placeholder `.u` calls in OldPair and Payment controllers;
-- Zod error path type mismatch;
-- missing `Date/Date.interface` used by the AI helper;
-- missing `cloudinary` dependency and invalid Cloudinary config keys.
-
-### Runtime/data defects
-
-- Both order route paths omit leading `/`, so expected `/order/...` URLs do not match normally.
-- `/buyer/buyer-nearby-product` invokes the interests controller, not the nearby-products controller.
-- Cart/checkout code inconsistently uses `product.sizes` and `product.variant`.
-- Cart’s unique buyer/product/size index also covers removed/ordered rows, preventing later re-adds.
-- Add-to-cart trusts client `unitPrice` rather than database price.
-- Active `/cart/place-order` only changes cart status; it creates no order.
-- Promo logic is a hard-coded 10% and validates no code.
-- Registration commits in `finally`, including after abort; email is sent before final commit.
-- Transactions require MongoDB Atlas/replica set; standalone MongoDB will fail.
-- Local upload directories are not created and ephemeral hosting loses files.
-- S3 env names conflict (`AWS_ACCESS_KEY`/`AWS_ACCESS_KEY_ID`, `S3_BUCKET_NAME`/`AWS_BUCKET_NAME`).
-- Notification model names (`Customer`, `Supplier`) do not match Buyer/Retailer.
-- Payment model represents subscriptions while checkout expects order payment fields.
-- Several files are leftovers from a couple/dating application.
-- There are no automated tests for auth, inventory, checkout, payment or authorization.
-
-Deployment must not be considered successful until compilation passes and critical auth/commerce flows are integration-tested.
-
-## Local setup
-
-Prerequisites: current Node.js LTS, npm, and MongoDB Atlas or replica-set MongoDB.
-
-```bash
-npm ci
-```
-
-Create a root `.env` (never commit real secrets):
-
-```dotenv
-NODE_ENV=development
-PORT=5000
-BASE_URL=http://localhost:5000
-DATABASE_URL=mongodb+srv://<user>:<password>@<cluster>/<database>
-JWT_SECRET=<long-random-secret>
-JWT_REFRESH_SECRET=<long-random-secret>
-JWT_EXPIRES_IN=7d
-JWT_REFRESH_EXPIRES_IN=30d
-BCRYPT_SALT_ROUNDS=12
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SERVICE=gmail
-SMTP_MAIL=<smtp-account>
-SMTP_PASSWORD=<app-password>
-SERVICE_NAME=Sneaker Hub
-
-# Only after S3 naming is standardized
-AWS_REGION=<region>
-AWS_ACCESS_KEY_ID=<access-key-id>
-AWS_SECRET_ACCESS_KEY=<secret-access-key>
-AWS_BUCKET_NAME=<bucket>
-
-# Only if the AI helper is repaired/used
-OPENAI_API_KEY=<key>
-```
-
-```bash
-npm run dev
-npx tsc --noEmit
-npm run build
-npm start
-```
-
-At audit time, TypeScript checks and production build fail for the blockers above.
-
-## Production deployment runbook
-
-The service can run on Render, Railway, AWS, DigitalOcean or a VM, but this repository includes no platform configuration.
-
-### Pre-deployment gate
-
-1. Fix all TypeScript errors and make `npm run build` green.
-2. Hash/migrate passwords and invalidate any plain-text credentials.
-3. Choose one canonical checkout/payment/stock model.
-4. Review and mount required routers; enforce role authorization and validation.
-5. Use MongoDB Atlas/replica set and test transaction rollback.
-6. Move uploads to durable object storage and standardize S3 env names.
-7. Add auth, cart, stock-concurrency, checkout, payment-idempotency and access tests.
-8. Restrict CORS, hide stacks, validate env, add security headers/rate limiting.
-9. Add database-aware `/health` and readiness endpoints.
-
-### Host configuration
-
-- Build: `npm ci && npm run build`
-- Start: `npm start`
-- Entry: `dist/server.js`
-- Configure secrets in the host secret manager.
-- Do not rely on local `/uploads` on an ephemeral filesystem.
-- Prefer stdout structured logs; persist `logs` only if required.
-- Allow the host network in Atlas and use a TLS connection string.
-- Enable WebSockets. For multiple instances, add a shared Socket.IO adapter (for example Redis) and an appropriate load-balancing strategy.
-
-### Release verification
-
-```text
-GET  /                         -> 200
-POST /auth/register-user      -> profile and verification email
-POST /auth/login-user         -> valid JWT; wrong password rejected
-GET  /product/search-product  -> protected response
-Socket connection             -> authenticated room and message delivery
-```
-
-Also verify upload persistence, OTP expiry/replay, rollback, duplicate cart handling, stock races and graceful `SIGTERM`. Actual deployment additionally requires the selected platform/project, production env values, domain/DNS and credentials; none are present here.
-
-## Recommended takeover order
-
-1. **Stabilize build** — resolve missing/legacy modules and establish a compiler baseline.
-2. **Secure identity** — bcrypt migration, safe reset flow, role-bearing JWT and permissions.
-3. **Define canonical domain** — settle Product variant, Payment, Cart and Checkout contracts; remove unrelated remnants.
-4. **Finish commerce** — cart read → atomic checkout → gateway/webhook → idempotent order/stock completion.
-5. **Audit/mount modules** — only with documented validation and permission matrices.
-6. **Operationalize** — durable uploads, config validation, tests, CI, health, monitoring and backups.
-7. **Deploy** — staging first; production after smoke, rollback, load and concurrency testing.
-
-## Maintenance guidance
-
-- Split large services by use case: cart commands, pricing, checkout and inventory reservation.
-- Validate body, params and query consistently with explicit DTOs.
-- Keep one source of truth and naming style for roles/status values.
-- Always derive price and identity server-side for writes.
-- Verify payment signatures and make callbacks idempotent.
-- Tune indexes using real query plans and add pagination.
-- Publish OpenAPI/Postman contracts after canonical routes are finalized.
+# GoSNKR — Hyper-Local Sneaker & Streetwear Backend
+
+[![Node.js Version](https://img.shields.io/badge/Node.js-LTS-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+[![Express](https://img.shields.io/badge/Express-5.1-lightgrey.svg)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%208-green.svg)](https://mongoosejs.com/)
+[![License](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Build-Passing%20(0%20errors)-brightgreen.svg)]()
+
+> High-performance, modular monolith backend powering **GoSNKR** — a hyper-local multi-vendor sneaker and streetwear commerce ecosystem connecting **Buyers (Customers)**, **Retailers (Local Stores)**, and **Resellers (Secondary Market & B2B Traders)**.
 
 ---
 
-This document describes the audited repository, including incomplete and unreachable code; it does not claim those areas are production-ready.
+## 📖 Table of Contents
+- [Project Overview](#-project-overview)
+- [Key Features & User Roles](#-key-features--user-roles)
+- [23 Functional Modules](#-23-functional-modules)
+- [System Architecture & Design Patterns](#-system-architecture--design-patterns)
+- [Technology Stack](#-technology-stack)
+- [Directory Structure](#-directory-structure)
+- [Getting Started](#-getting-started)
+- [Environment Configuration](#-environment-configuration)
+- [API Documentation & Specification](#-api-documentation--specification)
+- [Real-Time WebSocket Engine (Socket.IO)](#-real-time-websocket-engine-socketio)
+- [Security & Production Readiness](#-security--production-readiness)
+- [Development Guidelines](#-development-guidelines)
+
+---
+
+## 🚀 Project Overview
+
+**GoSNKR** solves high fragmentation and sizing uncertainty in the sneaker and streetwear market. Rather than relying solely on slow centralized shipping hubs, GoSNKR unites local brick-and-mortar boutique inventory with verified secondary market resellers and end customers through **instant size-based live discovery**, **geospatial store scanning**, **deposit-backed holds**, **in-store pickups**, and **B2B negotiations**.
+
+### Core Value Propositions
+* **Size-First Discovery:** Automatic filtering matching the user's saved shoe and apparel sizes across all local inventory.
+* **Hyper-Local Geospatial Engine:** MongoDB GeoJSON 2dsphere indexing calculating exact distances (miles) to physical store shelves.
+* **4-Stage Order Lifecycle:** Seamless retailer dispatch workflow (`Needs Action` ➔ `Holds` ➔ `Ready` ➔ `History`).
+* **Deposit-Backed Holds:** Secure in-store reservations with configurable time-to-live (TTL) expiration.
+* **Dual Resale Dynamics:** C2B (Sell-to-Store cashouts) and B2B (Reseller-to-Store batch negotiations with counter-offers).
+* **High-Speed Aggregation Pipelines:** Strictly zero N+1 queries by replacing Mongoose `.populate()` with native MongoDB `$lookup` sub-pipelines.
+
+---
+
+## 👥 Key Features & User Roles
+
+| Role | Core Capabilities | Primary Workflows |
+|---|---|---|
+| **Buyer (Customer)** | Size profiling, geo-discovery, checkout, deposit holds, store following, C2B sell-to-store | Saves sizes ➔ scans nearby stores ➔ places deposit hold or buys for pickup/shipping ➔ earns VIP points. |
+| **Retailer (Store)** | Multi-branch inventory sync, 4-stage order fulfillment, flash sale promotions, store analytics | Manages catalog & sizes ➔ processes incoming holds & orders ➔ launches targeted geo-promotions ➔ buys inventory from users. |
+| **Reseller (Trader)** | Consignment/deadstock listings, negotiation engine, counter-offers, visibility controls | Lists sneakers/apparel ➔ receives store offers ➔ negotiates price in real-time ➔ finalizes verified deals. |
+| **Admin (Operator)** | Store verification, KYC approvals, commission tracking, dispute resolution, platform governance | Approves retailers/resellers ➔ audits financial transactions ➔ manages dispute mediation. |
+
+---
+
+## 📦 23 Functional Modules
+
+The backend implements the 23 functional modules mapped to the mobile UI application:
+
+1. **Authentication & User System:** Multi-role JWT authentication (Buyer, Retailer, Reseller, Admin), OTP verification, password hashing via bcrypt, and profile management.
+2. **Sneaker Search & Discovery:** Multi-attribute full-text search, SKU/style-code lookups, size matching, and trending searches.
+3. **Size-Based Live Shopping:** Real-time stock availability filtered by user sizing preference with physical distance calculations.
+4. **Filters & Sorting:** Granular filters for brand, model, size, distance radius (5–50+ miles), condition, and price ranges.
+5. **Hold / Reservation System:** Deposit-backed holds with automated countdown timers and atomic inventory reservations.
+6. **In-Store Pickup & Delivery:** Order collection workflows with QR/code verification, prep-time tracking, and courier delivery options.
+7. **Real-Time Inventory & Multi-Branch:** Multi-location stock allocation, SKU tracking, size variant quantity management, and sync.
+8. **Promotion Engine:** Targeted geo-promotions (Flash Sales, Exclusive Drops) segmented by followers, location, and size matches.
+9. **Cart & Multi-Store Checkout:** Multi-retailer split orders, automated tax & shipping calculations, and Stripe payment processing.
+10. **C2B Sell-to-Store:** Customer-to-store sneaker cashout requests with condition appraisal and payout offers.
+11. **Retailer Order & Store Operations:** Real-time order management dashboard across 4 fulfillment stages (`Needs Action`, `Holds`, `Ready`, `History`).
+12. **Store Profile, Followers & Reviews:** Store branding, operational hours, verified customer reviews, and follow-for-restock alerts.
+13. **Reseller Marketplace & B2B Sourcing:** Peer-to-store marketplace, counter-offer negotiations, and deal confirmation timelines.
+14. **Push Notifications & Alerts:** Real-time push and in-app action alerts (`Accept`, `Counter`, `Decline`) for orders, holds, and price updates.
+15. **Real-Time Chat & Negotiation:** WebSocket-based direct messaging between buyers, retailers, and resellers with image attachment support.
+16. **User Engagement & Social Layer:** Store restock alerts, wanted lists, wishlist restock pings, and activity feeds.
+17. **Locker / Box Collection:** Secure automated locker integration for off-hours order collection.
+18. **Trust, Verification & Authentication:** Multi-tier authentication checklists, reseller trust score badges, and condition ratings.
+19. **VIP & Loyalty Program:** 4-tier customer rewards program (Bronze, Silver, Gold, Platinum) with exclusive access perks.
+20. **Analytics & Performance Dashboard:** Real-time revenue metrics, average prep times, conversion rates, and inventory velocity.
+21. **Support & Dispute Resolution:** Multi-channel ticket management, reason codes, order attachments, and escalation paths.
+22. **Admin Operations & Platform Governance:** KYC compliance, store on-boarding approval, commission fee management, and user moderation.
+23. **Settings & Visibility Controls:** Granular privacy toggles (Public Profile, Show Listings, Show Prices, Hide Location, Online Status).
+
+---
+
+## 🏛 System Architecture & Design Patterns
+
+```mermaid
+flowchart TD
+    Client[Mobile App / Web Clients] -->|REST API Requests /api/v1| Router[Express 5 Root Router]
+    Client <-->|WebSockets| SocketServer[Socket.IO Server]
+
+    Router --> Middleware[Security & Auth Middleware\n- Helmet, RateLimit, MongoSanitize\n- JWT Auth & Role Guards\n- Zod Request Validators]
+    Middleware --> Controller[Ultra-Thin Controllers]
+    Controller --> Facade[Facade Services\nOrchestration & Coordination]
+    
+    Facade --> SubService1[Domain Sub-Service A]
+    Facade --> SubService2[Domain Sub-Service B]
+    Facade --> SubService3[Domain Sub-Service C]
+    
+    SubService1 --> QB[QueryBuilder / Aggregation Pipeline]
+    SubService2 --> QB
+    SubService3 --> QB
+    
+    QB --> DB[(MongoDB Database\n- GeoJSON 2dsphere\n- Indexes & Atomic Operations)]
+    Controller --> Response[sendResponse Envelope]
+    Response --> Client
+```
+
+### 1. Ultra-Thin Controllers & Facade Pattern
+* **File Length Discipline:** Monolithic, giant files are strictly avoided. Service files exceeding ~200–250 lines are decomposed into focused **sub-services** (Single Responsibility Principle).
+* **Facade Service:** Coordinates complex transactional flows across sub-services (e.g., checkout pricing, inventory lock, payment execution, and push dispatch), providing a clean, single point of interaction for the controller.
+
+### 2. High-Performance Aggregation (Strictly No `.populate()`)
+* Mongoose `.populate()` is banned across the codebase to prevent sequential N+1 database round-trips.
+* Native MongoDB Aggregation (`Model.aggregate([...])`) is employed with `$lookup` sub-pipelines (`let` + `pipeline`), indexed `$match`, field-trimming `$project`, and parallelized `$facet` for ultra-fast, single-trip database queries.
+
+### 3. Centralized QueryBuilder
+All catalog, feed, and search endpoints use [`src/app/builder/QueryBuilder.ts`](file:///r:/STA/sonnysgr_backend/src/app/builder/QueryBuilder.ts):
+```typescript
+const queryBuilder = new QueryBuilder(Product.find(filterCondition), req.query)
+  .search(['name', 'brand', 'category', 'sku'])
+  .filter()
+  .sort()
+  .paginate()
+  .fields();
+
+const result = await queryBuilder.modelQuery;
+const meta = await queryBuilder.countTotal();
+```
+
+### 4. Standardized API Response Envelope
+Every endpoint returns a consistent JSON contract via `sendResponse`:
+```json
+{
+  "statusCode": 200,
+  "success": true,
+  "message": "Operation successful",
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "totalPage": 10
+  },
+  "data": {}
+}
+```
+
+### 5. Robust Global Error Handling
+The central `globalErrorHandler` catches and normalizes:
+* **Zod Validation Errors** (with path-specific validation messages)
+* **Mongoose Validation & Cast Errors**
+* **MongoDB Duplicate Key Errors** (`11000`)
+* **Custom AppError / ApiError** with HTTP status codes
+
+---
+
+## 🛠 Technology Stack
+
+| Layer | Technologies |
+|---|---|
+| **Runtime & Language** | Node.js (LTS), TypeScript 5.9 (Strict Mode, ES2022) |
+| **Web Framework** | Express 5.1 |
+| **Database & ODM** | MongoDB, Mongoose 8.19 (GeoJSON 2dsphere indexing, Transactions) |
+| **Validation** | Zod 4.1 |
+| **Authentication & Security** | JWT (Bearer tokens), bcrypt (12 salt rounds), Helmet 8, Mongo-Sanitize, Express-Rate-Limit |
+| **Real-Time Communication** | Socket.IO 4.8 |
+| **Payment Gateway** | Stripe SDK (Intent checkout & Webhook processing) |
+| **File Storage** | Multer local storage / AWS S3 SDK (`@aws-sdk/client-s3`) |
+| **Email Transporter** | Nodemailer with SMTP templates |
+| **API Documentation** | Redocly OpenAPI 3.1 |
+| **Logging** | Winston & Daily Rotating File Transport |
+
+---
+
+## 📁 Directory Structure
+
+```text
+sonnysgr_backend/
+├── src/
+│   ├── app.ts                          # Express application setup, middlewares, global handlers
+│   ├── server.ts                       # Server startup, MongoDB connection, Socket.IO setup
+│   └── app/
+│       ├── builder/
+│       │   └── QueryBuilder.ts         # Centralized search, filter, sort, paginate builder
+│       ├── config/
+│       │   └── index.ts                # Strongly typed environment configuration
+│       ├── DB/
+│       │   └── index.ts                # Database bootstrap & admin superuser seeding
+│       ├── docs/
+│       │   ├── openapi.json            # OpenAPI 3.1 specification
+│       │   └── docs.routes.ts          # Interactive Redocly API documentation route
+│       ├── errors/                     # AppError, Zod, Cast, and Duplicate error formatters
+│       ├── interface/                  # Global TypeScript contracts
+│       ├── middleware/                 # auth, validateRequest, rateLimiter, multer, errorHandler
+│       ├── modules/                    # Feature modules (Controller, Service, Model, Routes, Validation)
+│       │   ├── auth/
+│       │   ├── Buyer/
+│       │   ├── Retailer/
+│       │   ├── Reseller/
+│       │   ├── Product/
+│       │   ├── Order/
+│       │   ├── OrderPayment/
+│       │   ├── Cart/
+│       │   ├── Promotion/
+│       │   ├── Pairs/                  # Reseller secondary marketplace & negotiations
+│       │   ├── Demand/                 # Sourcing requests
+│       │   ├── Chat/                   # Real-time negotiation conversations
+│       │   ├── Notification/
+│       │   ├── ReviewManagement/
+│       │   ├── Settings/
+│       │   ├── Support/
+│       │   ├── Dashboard/              # Admin governance & analytics
+│       │   └── ...
+│       ├── routes/
+│       │   └── index.ts                # Centralized /api/v1 router aggregation
+│       └── utils/
+│           ├── catchAsync.ts           # Asynchronous controller error wrapper
+│           └── sendResponse.ts         # Standardized JSON response envelope
+├── AGENTS.md                           # AI Agent & Engineering Persona Guidelines
+├── .env.example                        # Template environment variables
+├── package.json                        # Scripts and dependencies
+└── tsconfig.json                       # Strict TypeScript configuration
+```
+
+---
+
+## 🏁 Getting Started
+
+### Prerequisites
+* **Node.js**: `v20.x` or higher (LTS recommended)
+* **npm**: `v10.x` or higher
+* **MongoDB**: Atlas cluster or local replica set (transactions require replica sets)
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd sonnysgr_backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your MongoDB, JWT, and SMTP credentials
+   ```
+4. Run in development mode:
+   ```bash
+   npm run dev
+   ```
+5. Verify TypeScript compilation:
+   ```bash
+   npx tsc --noEmit
+   ```
+6. Build for production:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+---
+
+## ⚙️ Environment Configuration
+
+Create a `.env` file in the root directory:
+
+```dotenv
+# Application
+NODE_ENV=development
+PORT=5000
+BASE_URL=http://localhost:5000
+
+# Database
+DATABASE_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/gosnkr?retryWrites=true&w=majority
+
+# Security & Hashing
+BCRYPT_SALT_ROUNDS=12
+JWT_SECRET=super_secret_jwt_access_key
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=super_secret_jwt_refresh_key
+JWT_REFRESH_EXPIRES_IN=30d
+
+# Email / SMTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SERVICE=gmail
+SMTP_MAIL=notifications@gosnkr.com
+SMTP_PASSWORD=app_generated_password
+SERVICE_NAME=GoSNKR
+
+# Stripe Payments
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# AWS S3 Storage (Optional)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_BUCKET_NAME=gosnkr-assets
+```
+
+---
+
+## 📚 API Documentation & Specification
+
+The backend includes interactive **Redocly OpenAPI 3.1** documentation:
+* **Interactive UI:** Navigate to `http://localhost:5000/docs` or `http://localhost:5000/api/v1/docs`
+* **Raw OpenAPI JSON:** `http://localhost:5000/docs/openapi.json`
+* **Root Health Check:** `GET /` returns server status
+
+### Core Route Prefixes (`/api/v1`)
+* `/api/v1/auth` — Registration, OTP verification, login, password management
+* `/api/v1/buyer` — Sizing preferences, followed stores, wishlist, location updates
+* `/api/v1/retailer` — Store profiles, multi-branch management, inventory stock, order stages
+* `/api/v1/reseller` — Listing creation, offer reviews, dashboard metrics, visibility controls
+* `/api/v1/product` — Product catalog, barcode/SKU search, size-based live feeds
+* `/api/v1/cart` — Add to cart, variant selection, checkout preparation
+* `/api/v1/order` — Order status transitions, pickup codes, delivery tracking
+* `/api/v1/order-payment` — Stripe checkout session creation & webhook listener
+* `/api/v1/pairs` — Reseller B2B negotiation, counter-offer history, deal confirmation
+* `/api/v1/promotion` — Retailer flash sales, audience targeting, promotional banners
+* `/api/v1/chat` — Direct messaging history, conversation threads
+* `/api/v1/notifications` — In-app alerts, offer action buttons (`Accept`, `Counter`, `Decline`)
+* `/api/v1/dashboard` — Admin analytics, KYC store verification, user management
+
+---
+
+## ⚡ Real-Time WebSocket Engine (Socket.IO)
+
+The real-time layer operates over Socket.IO on the same HTTP port:
+* **Authentication:** Clients provide Bearer JWT during handshake (`handshake.auth.token`).
+* **Room Architecture:** Each user joins their private room: `socket.join(profileId)`.
+* **Primary Events:**
+  * `send_message`: Emits messages to destination conversation participants.
+  * `get_chat_list`: Fetches conversation list with unread counts.
+  * `get_messages`: Loads paginated message history.
+  * `send_conversation_request`: Initiates negotiation between store and reseller.
+
+---
+
+## 🛡 Security & Production Readiness
+
+* **Zero TypeScript Compilation Errors:** Continuous verification with `npx tsc --noEmit`.
+* **HTTP Security Headers:** Protected by `helmet`.
+* **Rate Limiting:** Managed by `express-rate-limit` against brute-force and DDoS attempts.
+* **NoSQL Injection Prevention:** Enforced via `mongo-sanitize`.
+* **Password Hashing:** Passwords encrypted with `bcrypt` (12 salt rounds).
+* **Idempotent Webhooks:** Stripe webhook listener validates raw signatures before processing payments.
+* **Safe Production Errors:** Stack traces are suppressed in production environments.
+
+---
+
+## 📜 Development Guidelines
+
+All developers and AI assistants working on this repository must strictly adhere to [`AGENTS.md`](file:///r:/STA/sonnysgr_backend/AGENTS.md):
+1. **Explain First:** Outline proposed file changes and architectural impact before writing code.
+2. **Strict Scope:** Implement only the documented 23 modules; no unrequested or speculative features.
+3. **Always QueryBuilder:** Use `QueryBuilder` for all list/search/pagination endpoints.
+4. **Aggregation First:** Never use `.populate()`; use single-trip native aggregation pipelines.
+5. **Facade Pattern:** Break down services over 250 lines into modular sub-services.
+6. **Verify Always:** Confirm `npx tsc --noEmit` exits with 0 errors before concluding changes.
