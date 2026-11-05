@@ -1,94 +1,103 @@
 import express from "express";
-import {auth} from "../../middleware/auth";
+import { auth } from "../../middleware/auth";
 import validateRequest from "../../middleware/validateRequest";
 import BuyerValidations from "./Buyer.validation";
 import BuyerController from "./Buyer.controller";
 import { uploadProfile } from "../../middleware/multerMiddleware";
 
-
 const BuyerRouter = express.Router();
 
-BuyerRouter.post(
-    "/set-buyer-notification-alerts",
-    auth(["Buyer"]),
-    BuyerController.setBuyerNotificationAlertsController
-);
-
-BuyerRouter.post(
-    "/set-buyer-shoe-size",
-    auth(["Buyer"]),
-    BuyerController.addSelectedShoeSizeController
-);
-
-BuyerRouter.post(
-    "/add-buyer-interested-brands",
-    auth(["Buyer"]),
-    BuyerController.addBrandsOfInterestController
+// --- 1. Size-Match & Hyper-Local Discovery Engine (Core USP - Modules 2, 3, 4, 5) ---
+BuyerRouter.get(
+  "/size-match-feed",
+  auth(["Buyer"]),
+  BuyerController.getLiveSizeMatchFeedController
 );
 
 BuyerRouter.get(
-    "/get-buyer-interests",
-    auth(["Buyer"]),
-    BuyerController.getBuyersInterestsDataController
+  "/size-match-map",
+  auth(["Buyer"]),
+  BuyerController.getSizeMatchMapPinsController
+);
+
+// --- 2. Onboarding, Profile & Shoe Size Preferences ---
+BuyerRouter.post(
+  "/set-buyer-notification-alerts",
+  auth(["Buyer"]),
+  BuyerController.setBuyerNotificationAlertsController
+);
+
+BuyerRouter.post(
+  "/set-buyer-shoe-size",
+  auth(["Buyer"]),
+  BuyerController.addSelectedShoeSizeController
+);
+
+BuyerRouter.post(
+  "/add-buyer-interested-brands",
+  auth(["Buyer"]),
+  BuyerController.addBrandsOfInterestController
+);
+
+BuyerRouter.get(
+  "/get-buyer-interests",
+  auth(["Buyer"]),
+  BuyerController.getBuyersInterestsDataController
 );
 
 BuyerRouter.patch(
-    "/update-buyer-profile",
-    auth(["Buyer"]),
-    uploadProfile.single("profile-image"),
-    BuyerController.updateBuyerProfileController
-);
-
-
-//buyer home page
-
-BuyerRouter.get(
-    "/buyer-nearby-product",
-    auth(["Buyer"]),
-    validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
-    BuyerController.getBuyersInterestsDataController
-);
-
-BuyerRouter.get(
-    "/buyer-followed-brand-product",
-    auth(["Buyer"]),
-    // validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
-    BuyerController.getBuyerFollowedBrandsProductsController
-);
-
-BuyerRouter.get(
-    "/buyer-followed-retailer-product",
-    auth(["Buyer"]),
-    // validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
-    BuyerController.getBuyerFollowedRetailersProductsController
-);
-
-BuyerRouter.get(
-    "/buyer-brand-retailer-wishlist",
-    auth(["Buyer"]),
-    // validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
-    BuyerController.getBuyerFollowedBrandStoreWishlistData
-);
-
-BuyerRouter.get(
-    "/retailers",
-    auth(["Buyer"]),
-    BuyerController.getAllRetailersByBuyerController
-);
-
-BuyerRouter.get(
-    "/retailers/:id",
-    auth(["Buyer"]),
-    BuyerController.getSingleRetailerByBuyerController
+  "/update-buyer-profile",
+  auth(["Buyer"]),
+  uploadProfile.single("profile-image"),
+  BuyerController.updateBuyerProfileController
 );
 
 BuyerRouter.patch(
-    "/complete-buyer-profile",
-    auth(["Buyer"], false),
-    validateRequest(BuyerValidations.completeBuyerProfileValidation),
-    BuyerController.completeBuyerProfileController
+  "/complete-buyer-profile",
+  auth(["Buyer"], false),
+  validateRequest(BuyerValidations.completeBuyerProfileValidation),
+  BuyerController.completeBuyerProfileController
 );
 
+// --- 3. Hyper-Local Products & Store Feeds ---
+BuyerRouter.get(
+  "/buyer-nearby-product",
+  auth(["Buyer"]),
+  validateRequest(BuyerValidations.getBuyerNearbyProductValidation),
+  BuyerController.getNearbyProductsForBuyerController
+);
+
+BuyerRouter.get(
+  "/buyer-followed-brand-product",
+  auth(["Buyer"]),
+  BuyerController.getBuyerFollowedBrandsProductsController
+);
+
+BuyerRouter.get(
+  "/buyer-followed-retailer-product",
+  auth(["Buyer"]),
+  BuyerController.getBuyerFollowedRetailersProductsController
+);
+
+BuyerRouter.get(
+  "/buyer-brand-retailer-wishlist",
+  auth(["Buyer"]),
+  BuyerController.getBuyerFollowedBrandStoreWishlistData
+);
+
+BuyerRouter.get(
+  "/retailers",
+  auth(["Buyer"]),
+  BuyerController.getAllRetailersByBuyerController
+);
+
+BuyerRouter.get(
+  "/retailers/:id",
+  auth(["Buyer"]),
+  BuyerController.getSingleRetailerByBuyerController
+);
+
+// --- 4. Sub-Routers ---
 import WishlistRouter from "./wishlist/wishlist.routes";
 import FollowingRouter from "./following/following.routes";
 import AlertPreferencesRouter from "./alertSettings/alertSettings.routes";
