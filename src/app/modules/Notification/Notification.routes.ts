@@ -1,44 +1,47 @@
 import express from "express";
-import {auth, authorizeUser} from "../../middleware/auth";
-import validateRequest from "../../middleware/validateRequest";
-import NotificationValidations from "./Notification.validation";
+import { authorizeUser } from "../../middleware/auth";
 import NotificationController from "./Notification.controller";
-
 
 const notificationRouter = express.Router();
 
-
-notificationRouter.get("/get-all-notification",
-    authorizeUser,
-    NotificationController.getAllNotification
+notificationRouter.get(
+  "/get-all-notification",
+  authorizeUser,
+  NotificationController.getAllNotification
 );
 
-notificationRouter.patch("/make-notification-seen/:id",
-    // authorizeUser,
-    NotificationController.makeNotificationSeen
+notificationRouter.patch(
+  "/make-notification-seen/:id",
+  authorizeUser,
+  NotificationController.makeNotificationSeen
 );
 
-notificationRouter.delete("/delete-notification/:id",
-
-    NotificationController.deleteNotification
+notificationRouter.patch(
+  "/make-all-seen",
+  authorizeUser,
+  NotificationController.makeAllNotificationSeen
 );
 
-//dashboard
-
-notificationRouter.get("/get-admin-notification",
-    // authorizeUser,
-    NotificationController.getAllAdminNotification
+notificationRouter.delete(
+  "/delete-notification/:id",
+  authorizeUser,
+  NotificationController.deleteNotification
 );
 
-notificationRouter.delete("/delete-admin-notification/:id",
-    // authorizeUser,
-    NotificationController.deleteAdminNotification
+// Dashboard / Admin notifications
+notificationRouter.get(
+  "/get-admin-notification",
+  NotificationController.getAllAdminNotification
 );
 
-notificationRouter.patch("/make-admin-notification-seen/:id",
-    // authorizeUser,
-    NotificationController.makeAdminNotificationSeen
+notificationRouter.delete(
+  "/delete-admin-notification/:id",
+  NotificationController.deleteAdminNotification
 );
 
+notificationRouter.patch(
+  "/make-admin-notification-seen/:id",
+  NotificationController.makeAdminNotificationSeen
+);
 
 export default notificationRouter;

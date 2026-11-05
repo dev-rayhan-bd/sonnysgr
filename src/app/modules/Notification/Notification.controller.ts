@@ -4,84 +4,94 @@ import sendResponse from "../../../utilities/sendResponse";
 import NotificationServices from "./Notification.service";
 
 const getAllNotification = catchAsync(async (req, res) => {
-     const { user } = req as AuthRequest;
+  const { user } = req as AuthRequest;
 
-     const result: any = await NotificationServices.getAllNotificationService(user,req.query);
-    
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Retrieved all notification.",
-        meta: result.meta,
-        data: result.notifications,
-    });
+  const result: any = await NotificationServices.getAllNotificationService(user, req.query);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Retrieved all notification.",
+    meta: result.meta,
+    data: result.notifications,
+  });
 });
 
 const deleteNotification = catchAsync(async (req, res) => {
+  const result = await NotificationServices.deleteNotification(req.params.id);
 
-     const result = await NotificationServices.deleteNotification(req.params.id);
-    
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Notification deleted.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Notification deleted.",
+    data: result,
+  });
 });
 
 const getAllAdminNotification = catchAsync(async (req, res) => {
+  const result = await NotificationServices.getAllAdminNotificationService();
 
-     const result = await NotificationServices.getAllAdminNotificationService();
-    
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Retrieved all notification.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Retrieved all notification.",
+    data: result,
+  });
 });
 
 const deleteAdminNotification = catchAsync(async (req, res) => {
+  const result = await NotificationServices.deleteAdminNotification(req.params.id);
 
-     const result = await NotificationServices.deleteAdminNotification(req.params.id);
-    
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Deleted notification.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Deleted notification.",
+    data: result,
+  });
 });
 
 const makeNotificationSeen = catchAsync(async (req, res) => {
+  const result = await NotificationServices.makeNotificationSeen(req.params.id);
 
-     const result = await NotificationServices.makeNotificationSeen(req.params.id);
-    
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Notification marked as seen.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Notification marked as seen.",
+    data: result,
+  });
 });
+
+const makeAllNotificationSeen = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await NotificationServices.makeAllNotificationSeen(user);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "All notifications marked as seen.",
+    data: result,
+  });
+});
+
 const makeAdminNotificationSeen = catchAsync(async (req, res) => {
+  const result = await NotificationServices.makeAdminNotificationSeen(req.params.id);
 
-     const result = await NotificationServices.makeAdminNotificationSeen(req.params.id);
-    
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Admin Notification marked as seen.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Admin Notification marked as seen.",
+    data: result,
+  });
 });
 
-const NotificationController = { 
-    getAllNotification,
-    deleteNotification,
-    getAllAdminNotification,
-    deleteAdminNotification,
-    makeNotificationSeen,
-    makeAdminNotificationSeen
- };
+const NotificationController = {
+  getAllNotification,
+  deleteNotification,
+  getAllAdminNotification,
+  deleteAdminNotification,
+  makeNotificationSeen,
+  makeAllNotificationSeen,
+  makeAdminNotificationSeen,
+};
+
 export default NotificationController;

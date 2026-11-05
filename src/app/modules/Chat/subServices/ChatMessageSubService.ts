@@ -90,6 +90,16 @@ export class ChatMessageSubService {
       const io = getIO();
       io.to(receiverId.toString()).emit("new_message", message);
       io.to(convObjectId.toString()).emit("new_message", message);
+
+      // Real-time chat unread badge count for receiver
+      const unreadChatCount = await MessageModel.countDocuments({
+        receiver: receiverId,
+        seen: false,
+      });
+      io.to(receiverId.toString()).emit("chat_badge_count", {
+        unreadChatCount,
+        conversationId: convObjectId.toString(),
+      });
     } catch (err) {
       // Non-blocking socket error
     }
@@ -156,6 +166,16 @@ export class ChatMessageSubService {
             seenAt: new Date(),
           });
         }
+
+        // Real-time chat unread badge count reduction for reader
+        const remainingUnread = await MessageModel.countDocuments({
+          receiver: userObjectId,
+          seen: false,
+        });
+        io.to(userObjectId.toString()).emit("chat_badge_count", {
+          unreadChatCount: remainingUnread,
+          conversationId,
+        });
       } catch (e) {
         // Non-blocking socket error
       }
@@ -171,6 +191,58 @@ export class ChatMessageSubService {
       },
       data: messages.reverse(),
     };
+  }
+
+  /**
+   * Explicitly mark all messages in a conversation as seen and emit realtime badge updates
+   */
+  static async markConversationAsSeen(user: IJwtPayload, conversationId: string) {
+    const userObjectId = new Types.ObjectId(user.profileId);
+    const convObjectId = new Types.ObjectId(conversationId);
+
+    const unreadUpdated = await MessageModel.updateMany(
+      {
+        conversationId: convObjectId,
+        receiver: userObjectId,
+        seen: false,
+      },
+      {
+        $set: { seen: true, seenAt: new Date() },
+      }
+    );
+
+    const remainingUnread = await MessageModel.countDocuments({
+      receiver: userObjectId,
+      seen: false,
+    });
+
+    try {
+      const io = getIO();
+      // Emit updated badge count to user
+      io.to(userObjectId.toString()).emit("chat_badge_count", {
+        unreadChatCount: remainingUnread,
+        conversationId,
+      });
+
+      // Notify counterpart
+      const conversation = await ConversationModel.findById(convObjectId).lean();
+      if (conversation) {
+        const otherParticipant = (conversation as any).participants?.find(
+          (p: Types.ObjectId) => !p.equals(userObjectId)
+        );
+        if (otherParticipant) {
+          io.to(otherParticipant.toString()).emit("messages_seen", {
+            conversationId,
+            seenBy: user.profileId,
+            seenAt: new Date(),
+          });
+        }
+      }
+    } catch (e) {
+      // Non-blocking socket error
+    }
+
+    return { modifiedCount: unreadUpdated.modifiedCount, unreadChatCount: remainingUnread };
   }
 }
 

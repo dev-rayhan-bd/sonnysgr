@@ -61,6 +61,19 @@ const getConversationMessages = catchAsync(async (req: Request, res: Response) =
   });
 });
 
+const markConversationAsSeenController = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user as IJwtPayload;
+  const conversationId = req.params.conversationId as string;
+  const result = await ChatFacadeService.markConversationAsSeen(user, conversationId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Conversation messages marked as seen",
+    data: result,
+  });
+});
+
 const uploadChatFilesController = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as Express.Multer.File[];
   if (!files || !files.length) {
@@ -102,6 +115,7 @@ const ChatController = {
   getUserConversations,
   sendMessage,
   getConversationMessages,
+  markConversationAsSeen: markConversationAsSeenController,
   uploadChatFilesController,
   deleteChatFilesController,
 };

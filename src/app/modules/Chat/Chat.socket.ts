@@ -1,5 +1,8 @@
 import { Socket } from "socket.io";
+import { Types } from "mongoose";
 import { ChatFacadeService } from "./ChatFacadeService";
+import { MessageModel } from "./Chat.model";
+import { NotificationModel } from "../Notification/Notification.model";
 
 export const registerSocketHandlers = (socket: Socket) => {
   const user = socket.data?.user;
@@ -72,6 +75,45 @@ export const registerSocketHandlers = (socket: Socket) => {
       socket.emit("chat_error", {
         success: false,
         message: err.message || "Failed to retrieve conversations",
+      });
+    }
+  });
+
+  // Real-time mark conversation messages as seen
+  socket.on("mark_seen", async (data: { conversationId: string }) => {
+    try {
+      if (data?.conversationId) {
+        const result = await ChatFacadeService.markConversationAsSeen(user, data.conversationId);
+        socket.emit("mark_seen_ack", { success: true, ...result });
+      }
+    } catch (err: any) {
+      socket.emit("chat_error", {
+        success: false,
+        message: err.message || "Failed to mark messages as seen",
+      });
+    }
+  });
+
+  // Real-time request for all unread badge counts (Chat + Notifications)
+  socket.on("get_badge_counts", async () => {
+    try {
+      const profileId = user.profileId;
+      const userObjectId = new Types.ObjectId(profileId);
+
+      const [unreadChatCount, unreadNotificationCount] = await Promise.all([
+        MessageModel.countDocuments({ receiver: userObjectId, seen: false }),
+        NotificationModel.countDocuments({ toId: userObjectId, isSeen: false }),
+      ]);
+
+      socket.emit("badge_counts", {
+        unreadChatCount,
+        unreadNotificationCount,
+        totalBadgeCount: unreadChatCount + unreadNotificationCount,
+      });
+    } catch (err: any) {
+      socket.emit("chat_error", {
+        success: false,
+        message: err.message || "Failed to fetch badge counts",
       });
     }
   });

@@ -40,6 +40,13 @@ ChatRouter.get(
   ChatController.getConversationMessages
 );
 
+// Mark conversation messages as seen
+ChatRouter.patch(
+  "/mark-seen/:conversationId",
+  auth(allowedRoles),
+  ChatController.markConversationAsSeen
+);
+
 // Upload multi-cloud chat media (Cloudinary default / S3 auto-switch, 500MB max)
 ChatRouter.post(
   "/upload-chat-files",

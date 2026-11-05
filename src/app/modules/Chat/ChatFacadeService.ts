@@ -44,6 +44,10 @@ export class ChatFacadeService {
     return ChatMessageSubService.getConversationMessages(user, conversationId, query);
   }
 
+  static async markConversationAsSeen(user: IJwtPayload, conversationId: string) {
+    return ChatMessageSubService.markConversationAsSeen(user, conversationId);
+  }
+
   static async syncOfferCard(payload: {
     senderId: string;
     senderModel: "Buyer" | "Retailer" | "Reseller" | "User";
