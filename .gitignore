@@ -1,6 +1,5 @@
 node_modules
 .env.example
-.env
 .vercel
 uploads/
 logs/
@@ -20,3 +19,5 @@ AGENTS.md
 
 # Postman Collection (Kept locally at root, not pushed to git)
 *.postman_collection.json
+
+*.postman_environment.json
