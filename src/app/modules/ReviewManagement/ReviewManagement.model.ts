@@ -17,6 +17,7 @@ const ReviewSchema = new Schema<IReview>(
       type: Schema.Types.ObjectId,
       required: true,
       refPath: "reviewedType",
+      index: true,
     },
     reviewedType: {
       type: String,
@@ -27,6 +28,7 @@ const ReviewSchema = new Schema<IReview>(
       type: String,
       required: true,
       enum: ["BuyerToRetailer", "RetailerToReseller"],
+      index: true,
     },
     rating: {
       type: Number,
@@ -64,6 +66,16 @@ const ReviewSchema = new Schema<IReview>(
       min: 1,
       max: 5,
     },
+    isVerifiedBuyer: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
+    },
     reply: {
       type: Schema.Types.ObjectId,
       ref: "StoreReviewReply",
@@ -74,6 +86,9 @@ const ReviewSchema = new Schema<IReview>(
     timestamps: true,
   }
 );
+
+ReviewSchema.index({ reviewedId: 1, reviewType: 1, createdAt: -1 });
+ReviewSchema.index({ reviewerId: 1, reviewedId: 1, reviewType: 1 }, { unique: true });
 
 const ReviewReplySchema = new Schema<IReviewReply>(
   {
