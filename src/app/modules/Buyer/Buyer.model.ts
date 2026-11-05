@@ -27,7 +27,7 @@ const BuyerSchema = new Schema<IBuyer>({
             default: [0, 0],
         },
     },
-    address: { type: String,default:"" },
+    address: { type: String, default: "" },
     notification: { 
         isRestockInMyShoeSize: { type: Boolean, default: false },
         isNearbyStoreAlert: { type: Boolean, default: false },
@@ -44,10 +44,12 @@ const BuyerSchema = new Schema<IBuyer>({
         isVipStatusPublic: { type: Boolean, default: true },
         isActivityPublic: { type: Boolean, default: true },
     },
-    myReviews:{type:Number,default:0},
-    subscription:{type:Schema.Types.ObjectId,ref:"Subscription"},
-    subscriptionStartDate:{type:Date},
-    subscriptionEndDate:{type:Date},
+    myReviews: { type: Number, default: 0 },
+    subscription: { type: Schema.Types.ObjectId, ref: "Subscription" },
+    subscriptionStartDate: { type: Date },
+    subscriptionEndDate: { type: Date },
+    walletBalance: { type: Number, default: 0 },
+    discoveryRadius: { type: Number, default: 25 },
     isProfileCompleted: { type: Boolean, default: false },
     alertPreferences: {
         newArrivals: { type: Boolean, default: true },
@@ -62,24 +64,16 @@ const BuyerSchema = new Schema<IBuyer>({
     }
 }, { timestamps: true });
 
-//to enable geospatial queries on the location field, we need to create a 2dsphere index on it. This allows us to perform queries like finding nearby buyers based on their location.
-BuyerSchema.index({ location: "2dsphere"});
+BuyerSchema.index({ location: "2dsphere" });
 
 BuyerSchema.pre("findOneAndDelete", async function (next) {
     const doc = await this.model.findOne(this.getQuery());
     if (doc) {
         const buyerId = doc._id;
         
-        // Delete related Auth record
         await model("Auth").deleteMany({ profile: buyerId });
-
-        // Delete Follow records
         await model("Follow").deleteMany({ buyerId });
-
-        // Delete WishList records
         await model("WishList").deleteMany({ buyerId });
-
-        // Delete Cart records
         await model("Cart").deleteMany({ buyerId });
     }
     next();

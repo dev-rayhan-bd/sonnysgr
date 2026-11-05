@@ -41,6 +41,7 @@ export interface IBuyer {
   subscription: Types.ObjectId;
   subscriptionStartDate: Date;
   subscriptionEndDate: Date;
+  walletBalance?: number;
   discoveryRadius: number;
   isProfileCompleted: boolean;
   alertPreferences?: IBuyerAlertPreferences;
@@ -67,4 +68,3 @@ export interface IBuyerNotification {
   isWantedPairAlert: boolean;
   isGoSneakerAnnouncement: boolean;
 }
-// Reseller Interface

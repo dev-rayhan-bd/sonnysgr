@@ -24,6 +24,8 @@ import ReviewManagementRouter from "../modules/ReviewManagement/ReviewManagement
 import SupportRouter from "../modules/Support/Support.routes";
 import DemandRouter from "../modules/Demand/Demand.routes";
 import SubscriptionPaymentRouter from "../modules/SubscriptionPayment/SubscriptionPayment.routes";
+import LockerRouter from "../modules/Locker/Locker.routes";
+import OfferRouter from "../modules/Offer/Offer.routes";
 
 const router = Router();
 
@@ -53,6 +55,8 @@ const moduleRoutes = [
   { path: "/report", router: ReportRouter },
   { path: "/support", router: SupportRouter },
   { path: "/subscription-payment", router: SubscriptionPaymentRouter },
+  { path: "/locker", router: LockerRouter },
+  { path: "/offers", router: OfferRouter },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.router));
