@@ -4,9 +4,9 @@
   "description": "it's a backend server based on node and express. This project is basically a ecommerce site focused on to sell sneaker.",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch src --exec ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "dev": "node init && nodemon --watch src --exec ts-node src/server.ts",
+    "build": "node init && tsc",
+    "start": "node init && node dist/server.js",
     "create-module": "ts-node src/app/create_module_tem.ts module",
     "docs:lint": "redocly lint src/app/docs/openapi.json",
     "docs:build": "redocly build-docs src/app/docs/openapi.json -o docs.html"
