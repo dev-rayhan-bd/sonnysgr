@@ -17,3 +17,6 @@ temp_interactive_push.bat
 docs/
 AGENT.md
 AGENTS.md
+
+# Postman Collection (Kept locally at root, not pushed to git)
+*.postman_collection.json
