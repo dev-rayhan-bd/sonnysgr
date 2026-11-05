@@ -97,7 +97,26 @@ BuyerRouter.get(
   BuyerController.getSingleRetailerByBuyerController
 );
 
-// --- 4. Sub-Routers ---
+// --- 4. Purchase History & Physical Store Footprint (Module 1.8 & 1.9) ---
+BuyerRouter.get(
+  "/purchase-history",
+  auth(["Buyer"]),
+  BuyerController.getPurchaseHistoryController
+);
+
+BuyerRouter.post(
+  "/store-visit/checkin",
+  auth(["Buyer"]),
+  BuyerController.recordQrCheckinController
+);
+
+BuyerRouter.get(
+  "/store-visit/history",
+  auth(["Buyer"]),
+  BuyerController.getStoreVisitHistoryController
+);
+
+// --- 5. Sub-Routers ---
 import WishlistRouter from "./wishlist/wishlist.routes";
 import FollowingRouter from "./following/following.routes";
 import AlertPreferencesRouter from "./alertSettings/alertSettings.routes";

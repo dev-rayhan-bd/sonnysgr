@@ -6,6 +6,7 @@ import OfferModel from "../Offer.model";
 import LockerModel from "../../Locker/Locker.model";
 import BuyerModel from "../../Buyer/Buyer.model";
 import { ProductModel } from "../../Product/Product.model";
+import { BuyerHistorySubService } from "../../Buyer/subServices/BuyerHistorySubService";
 
 /**
  * Sub-Service dedicated to In-Store Drop-off Verification, Payout Settlement & Store Inventory Sync
@@ -91,7 +92,7 @@ export class OfferSettlementSubService {
 
       // 4. Optionally Auto-Add Sneaker to Retailer's Store Inventory
       let createdProduct = null;
-      if (payload.addToInventory === true || payload.addToInventory === "true" as any) {
+      if (payload.addToInventory === true || (payload.addToInventory as any) === "true") {
         const targetPrice = payload.listingPrice ? Number(payload.listingPrice) : Math.round(offer.currentOfferAmount * 1.25);
         const [product] = await ProductModel.create(
           [
@@ -127,6 +128,15 @@ export class OfferSettlementSubService {
 
       await session.commitTransaction();
 
+      // Module 1.9: Log physical store visit for C2B sneaker drop-off
+      BuyerHistorySubService.logStoreVisitInternal(
+        offer.sellerId,
+        storeObjectId,
+        "C2B_TRADE_IN",
+        offer._id,
+        "Offer"
+      ).catch(() => {});
+
       return {
         success: true,
         message: "Sneaker drop-off verified successfully. Payout credited to seller.",
@@ -149,4 +159,3 @@ export class OfferSettlementSubService {
     }
   }
 }
-

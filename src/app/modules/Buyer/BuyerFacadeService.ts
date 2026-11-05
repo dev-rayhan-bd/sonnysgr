@@ -2,11 +2,13 @@ import { IJwtPayload } from "../../../interface/jwt.interface";
 import { BuyerSizeMatchDiscoverySubService } from "./subServices/BuyerSizeMatchDiscoverySubService";
 import { BuyerProfileSubService } from "./subServices/BuyerProfileSubService";
 import { BuyerEngagementSubService } from "./subServices/BuyerEngagementSubService";
+import { BuyerHistorySubService } from "./subServices/BuyerHistorySubService";
 import { IBuyerNotification } from "./Buyer.interface";
 
 /**
  * Buyer Facade Service: High-Level Orchestrator
- * Coordinates size-match live feeds, map discovery pins, profile management, and brand interests
+ * Coordinates size-match live feeds, map discovery pins, profile management,
+ * purchase history, and physical store visit footprints (Modules 1, 2, 3, 4, 5)
  */
 export class BuyerFacadeService {
   // 1. Size-Match & Map Discovery (Core USP - Modules 2, 3, 4, 5)
@@ -97,6 +99,19 @@ export class BuyerFacadeService {
 
   static async getNearbyProductsForBuyer(userDetails: IJwtPayload, query: Record<string, any>) {
     return await BuyerEngagementSubService.getNearbyProductsForBuyer(userDetails, query);
+  }
+
+  // 4. Purchase History & Physical Store Footprint (Module 1.8 & 1.9)
+  static async getPurchaseHistory(buyerId: string, query: Record<string, unknown> = {}) {
+    return await BuyerHistorySubService.getPurchaseHistory(buyerId, query);
+  }
+
+  static async recordQrCheckin(buyerId: string, payload: any) {
+    return await BuyerHistorySubService.recordQrCheckin(buyerId, payload);
+  }
+
+  static async getStoreVisitHistory(buyerId: string) {
+    return await BuyerHistorySubService.getStoreVisitHistory(buyerId);
   }
 }
 

@@ -5,6 +5,7 @@ import { IJwtPayload } from "../../../../interface/jwt.interface";
 import { OrderItemModel, OrderModel } from "../Order.model";
 import { ProductModel } from "../../Product/Product.model";
 import { ProductInventorySubService } from "../../Product/subServices/ProductInventorySubService";
+import { BuyerHistorySubService } from "../../Buyer/subServices/BuyerHistorySubService";
 import {
   ENUM_ORDER_ITEM_STATUS,
   ENUM_ORDER_STATUS,
@@ -316,6 +317,15 @@ export class OrderHoldSubService {
       await order.save({ session });
 
       await session.commitTransaction();
+
+      // Module 1.9: Log physical store visit for in-store pickup
+      BuyerHistorySubService.logStoreVisitInternal(
+        order.buyerId,
+        retailerId,
+        "IN_STORE_PICKUP",
+        order._id,
+        "Order"
+      ).catch(() => {});
 
       return {
         orderId: order._id,

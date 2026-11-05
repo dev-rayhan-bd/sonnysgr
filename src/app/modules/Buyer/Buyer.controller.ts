@@ -182,6 +182,44 @@ const getSingleRetailerByBuyerController = catchAsync(async (req, res) => {
   });
 });
 
+// --- Purchase History & Store Footprint (Module 1.8 & 1.9) ---
+
+const getPurchaseHistoryController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.getPurchaseHistory(user.profileId, req.query);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Comprehensive purchase history and transaction log retrieved.",
+    data: result,
+  });
+});
+
+const recordQrCheckinController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.recordQrCheckin(user.profileId, req.body);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+const getStoreVisitHistoryController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.getStoreVisitHistory(user.profileId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Physical store visit footprint history retrieved.",
+    data: result,
+  });
+});
+
 const BuyerController = {
   getLiveSizeMatchFeedController,
   getSizeMatchMapPinsController,
@@ -197,6 +235,9 @@ const BuyerController = {
   getBuyerFollowedBrandStoreWishlistData,
   getAllRetailersByBuyerController,
   getSingleRetailerByBuyerController,
+  getPurchaseHistoryController,
+  recordQrCheckinController,
+  getStoreVisitHistoryController,
 };
 
 export default BuyerController;
