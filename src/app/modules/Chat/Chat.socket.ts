@@ -1,107 +1,78 @@
-
 import { Socket } from "socket.io";
-import * as ChatService from "./Chat.service";
-import { emitResult } from "../../../socket/emitResult";
+import { ChatFacadeService } from "./ChatFacadeService";
 
 export const registerSocketHandlers = (socket: Socket) => {
+  const user = socket.data?.user;
+  if (!user) return;
 
-  // SEnd notification
-  // socket.on("new_notification", async (data) => {
+  // Join a specific conversation thread room
+  socket.on("join_chat", (data: { conversationId: string }) => {
+    if (data?.conversationId) {
+      socket.join(data.conversationId);
+      console.log(`👤 User ${user.profileId} joined chat room: ${data.conversationId}`);
+    }
+  });
 
-  //   const { senderId, receiverId, text } = data;
+  // Leave a specific conversation thread room
+  socket.on("leave_chat", (data: { conversationId: string }) => {
+    if (data?.conversationId) {
+      socket.leave(data.conversationId);
+      console.log(`👤 User ${user.profileId} left chat room: ${data.conversationId}`);
+    }
+  });
 
-  //   const message = await ChatService.sendMessage(senderId, receiverId, text);
+  // Typing indicator
+  socket.on("typing", (data: { conversationId: string; receiverId: string }) => {
+    if (data?.receiverId) {
+      socket.to(data.receiverId).emit("user_typing", {
+        conversationId: data.conversationId,
+        senderId: user.profileId,
+      });
+    }
+  });
 
-  //   // socket.emit("message_sent", message);
+  // Stop typing indicator
+  socket.on("stop_typing", (data: { conversationId: string; receiverId: string }) => {
+    if (data?.receiverId) {
+      socket.to(data.receiverId).emit("user_stop_typing", {
+        conversationId: data.conversationId,
+        senderId: user.profileId,
+      });
+    }
+  });
 
-  // });
-
-  // SEND MESSAGE
+  // Real-time send message via socket
   socket.on("send_message", async (data) => {
+    try {
+      const message = await ChatFacadeService.sendMessage(user, {
+        conversationId: data.conversationId,
+        text: data.text,
+        attachments: data.attachments,
+        messageType: data.messageType,
+        offerPayload: data.offerPayload,
+        productPayload: data.productPayload,
+        orderPayload: data.orderPayload,
+      });
 
-    const { receiverId, text, attachments = [] } = data;
-    // console.log("Received message data:", {  receiverId, text, attachments });
-
-    const {role, profileId } = socket.data.user;
-
-    const message = await ChatService.sendMessage(role, profileId, receiverId, text, attachments);
-
-    // socket.emit("message_sent", message);
-
+      socket.emit("message_sent_ack", { success: true, data: message });
+    } catch (err: any) {
+      socket.emit("chat_error", {
+        success: false,
+        message: err.message || "Failed to send message",
+      });
+    }
   });
 
-  // // GET CHAT LIST
-  socket.on("get_chat_list", async (data) => {
-
-    // const { userId } = data;
-
-    const {role, profileId } = socket.data.user;
-
-    const chats = await ChatService.getChatList(role, profileId);
-
-    socket.emit("chat_list", chats);
-
+  // Retrieve user conversations via socket
+  socket.on("get_conversations", async () => {
+    try {
+      const conversations = await ChatFacadeService.getUserConversations(user);
+      socket.emit("conversations_list", conversations);
+    } catch (err: any) {
+      socket.emit("chat_error", {
+        success: false,
+        message: err.message || "Failed to retrieve conversations",
+      });
+    }
   });
-
-  // GET MESSAGES
-  socket.on("get_messages", async (data) => {
-
-    const { conversationId } = data;
-
-    const messages = await ChatService.getMessages(conversationId);
-
-    socket.emit("messages", emitResult({
-      statusCode: 200,
-      success: true,
-      message: `You have received a new message.`,
-      data: messages,
-    }));
-
-  });
-
-  // // SEARCH USER
-  // socket.on("search_user", async (search) => {
-
-  //   const users = await ChatService.searchUsers(search);
-
-  //   socket.emit("search_result", users);
-
-  // });
-
-  //send conversation request
-  socket.on("send_conversation_request", async (data) => {
-
-    const { receiverId } = data;
-    const senderId = socket.data.user.profileId
-
-    const conversation = await ChatService.sendConversationRequest(
-      senderId,
-      receiverId
-    );
-
-    // console.log(conversation);
-
-  });
-
-  //get all conversation
-  // socket.on("get_conversation_requests", async () => {
-  //   const userId = socket.data.user.profileId
-  //   const requests = await ChatService.getConversationRequests(userId);
-
-  //   // console.log(requests);
-  //   // socket.emit("conversation_requests", requests);
-
-  // });
-
-  //accept request
-  // socket.on("accept_conversation_request", async (data) => {
-
-  //   const { conversationId } = data;
-
-  //   const conversation = await ChatService.acceptConversationRequest(
-  //     conversationId
-  //   );
-
-  // });
-
 };

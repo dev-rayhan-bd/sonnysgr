@@ -67,3 +67,4 @@ export const StoreVisitModel =
   models.StoreVisit || model<IStoreVisit>("StoreVisit", StoreVisitSchema);
 
 export default StoreVisitModel;
+

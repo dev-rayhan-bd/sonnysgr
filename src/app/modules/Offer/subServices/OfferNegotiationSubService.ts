@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 import { IJwtPayload } from "../../../../interface/jwt.interface";
 import OfferModel from "../Offer.model";
 import LockerModel from "../../Locker/Locker.model";
+import { ChatOfferCardSubService } from "../../Chat/subServices/ChatOfferCardSubService";
 
 /**
  * Sub-Service dedicated to Multi-Round Negotiations (Counter-Offer, Accept, Decline)
@@ -79,6 +80,33 @@ export class OfferNegotiationSubService {
     });
 
     await offer.save();
+
+    // Sync updated counter-offer card to chat
+    setImmediate(async () => {
+      try {
+        await ChatOfferCardSubService.syncOfferCardToChat({
+          senderId: profileId,
+          senderModel: actorRole,
+          receiverId: isSeller ? String(offer.buyerStoreId) : String(offer.sellerId),
+          receiverModel: isSeller ? "Retailer" : (offer.sellerRole as any),
+          offerCard: {
+            offerId: offer._id,
+            amount: counterAmount,
+            platformFee: platformFeeAmount,
+            netPayout: netSellerPayout,
+            status: "Countered",
+            expiresAt: newExpiresAt,
+            itemTitle: offer.itemSnapshot?.name || "",
+            itemImage: offer.itemSnapshot?.itemImage || "",
+            size: offer.itemSnapshot?.size || "",
+          },
+          text: payload.note || `Counter-offer: $${counterAmount.toFixed(2)}`,
+        });
+      } catch (err) {
+        console.error("Non-fatal chat sync error on counterOffer:", err);
+      }
+    });
+
     return offer;
   }
 
@@ -137,6 +165,31 @@ export class OfferNegotiationSubService {
     // 2. Lock the target Locker Sneaker
     await LockerModel.findByIdAndUpdate(offer.targetItemId, {
       $set: { status: "DEAL_ACCEPTED" },
+    });
+
+    // Sync deal confirmation card to chat
+    setImmediate(async () => {
+      try {
+        await ChatOfferCardSubService.syncOfferCardToChat({
+          senderId: profileId,
+          senderModel: actorRole,
+          receiverId: isSeller ? String(offer.buyerStoreId) : String(offer.sellerId),
+          receiverModel: isSeller ? "Retailer" : (offer.sellerRole as any),
+          offerCard: {
+            offerId: offer._id,
+            amount: offer.currentOfferAmount,
+            platformFee: offer.platformFeeAmount,
+            netPayout: offer.netSellerPayout,
+            status: "Accepted",
+            itemTitle: offer.itemSnapshot?.name || "",
+            itemImage: offer.itemSnapshot?.itemImage || "",
+            size: offer.itemSnapshot?.size || "",
+          },
+          text: `🤝 Deal confirmed at $${offer.currentOfferAmount.toFixed(2)}! Drop-off Code: ${offer.dropoffVerificationCode}`,
+        });
+      } catch (err) {
+        console.error("Non-fatal chat sync error on acceptOffer:", err);
+      }
     });
 
     // 3. Automatically decline any competing pending offers on the same sneaker

@@ -5,6 +5,7 @@ import { IJwtPayload } from "../../../../interface/jwt.interface";
 import OfferModel from "../Offer.model";
 import LockerModel from "../../Locker/Locker.model";
 import RetailerModel from "../../Retailer/Retailer.model";
+import { ChatOfferCardSubService } from "../../Chat/subServices/ChatOfferCardSubService";
 
 /**
  * Sub-Service dedicated to Offer Creation, Withdrawals, Expiry & Fee Calculations
@@ -124,6 +125,32 @@ export class OfferCommandSubService {
     // Mark locker item as having a pending offer
     await LockerModel.findByIdAndUpdate(lockerItem._id, {
       $set: { status: "OFFER_PENDING" },
+    });
+
+    // Sync live interactive offer card into chat thread
+    setImmediate(async () => {
+      try {
+        await ChatOfferCardSubService.syncOfferCardToChat({
+          senderId: storeObjectId.toString(),
+          senderModel: "Retailer",
+          receiverId: lockerItem.buyerId.toString(),
+          receiverModel: "Buyer",
+          offerCard: {
+            offerId: offer._id,
+            amount,
+            platformFee: platformFeeAmount,
+            netPayout: netSellerPayout,
+            status: "Pending",
+            expiresAt,
+            itemTitle: lockerItem.name,
+            itemImage: lockerItem.images?.[0] || "",
+            size: lockerItem.size,
+          },
+          text: note || `New purchase offer received: $${amount.toFixed(2)}`,
+        });
+      } catch (err) {
+        console.error("Non-fatal offer card chat sync error:", err);
+      }
     });
 
     return offer;

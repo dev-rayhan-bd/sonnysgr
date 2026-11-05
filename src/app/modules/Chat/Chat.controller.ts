@@ -1,83 +1,109 @@
+import { Request, Response } from "express";
+import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../../utilities/catchasync";
-import { getAllMessages, initiateConversation } from "./Chat.service";
 import sendResponse from "../../../utilities/sendResponse";
-import deleteOldFile from "../../../utilities/deleteFile";
-import { AuthRequest } from "../../../interface/authRequest";
+import { ChatFacadeService } from "./ChatFacadeService";
+import { IJwtPayload } from "../../../interface/jwt.interface";
+import { uploadMultipleToCloud, deleteFromCloud } from "../../../helper/cloudStorage";
+import AppError from "../../errors/AppError";
 
+const initiateChat = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user as IJwtPayload;
+  const result = await ChatFacadeService.initiateOrGetConversation(user, req.body);
 
-
-
-
-
-const initiateChat = catchAsync(async (req, res) => {
-
-    const { user } = req as AuthRequest;
-    
-    const result = await initiateConversation(user,req.body);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Conversation initiated successfully.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Conversation thread initialized successfully",
+    data: result,
+  });
 });
 
-const getALLmessages = catchAsync(async (req, res) => {
+const getUserConversations = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user as IJwtPayload;
+  const result = await ChatFacadeService.getUserConversations(user);
 
-    const { user } = req as AuthRequest;
-    
-    const result = await getAllMessages(user, req.query);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Messages retrieved successfully.",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Conversation threads retrieved successfully",
+    data: result,
+  });
 });
 
-//upload chat file
+const sendMessage = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user as IJwtPayload;
+  const result = await ChatFacadeService.sendMessage(user, req.body);
 
-const uploadChatFilesController = catchAsync(async (req, res) => {
-
-    // const { user } = req as AuthRequest;
-    const files = req.files as Express.Multer.File[];
-
-    const uploadedFiles = files.map((file) => { return  `uploads/chat-files/${file.filename}`;});
-
-    console.log("Uploaded files:", uploadedFiles);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "Files uploaded successfully",
-        data: uploadedFiles,
-    });
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: "Message sent successfully",
+    data: result,
+  });
 });
 
-const deleteChatFilesController = catchAsync(async (req, res) => {
+const getConversationMessages = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user as IJwtPayload;
+  const conversationId = req.params.conversationId as string;
+  const result = await ChatFacadeService.getConversationMessages(
+    user,
+    conversationId,
+    req.query as any
+  );
 
-    const  fileKey  = req.query.imageUrl as string;
-    // console.log("File key to delete:", fileKey);
-
-    const result = await deleteOldFile(fileKey);
-    // console.log("Delete result:", result);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: "File deleted successfully",
-        data: result,
-    });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Messages retrieved successfully",
+    meta: result.meta,
+    data: result.data,
+  });
 });
 
+const uploadChatFilesController = catchAsync(async (req: Request, res: Response) => {
+  const files = req.files as Express.Multer.File[];
+  if (!files || !files.length) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "No chat attachment files provided");
+  }
+
+  const uploadResults = await uploadMultipleToCloud(files, "gosnkr/chat");
+  const fileUrls = uploadResults.map((item) => item.url);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Chat files uploaded successfully",
+    data: {
+      urls: fileUrls,
+      files: uploadResults,
+    },
+  });
+});
+
+const deleteChatFilesController = catchAsync(async (req: Request, res: Response) => {
+  const fileKey = (req.query.fileKey || req.query.imageUrl) as string;
+  if (!fileKey) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "File key/URL required for deletion");
+  }
+
+  await deleteFromCloud(fileKey);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Chat file deleted successfully",
+    data: null,
+  });
+});
 
 const ChatController = {
-    initiateChat,
-    getALLmessages,
-    uploadChatFilesController,
-    deleteChatFilesController
+  initiateChat,
+  getUserConversations,
+  sendMessage,
+  getConversationMessages,
+  uploadChatFilesController,
+  deleteChatFilesController,
 };
 
 export default ChatController;
