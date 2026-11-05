@@ -95,6 +95,20 @@ const retailerCancelOrderController = catchAsync(async (req, res) => {
   });
 });
 
+// --- Retailer In-Store Hold Settlement ---
+
+const settleInStoreHoldOrderController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await OrderServices.settleInStoreHoldOrderService(user.profileId, req.body);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'In-store hold verified, deposit deducted, and settled successfully.',
+    data: result,
+  });
+});
+
 // --- Buyer Order Controllers ---
 
 const createBuyNowOrderController = catchAsync(async (req, res) => {
@@ -117,6 +131,18 @@ const createHoldDepositOrderController = catchAsync(async (req, res) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Hold reservation created with countdown timer.',
+    data: result,
+  });
+});
+
+const getMyActiveHoldsController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await OrderServices.getMyActiveHoldsService(user.profileId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Active holds retrieved with countdown timers.',
     data: result,
   });
 });
@@ -168,8 +194,10 @@ const OrderController = {
   retailerMarkReadyController,
   retailerCompleteOrderController,
   retailerCancelOrderController,
+  settleInStoreHoldOrderController,
   createBuyNowOrderController,
   createHoldDepositOrderController,
+  getMyActiveHoldsController,
   getMyOrders,
   getBuyerOrderDetailsController,
   cancelBuyerOrderController,

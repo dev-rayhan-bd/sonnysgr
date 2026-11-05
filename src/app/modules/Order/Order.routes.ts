@@ -47,7 +47,14 @@ OrderRouter.patch(
   OrderController.retailerCancelOrderController
 );
 
-// --- 2. Buyer Order & Checkout Lifecycle Endpoints ---
+// Retailer In-Store Verification & Settlement of Hold Reservations
+OrderRouter.post(
+  "/settle-hold",
+  auth(["Retailer"]),
+  OrderController.settleInStoreHoldOrderController
+);
+
+// --- 2. Buyer Order, Holds & Checkout Lifecycle Endpoints ---
 OrderRouter.post(
   "/create-buy-now",
   auth(["Buyer"]),
@@ -58,6 +65,12 @@ OrderRouter.post(
   "/create-hold-deposit",
   auth(["Buyer"]),
   OrderController.createHoldDepositOrderController
+);
+
+OrderRouter.get(
+  "/my-holds",
+  auth(["Buyer"]),
+  OrderController.getMyActiveHoldsController
 );
 
 OrderRouter.get(

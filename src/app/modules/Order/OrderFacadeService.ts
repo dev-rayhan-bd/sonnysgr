@@ -43,9 +43,17 @@ export class OrderFacadeService {
     return await RetailerOrderFulfillmentSubService.cancelOrder(userDetails, orderItemId, reason);
   }
 
-  // --- Holds & Countdown Reservations ---
+  // --- Holds & Countdown Reservations (Module 9) ---
   static async holdOrder(userDetails: IJwtPayload, payload: any) {
     return await OrderHoldSubService.holdOrder(userDetails, payload);
+  }
+
+  static async getMyActiveHolds(buyerId: string) {
+    return await OrderHoldSubService.getMyActiveHolds(buyerId);
+  }
+
+  static async settleInStoreHoldOrder(retailerId: string, payload: any) {
+    return await OrderHoldSubService.settleInStoreHoldOrder(retailerId, payload);
   }
 
   static async releaseExpiredHolds() {
