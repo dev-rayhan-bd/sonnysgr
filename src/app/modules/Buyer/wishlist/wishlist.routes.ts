@@ -6,23 +6,40 @@ import WishlistController from "./wishlist.controller";
 
 const WishlistRouter = express.Router();
 
-WishlistRouter.post(
-  "/add",
-  auth(["Buyer"]),
-  validateRequest(WishlistValidations.addToWishlistSchema),
-  WishlistController.addToWishlist
-);
-
-WishlistRouter.delete(
-  "/remove/:productId",
-  auth(["Buyer"]),
-  WishlistController.removeFromWishlist
-);
-
+// 1. Get Buyer Wishlist (with size stock status & filter by isWanted)
 WishlistRouter.get(
   "/",
   auth(["Buyer"]),
-  WishlistController.getWishlist
+  WishlistController.getWishlistController
+);
+
+// 2. Add sneaker to Wishlist (with desired size & push alert options)
+WishlistRouter.post(
+  "/",
+  auth(["Buyer"]),
+  validateRequest(WishlistValidations.addToWishlistValidation),
+  WishlistController.addToWishlistController
+);
+
+// 3. Remove sneaker from Wishlist
+WishlistRouter.delete(
+  "/:productId",
+  auth(["Buyer"]),
+  WishlistController.removeFromWishlistController
+);
+
+// 4. Wanted Grails (Module 11.2)
+WishlistRouter.get(
+  "/wanted",
+  auth(["Buyer"]),
+  WishlistController.getWantedGrailsController
+);
+
+WishlistRouter.post(
+  "/wanted",
+  auth(["Buyer"]),
+  validateRequest(WishlistValidations.toggleWantedGrailValidation),
+  WishlistController.toggleWantedGrailController
 );
 
 export default WishlistRouter;

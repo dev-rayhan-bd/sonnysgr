@@ -1,9 +1,8 @@
 import { model, Schema, models } from "mongoose";
-import {  IFollow, IReview, IUserFollow, IwishList, IFollowProduct } from "./Engagement.interface";
+import { IFollow, IReview, IUserFollow, IwishList, IFollowProduct } from "./Engagement.interface";
 
-//follow model schema
+// Follow model schema
 const FollowSchema = new Schema<IFollow>({
-    
   buyerId: {
     type: Schema.Types.ObjectId,
     ref: "Buyer",
@@ -27,11 +26,10 @@ const FollowSchema = new Schema<IFollow>({
   }
 });
 
-FollowSchema.index({ buyerId: 1, retailerId: 1 },{ unique: true });
+FollowSchema.index({ buyerId: 1, retailerId: 1 }, { unique: true });
 
-//user follow model
+// User follow model
 const UserFollowSchema = new Schema<IUserFollow>({
-    
   senderId: {
     type: Schema.Types.ObjectId,
     ref: "Buyer",
@@ -48,12 +46,10 @@ const UserFollowSchema = new Schema<IUserFollow>({
   }
 });
 
-UserFollowSchema.index({ senderId: 1, receiverId: 1},{unique: true});
+UserFollowSchema.index({ senderId: 1, receiverId: 1 }, { unique: true });
 
-
-//review model schema
+// Review model schema
 const ReviewSchema = new Schema<IReview>({
-    
   buyerId: {
     type: Schema.Types.ObjectId,
     ref: "Buyer",
@@ -121,27 +117,45 @@ const ReviewSchema = new Schema<IReview>({
   }
 });
 
-//wishlist model schema
+// Wishlist model schema (Module 11)
 const WishListSchema = new Schema<IwishList>({
-    
   buyerId: {
     type: Schema.Types.ObjectId,
     ref: "Buyer",
     required: true,
+    index: true,
   },
   retailerId: {
     type: Schema.Types.ObjectId,
     ref: "Retailer",
-    required: true,
+    index: true,
   },
   productId: {
     type: Schema.Types.ObjectId,
     ref: "Product",
     required: true,
+    index: true,
   },
   isWanted: {
     type: Boolean,
     default: false,
+    index: true,
+  },
+  desiredSize: {
+    type: Schema.Types.Mixed,
+    default: null,
+  },
+  notifyOnRestock: {
+    type: Boolean,
+    default: true,
+  },
+  notifyOnPriceDrop: {
+    type: Boolean,
+    default: true,
+  },
+  targetPrice: {
+    type: Number,
+    default: null,
   },
   createdAt: {
     type: Date,
@@ -149,8 +163,9 @@ const WishListSchema = new Schema<IwishList>({
   }
 });
 
+WishListSchema.index({ buyerId: 1, productId: 1, desiredSize: 1 });
 
-// follow product schema
+// Follow product schema
 const FollowProductSchema = new Schema<IFollowProduct>({
   buyerId: {
     type: Schema.Types.ObjectId,
@@ -171,19 +186,15 @@ const FollowProductSchema = new Schema<IFollowProduct>({
 FollowProductSchema.index({ buyerId: 1, productId: 1 }, { unique: true });
 
 const FollowModel = models.Follow || model<IFollow>("Follow", FollowSchema);
-
 const FollowUserModel = models.FollowUser || model<IUserFollow>("FollowUser", UserFollowSchema);
-
 const ReviewModel = models.Review || model<IReview>("Review", ReviewSchema);
-
 const WishListModel = models.WishList || model<IwishList>("WishList", WishListSchema);
-
 const FollowProductModel = models.FollowProduct || model<IFollowProduct>("FollowProduct", FollowProductSchema);
 
 export { 
-    FollowModel,
-    FollowUserModel,
-    ReviewModel,
-    WishListModel,
-    FollowProductModel
+  FollowModel,
+  FollowUserModel,
+  ReviewModel,
+  WishListModel,
+  FollowProductModel
 };

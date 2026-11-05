@@ -1,50 +1,84 @@
-import { Request, Response } from "express";
 import { AuthRequest } from "../../../../interface/authRequest";
 import catchAsync from "../../../../utilities/catchasync";
 import sendResponse from "../../../../utilities/sendResponse";
-import WishlistServices from "./wishlist.service";
+import WishlistFacadeService from "./WishlistFacadeService";
+import { StatusCodes } from "http-status-codes";
 
-const addToWishlist = catchAsync(async (req: Request, res: Response) => {
+const addToWishlistController = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
-  const result = await WishlistServices.addToWishlistService(user.profileId, req.body);
+  const result = await WishlistFacadeService.addToWishlist(user.profileId, req.body);
 
   sendResponse(res, {
-    statusCode: 201,
+    statusCode: StatusCodes.CREATED,
     success: true,
-    message: "Product added to wishlist successfully.",
+    message: "Sneaker added to wishlist with size preferences.",
     data: result,
   });
 });
 
-const removeFromWishlist = catchAsync(async (req: Request, res: Response) => {
+const removeFromWishlistController = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
-  const { productId } = req.params;
+  const productId = req.params.productId || req.params.id;
+  const desiredSize = (req.query.desiredSize as string) || req.body?.desiredSize;
 
-  const result = await WishlistServices.removeFromWishlistService(user.profileId, productId as string);
+  const result = await WishlistFacadeService.removeFromWishlist(
+    user.profileId,
+    productId,
+    desiredSize
+  );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: StatusCodes.OK,
     success: true,
-    message: "Product removed from wishlist successfully.",
+    message: "Sneaker removed from wishlist successfully.",
     data: result,
   });
 });
 
-const getWishlist = catchAsync(async (req: Request, res: Response) => {
+const getWishlistController = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
-  const result = await WishlistServices.getWishlistService(user.profileId);
+  const result = await WishlistFacadeService.getWishlist(user.profileId, req.query);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: StatusCodes.OK,
     success: true,
-    message: "Wishlist retrieved successfully.",
+    message: "Wishlist retrieved with live size stock status.",
     data: result,
   });
 });
 
-export const WishlistController = {
-  addToWishlist,
-  removeFromWishlist,
-  getWishlist,
+const toggleWantedGrailController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await WishlistFacadeService.toggleWantedGrail(user.profileId, req.body);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: result.isWanted
+      ? "Sneaker flagged as Wanted Grail for store notifications."
+      : "Sneaker removed from Wanted Grails.",
+    data: result,
+  });
+});
+
+const getWantedGrailsController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await WishlistFacadeService.getWantedGrails(user.profileId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Customer's wanted grails retrieved successfully.",
+    data: result,
+  });
+});
+
+const WishlistController = {
+  addToWishlistController,
+  removeFromWishlistController,
+  getWishlistController,
+  toggleWantedGrailController,
+  getWantedGrailsController,
 };
+
 export default WishlistController;
