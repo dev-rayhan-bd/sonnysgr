@@ -192,5 +192,26 @@ export class LockerCommandSubService {
     await LockerModel.findByIdAndDelete(lockerItemId);
     return { message: "Sneaker removed from locker successfully." };
   }
+
+  /**
+   * Toggle entire personal locker collection privacy (Module 15.2)
+   */
+  static async toggleLockerCollectionPrivacy(
+    userDetails: IJwtPayload,
+    isPublic: boolean
+  ) {
+    const { profileId } = userDetails;
+    const buyer = await BuyerModel.findByIdAndUpdate(
+      profileId,
+      { $set: { "privacy.isLockerCollectionPublic": isPublic } },
+      { new: true }
+    );
+
+    if (!buyer) {
+      throw new AppError(StatusCodes.NOT_FOUND, "Buyer profile not found.");
+    }
+
+    return { isLockerCollectionPublic: isPublic };
+  }
 }
 

@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 import { IJwtPayload } from "../../../../interface/jwt.interface";
 import LockerModel from "../Locker.model";
 import QueryBuilder from "../../../builder/QueryBuilder";
+import { LockerCommunitySubService } from "./LockerCommunitySubService";
 
 /**
  * Sub-Service dedicated to Locker Read Queries, Public Community Browsing & Hyper-Local Feeds
@@ -28,8 +29,9 @@ export class LockerQuerySubService {
 
     const data = await queryBuilder.modelQuery.lean();
     const meta = await queryBuilder.countTotal();
+    const stats = await LockerCommunitySubService.computeCollectionStats(new mongoose.Types.ObjectId(profileId));
 
-    return { meta, data };
+    return { meta, stats, data };
   }
 
   /**
