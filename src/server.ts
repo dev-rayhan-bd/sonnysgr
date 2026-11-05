@@ -6,6 +6,7 @@ import seedAdmin from './app/DB';
 import 'dotenv/config';
 import { initializeSocket } from './app/utils/socket';
 import dns from 'node:dns';
+import runCronJobEverydatAtNight from './helper/cron';
 
 // Fix DNS resolution issues for remote MongoDB clusters
 try {
@@ -33,6 +34,9 @@ async function main() {
     });
 
     initializeSocket(server);
+
+    // Initialize autonomous background cron schedulers (Phase 11)
+    runCronJobEverydatAtNight();
   } catch (err) {
     console.error('❌ Database connection or server start failed:', err);
   }

@@ -256,5 +256,22 @@ export class SourcingRequestSubService {
 
     return request;
   }
+
+  /**
+   * Scan open/responded sourcing requests past their expiresAt date and mark them EXPIRED (Module 20.5)
+   */
+  static async expireOverdueSourcingRequests() {
+    const now = new Date();
+    const result = await SourcingRequestModel.updateMany(
+      {
+        status: { $in: ["OPEN", "RESPONDED"] },
+        expiresAt: { $lte: now },
+      },
+      {
+        $set: { status: "EXPIRED" },
+      }
+    );
+    return { expiredCount: result.modifiedCount };
+  }
 }
 

@@ -40,5 +40,9 @@ export class SourcingFacadeService {
   ) {
     return SourcingRequestSubService.respondToRequest(user, requestId, payload);
   }
+
+  static async expireOverdueSourcingRequests() {
+    return SourcingRequestSubService.expireOverdueSourcingRequests();
+  }
 }
 

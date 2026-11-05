@@ -158,4 +158,41 @@ export class OfferSettlementSubService {
       session.endSession();
     }
   }
+
+  /**
+   * Scan accepted offers where 24 hours have elapsed without in-store physical drop-off (Module 17.5)
+   * Reverts sneaker status to IN_LOCKER and marks offer as Expired
+   */
+  static async expireOverdueAcceptedOffers() {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const overdueAcceptedOffers = await OfferModel.find({
+      status: "Accepted",
+      updatedAt: { $lte: twentyFourHoursAgo },
+    });
+
+    let expiredCount = 0;
+    for (const offer of overdueAcceptedOffers) {
+      offer.status = "Expired";
+      offer.timeline.push({
+        status: "Drop-off Window Expired",
+        actorId: offer.buyerStoreId,
+        actorRole: "Retailer",
+        amount: offer.currentOfferAmount,
+        note: "In-store drop-off window (24 hours) passed without physical sneaker inspection. Deal cancelled and item restored to locker.",
+        timestamp: new Date(),
+      });
+      await offer.save();
+
+      // Revert locker sneaker status
+      if (offer.offerType === "C2B_LOCKER" && offer.targetItemId) {
+        await LockerModel.findByIdAndUpdate(offer.targetItemId, {
+          $set: { status: "IN_LOCKER" },
+        });
+      }
+
+      expiredCount++;
+    }
+
+    return { expiredCount };
+  }
 }

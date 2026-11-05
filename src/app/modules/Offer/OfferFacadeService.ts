@@ -40,6 +40,10 @@ export class OfferFacadeService {
     return await OfferSettlementSubService.verifyDropoffAndSettle(userDetails, payload);
   }
 
+  static async expireOverdueAcceptedOffers() {
+    return await OfferSettlementSubService.expireOverdueAcceptedOffers();
+  }
+
   // Query Operations
   static async getMySentOffers(userDetails: IJwtPayload, query: Record<string, unknown>) {
     return await OfferQuerySubService.getMySentOffers(userDetails, query);
