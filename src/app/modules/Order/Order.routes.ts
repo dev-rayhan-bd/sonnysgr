@@ -4,7 +4,7 @@ import OrderController from "./Order.controller";
 
 const OrderRouter = express.Router();
 
-// Retailer 4-Stage Order Management Feed (Needs Action, Holds, Ready, History)
+// --- 1. Retailer 4-Stage Order Management Feed & Fulfillment ---
 OrderRouter.get(
   "/retailer-orders",
   auth(["Retailer"]),
@@ -23,7 +23,6 @@ OrderRouter.get(
   OrderController.getOrderDetailController
 );
 
-// Retailer Fulfillment Action Routes
 OrderRouter.post(
   "/retailer-accept-order/:id",
   auth(["Retailer"]),
@@ -48,11 +47,35 @@ OrderRouter.patch(
   OrderController.retailerCancelOrderController
 );
 
-// Buyer Order Route
+// --- 2. Buyer Order & Checkout Lifecycle Endpoints ---
+OrderRouter.post(
+  "/create-buy-now",
+  auth(["Buyer"]),
+  OrderController.createBuyNowOrderController
+);
+
+OrderRouter.post(
+  "/create-hold-deposit",
+  auth(["Buyer"]),
+  OrderController.createHoldDepositOrderController
+);
+
 OrderRouter.get(
   "/my-orders",
   auth(["Buyer"]),
   OrderController.getMyOrders
+);
+
+OrderRouter.get(
+  "/details/:orderId",
+  auth(["Buyer", "Retailer"]),
+  OrderController.getBuyerOrderDetailsController
+);
+
+OrderRouter.post(
+  "/cancel/:orderId",
+  auth(["Buyer"]),
+  OrderController.cancelBuyerOrderController
 );
 
 export default OrderRouter;

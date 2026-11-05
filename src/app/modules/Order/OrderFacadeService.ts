@@ -81,7 +81,14 @@ export class OrderFacadeService {
   static async getMyOrders(buyerId: string, query: Record<string, unknown>) {
     return await BuyerOrderSubService.getMyOrders(buyerId, query);
   }
+
+  static async getBuyerOrderDetails(buyerId: string, orderId: string) {
+    return await BuyerOrderSubService.getBuyerOrderDetails(buyerId, orderId);
+  }
+
+  static async cancelBuyerOrder(buyerId: string, orderId: string, reason?: string) {
+    return await BuyerOrderSubService.cancelBuyerOrder(buyerId, orderId, reason);
+  }
 }
 
 export default OrderFacadeService;
-

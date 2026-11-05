@@ -16,6 +16,8 @@ const buyNowOrderService = OrderFacadeService.buyNowOrder;
 const holdOrderService = OrderFacadeService.holdOrder;
 const cartOrderService = OrderFacadeService.cartOrder;
 const getMyOrdersService = OrderFacadeService.getMyOrders;
+const getBuyerOrderDetailsService = OrderFacadeService.getBuyerOrderDetails;
+const cancelBuyerOrderService = OrderFacadeService.cancelBuyerOrder;
 const getRetailerOrdersByStage = OrderFacadeService.getRetailerOrdersByStage;
 const createDirectPendingOrderService = OrderFacadeService.createDirectPendingOrderService;
 
@@ -30,6 +32,8 @@ const OrderServices = {
   holdOrderService,
   cartOrderService,
   getMyOrdersService,
+  getBuyerOrderDetailsService,
+  cancelBuyerOrderService,
   getRetailerOrdersByStage,
   createDirectPendingOrderService,
 };
