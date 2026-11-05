@@ -9,6 +9,7 @@ import ResellerModel from "../../Reseller/Reseller.model";
 import { OrderItemModel } from "../../Order/Order.model";
 import { IJwtPayload } from "../../../../interface/jwt.interface";
 import { ENUM_ORDER_ITEM_STATUS } from "../../../../utilities/enum";
+import { BuyerLoyaltySubService } from "../../Buyer/subServices/BuyerLoyaltySubService";
 
 /**
  * Sub-Service dedicated to Review Creation, Verification Badges & Official Store Replies
@@ -127,6 +128,16 @@ export class ReviewCommandSubService {
       await BuyerModel.findByIdAndUpdate(reviewerObjectId, {
         $inc: { myReviews: 1 },
       });
+
+      // Module 13.2: Award +20 VIP Loyalty Points for writing a verified store review
+      BuyerLoyaltySubService.awardPointsInternal(
+        reviewerObjectId,
+        20,
+        "REVIEW",
+        "Store review contribution reward (+20 VIP pts)",
+        newReview._id,
+        "Review"
+      ).catch(() => {});
 
       // Recalculate average rating for Retailer
       const reviews = await ReviewModel.find({

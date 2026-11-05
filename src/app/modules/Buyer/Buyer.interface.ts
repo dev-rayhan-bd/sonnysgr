@@ -42,6 +42,12 @@ export interface IBuyer {
   subscriptionStartDate: Date;
   subscriptionEndDate: Date;
   walletBalance?: number;
+  vipPoints?: number;
+  vipTier?: "Bronze" | "Silver" | "Gold" | "Platinum";
+  lastDailyLoginClaim?: Date;
+  referralCode?: string;
+  referredBy?: Types.ObjectId;
+  hasCompletedFirstPurchase?: boolean;
   discoveryRadius: number;
   isProfileCompleted: boolean;
   alertPreferences?: IBuyerAlertPreferences;

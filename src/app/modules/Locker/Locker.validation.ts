@@ -40,3 +40,4 @@ const LockerValidations = {
 };
 
 export default LockerValidations;
+

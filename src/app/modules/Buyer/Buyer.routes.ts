@@ -116,7 +116,40 @@ BuyerRouter.get(
   BuyerController.getStoreVisitHistoryController
 );
 
-// --- 5. Sub-Routers ---
+// --- 5. VIP Loyalty & Daily Login Rewards (Module 1.11 & 13) ---
+BuyerRouter.get(
+  "/loyalty/vip-status",
+  auth(["Buyer"]),
+  BuyerController.getVipStatusController
+);
+
+BuyerRouter.post(
+  "/loyalty/claim-daily-login",
+  auth(["Buyer"]),
+  BuyerController.claimDailyLoginController
+);
+
+// --- 6. Viral Referral Credit Rewards Engine (Module 13.4) ---
+BuyerRouter.get(
+  "/referrals/my-code",
+  auth(["Buyer"]),
+  BuyerController.getMyReferralCodeController
+);
+
+BuyerRouter.post(
+  "/referrals/apply-code",
+  auth(["Buyer"]),
+  validateRequest((BuyerValidations as any).applyReferralCodeValidation),
+  BuyerController.applyReferralCodeController
+);
+
+BuyerRouter.get(
+  "/referrals/earnings",
+  auth(["Buyer"]),
+  BuyerController.getReferralEarningsController
+);
+
+// --- 7. Sub-Routers ---
 import WishlistRouter from "./wishlist/wishlist.routes";
 import FollowingRouter from "./following/following.routes";
 import AlertPreferencesRouter from "./alertSettings/alertSettings.routes";

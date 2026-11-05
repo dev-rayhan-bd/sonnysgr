@@ -6,6 +6,8 @@ import { OrderItemModel, OrderModel } from "../Order.model";
 import { ProductModel } from "../../Product/Product.model";
 import { ProductInventorySubService } from "../../Product/subServices/ProductInventorySubService";
 import { BuyerHistorySubService } from "../../Buyer/subServices/BuyerHistorySubService";
+import { BuyerLoyaltySubService } from "../../Buyer/subServices/BuyerLoyaltySubService";
+import { BuyerReferralSubService } from "../../Buyer/subServices/BuyerReferralSubService";
 import {
   ENUM_ORDER_ITEM_STATUS,
   ENUM_ORDER_STATUS,
@@ -325,6 +327,21 @@ export class OrderHoldSubService {
         "IN_STORE_PICKUP",
         order._id,
         "Order"
+      ).catch(() => {});
+
+      // Module 13.2 & 13.4: Award +90 VIP points and process referral first purchase reward
+      BuyerLoyaltySubService.awardPointsInternal(
+        order.buyerId,
+        90,
+        "PURCHASE",
+        "Order completion reward (+90 VIP pts)",
+        order._id,
+        "Order"
+      ).catch(() => {});
+
+      BuyerReferralSubService.processFirstPurchaseRewardInternal(
+        order.buyerId,
+        order._id
       ).catch(() => {});
 
       return {

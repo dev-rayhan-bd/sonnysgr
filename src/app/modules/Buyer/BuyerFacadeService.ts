@@ -3,6 +3,8 @@ import { BuyerSizeMatchDiscoverySubService } from "./subServices/BuyerSizeMatchD
 import { BuyerProfileSubService } from "./subServices/BuyerProfileSubService";
 import { BuyerEngagementSubService } from "./subServices/BuyerEngagementSubService";
 import { BuyerHistorySubService } from "./subServices/BuyerHistorySubService";
+import { BuyerLoyaltySubService } from "./subServices/BuyerLoyaltySubService";
+import { BuyerReferralSubService } from "./subServices/BuyerReferralSubService";
 import { IBuyerNotification } from "./Buyer.interface";
 
 /**
@@ -112,6 +114,28 @@ export class BuyerFacadeService {
 
   static async getStoreVisitHistory(buyerId: string) {
     return await BuyerHistorySubService.getStoreVisitHistory(buyerId);
+  }
+
+  // 5. VIP Loyalty & Daily Check-in Rewards (Module 1.11 & 13)
+  static async getVipStatus(user: IJwtPayload) {
+    return await BuyerLoyaltySubService.getVipStatus(user);
+  }
+
+  static async claimDailyLogin(user: IJwtPayload) {
+    return await BuyerLoyaltySubService.claimDailyLogin(user);
+  }
+
+  // 6. Viral Referral Credit Engine (Module 13.4)
+  static async getMyReferralCode(user: IJwtPayload) {
+    return await BuyerReferralSubService.getMyReferralCode(user);
+  }
+
+  static async applyReferralCode(user: IJwtPayload, code: string) {
+    return await BuyerReferralSubService.applyReferralCode(user, code);
+  }
+
+  static async getReferralEarnings(user: IJwtPayload) {
+    return await BuyerReferralSubService.getReferralEarnings(user);
   }
 }
 

@@ -220,6 +220,69 @@ const getStoreVisitHistoryController = catchAsync(async (req, res) => {
   });
 });
 
+// VIP Loyalty & Rewards Controllers
+const getVipStatusController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.getVipStatus(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "VIP loyalty status retrieved successfully",
+    data: result,
+  });
+});
+
+const claimDailyLoginController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.claimDailyLogin(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+// Referral Rewards Controllers
+const getMyReferralCodeController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.getMyReferralCode(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Referral code and shareable links retrieved successfully",
+    data: result,
+  });
+});
+
+const applyReferralCodeController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const { referralCode } = req.body;
+  const result = await BuyerServices.applyReferralCode(user, referralCode);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+const getReferralEarningsController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await BuyerServices.getReferralEarnings(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Referral earnings summary retrieved successfully",
+    data: result,
+  });
+});
+
 const BuyerController = {
   getLiveSizeMatchFeedController,
   getSizeMatchMapPinsController,
@@ -238,6 +301,11 @@ const BuyerController = {
   getPurchaseHistoryController,
   recordQrCheckinController,
   getStoreVisitHistoryController,
+  getVipStatusController,
+  claimDailyLoginController,
+  getMyReferralCodeController,
+  applyReferralCodeController,
+  getReferralEarningsController,
 };
 
 export default BuyerController;

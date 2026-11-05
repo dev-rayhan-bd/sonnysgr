@@ -5,6 +5,8 @@ import { IJwtPayload } from '../../../../interface/jwt.interface';
 import { OrderItemModel, OrderModel } from '../Order.model';
 import { ProductInventorySubService } from '../../Product/subServices/ProductInventorySubService';
 import { ENUM_ORDER_ITEM_STATUS, ENUM_ORDER_STATUS } from '../../../../utilities/enum';
+import { BuyerLoyaltySubService } from '../../Buyer/subServices/BuyerLoyaltySubService';
+import { BuyerReferralSubService } from '../../Buyer/subServices/BuyerReferralSubService';
 
 /**
  * Sub-Service dedicated to Retailer Order Actions: Accept, Mark Ready, Complete, Cancel
@@ -81,9 +83,27 @@ export class RetailerOrderFulfillmentSubService {
       throw new AppError(StatusCodes.NOT_FOUND, 'Order item cannot be completed from current state.');
     }
 
-    await OrderModel.findByIdAndUpdate(orderItem.orderId, {
-      $set: { orderStatus: ENUM_ORDER_STATUS.COMPLETED },
-    });
+    const parentOrder = await OrderModel.findByIdAndUpdate(
+      orderItem.orderId,
+      { $set: { orderStatus: ENUM_ORDER_STATUS.COMPLETED } },
+      { new: true }
+    );
+
+    if (parentOrder && parentOrder.buyerId) {
+      BuyerLoyaltySubService.awardPointsInternal(
+        parentOrder.buyerId,
+        90,
+        "PURCHASE",
+        "Order completion reward (+90 VIP pts)",
+        orderItem.orderId,
+        "Order"
+      ).catch(() => {});
+
+      BuyerReferralSubService.processFirstPurchaseRewardInternal(
+        parentOrder.buyerId,
+        orderItem.orderId
+      ).catch(() => {});
+    }
 
     return orderItem;
   }

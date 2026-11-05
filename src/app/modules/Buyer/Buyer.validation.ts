@@ -52,4 +52,12 @@ const BuyerValidations = {
     completeBuyerProfileValidation
  };
 
+const applyReferralCodeValidation = z.object({
+  body: z.object({
+    referralCode: z.string().min(4, "Valid referral code is required"),
+  }),
+});
+
+(BuyerValidations as any).applyReferralCodeValidation = applyReferralCodeValidation;
+
 export default BuyerValidations;

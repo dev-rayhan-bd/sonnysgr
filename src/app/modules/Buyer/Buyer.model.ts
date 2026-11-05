@@ -49,6 +49,16 @@ const BuyerSchema = new Schema<IBuyer>({
     subscriptionStartDate: { type: Date },
     subscriptionEndDate: { type: Date },
     walletBalance: { type: Number, default: 0 },
+    vipPoints: { type: Number, default: 0, min: 0 },
+    vipTier: {
+        type: String,
+        enum: ["Bronze", "Silver", "Gold", "Platinum"],
+        default: "Bronze",
+    },
+    lastDailyLoginClaim: { type: Date },
+    referralCode: { type: String, trim: true, index: true },
+    referredBy: { type: Schema.Types.ObjectId, ref: "Buyer" },
+    hasCompletedFirstPurchase: { type: Boolean, default: false },
     discoveryRadius: { type: Number, default: 25 },
     isProfileCompleted: { type: Boolean, default: false },
     alertPreferences: {
