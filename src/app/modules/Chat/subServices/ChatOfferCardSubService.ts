@@ -71,3 +71,4 @@ export class ChatOfferCardSubService {
     return message;
   }
 }
+

@@ -55,3 +55,4 @@ export class ChatFacadeService {
     return ChatOfferCardSubService.syncOfferCardToChat(payload);
   }
 }
+

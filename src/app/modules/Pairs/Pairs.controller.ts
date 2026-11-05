@@ -1,6 +1,7 @@
 import { AuthRequest } from "../../../interface/authRequest";
 import catchAsync from "../../../utilities/catchasync";
 import sendResponse from "../../../utilities/sendResponse";
+import { PairsFacadeService } from "./PairsFacadeService";
 import PairsServices from "./Pairs.service";
 
 
@@ -12,7 +13,7 @@ const addNewPairsController = catchAsync(async (req, res) => {
     const files = req.files as Express.Multer.File[];
     // console.log(files);
 
-    const result = await PairsServices.addNewPairsToReseller(user, files, req.body);
+    const result = await PairsFacadeService.addNewPairs(user, files, req.body);
 
     sendResponse(res, {
         statusCode: 201,
@@ -28,7 +29,8 @@ const editPairsController = catchAsync(async (req, res) => {
 
     const files = req.files as Express.Multer.File[];
 
-    const result = await PairsServices.editPairsDetails(user, req.params.id, files, req.body);
+    const id = req.params.id as string;
+    const result = await PairsFacadeService.editPairs(user, id, files, req.body);
 
     sendResponse(res, {
         statusCode: 200,
@@ -42,7 +44,7 @@ const getAllListedPairsController = catchAsync(async (req, res) => {
 
     const { user } = req as AuthRequest;
 
-    const result: any = await PairsServices.getMyListedPairs(user, req.query);
+    const result: any = await PairsFacadeService.getMyListedPairs(user, req.query);
 
     sendResponse(res, {
         statusCode: 200,
@@ -57,13 +59,26 @@ const getSinglePairDetailsController = catchAsync(async (req, res) => {
 
     // const { user } = req as AuthRequest;
 
-    const result = await PairsServices.getSinglePairDetails(req.params.id);
+    const id = req.params.id as string;
+    const result = await PairsFacadeService.getSinglePairDetails(id);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: "Retrieved pair details.",
         data: result,
+    });
+});
+
+const browseB2BPairsController = catchAsync(async (req, res) => {
+    const result = await PairsFacadeService.browseB2BPairs(req.query);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "B2B reseller pairs retrieved successfully.",
+        meta: result.meta,
+        data: result.data,
     });
 });
 
@@ -259,6 +274,7 @@ const PairsController = {
     editPairsController,
     getAllListedPairsController,
     getSinglePairDetailsController,
+    browseB2BPairsController,
 
     makeRequestForPairController,
     getAllRetailerPairRequestController,

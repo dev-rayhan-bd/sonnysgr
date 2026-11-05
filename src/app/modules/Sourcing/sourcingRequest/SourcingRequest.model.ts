@@ -120,3 +120,4 @@ sourcingRequestSchema.index({ status: 1, brand: 1, size: 1, createdAt: -1 });
 
 export const SourcingRequestModel =
   models.SourcingRequest || model<ISourcingRequest>("SourcingRequest", sourcingRequestSchema);
+

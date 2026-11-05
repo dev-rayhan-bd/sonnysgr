@@ -32,6 +32,12 @@ PairsRouter.get(
 );
 
 PairsRouter.get(
+  "/browse-b2b-pairs",
+  PairsController.browseB2BPairsController,
+);
+
+// Get single pair details
+PairsRouter.get(
   "/get-single-pair/:id",
   // authorizeUser,
   // validateRequest(PairsValidations.addNewPairsZodSchema),
