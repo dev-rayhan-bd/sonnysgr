@@ -15,20 +15,30 @@ interface IMailOptions {
 
 const sendEmail = async (params: IMailOptions): Promise<boolean> => {
   try {
+    const user = config.SMTP_USER || config.smtp.smtp_mail;
+    const pass = config.SMTP_PASS || config.smtp.smtp_password;
+
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: config.smtp.smtp_service || 'gmail',
       auth: {
-        user: config.SMTP_USER,
-        pass: config.SMTP_PASS,
+        user,
+        pass,
       },
     });
 
-    const fromEmail = params.fromEmail || process.env.NODE_APP_EMAIL || config.SMTP_USER || '';
-    const fromName = params.fromName || process.env.SITE_NAME || 'Sneaker Hub';
+    const fromEmail = params.fromEmail || config.smtp_from || config.SMTP_USER || '';
+    const fromName = params.fromName || config.smtp.name || 'GoSNKR';
 
-    const from =
-      params.from ||
-      (fromName && fromEmail ? `"${fromName.replace(/"/g, '')}" <${fromEmail}>` : fromEmail);
+    let from = params.from;
+    if (!from) {
+      if (config.smtp_from) {
+        from = config.smtp_from;
+      } else if (fromName && fromEmail) {
+        from = `"${fromName.replace(/"/g, '')}" <${fromEmail}>`;
+      } else {
+        from = fromEmail;
+      }
+    }
 
     const plainText =
       params.text ||
