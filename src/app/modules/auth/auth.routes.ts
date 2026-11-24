@@ -81,4 +81,6 @@ authRouter.patch(
   AuthController.updateMyProfile
 );
 
+authRouter.post("/logout", authorizeUser, AuthController.logout);
+
 export default authRouter;

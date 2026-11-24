@@ -1,4 +1,7 @@
+import { Types } from "mongoose";
+
 export interface IDrop {
+  retailerId: Types.ObjectId;
   dropImages: string[];
   name: string;
   brand: string;

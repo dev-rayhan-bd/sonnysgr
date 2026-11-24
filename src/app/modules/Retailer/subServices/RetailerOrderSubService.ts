@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { IJwtPayload } from '../../../../interface/jwt.interface';
 import { OrderItemModel } from '../../Order/Order.model';
+import { getRetailerStageStatusFilter } from '../../Order/Order.constant';
 
 /**
  * Sub-Service dedicated to Retailer Orders & 4-Stage Lifecycle queries
@@ -20,18 +21,7 @@ export class RetailerOrderSubService {
     const retailerObjectId = new mongoose.Types.ObjectId(profileId);
 
     // Map UI stages to status filters
-    let statusFilter: any = {};
-    if (stage === 'Needs Action' || stage === 'Pending') {
-      statusFilter = { status: { $in: ['Pending', 'Payment_Completed', 'Needs Action'] } };
-    } else if (stage === 'Holds') {
-      statusFilter = { status: { $in: ['Hold', 'On Hold', 'Held'] } };
-    } else if (stage === 'Ready') {
-      statusFilter = { status: { $in: ['Processing', 'Ready', 'Ready_For_Pickup'] } };
-    } else if (stage === 'History') {
-      statusFilter = { status: { $in: ['Completed', 'Delivered', 'Cancelled', 'Refunded'] } };
-    } else {
-      statusFilter = { status: stage };
-    }
+    const statusFilter = getRetailerStageStatusFilter(stage);
 
     const pipeline: any[] = [
       {

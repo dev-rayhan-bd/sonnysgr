@@ -6,6 +6,7 @@ import { OrderItemModel } from "../../Order/Order.model";
 import RetailerModel from "../Retailer.model";
 import PayoutModel from "../Payout.model";
 import QueryBuilder from "../../../builder/QueryBuilder";
+import { RETAILER_ORDER_STAGE_STATUSES } from "../../Order/Order.constant";
 
 /**
  * Sub-Service dedicated to Retailer Financials, Earnings Dashboard & Payout Engine
@@ -46,14 +47,9 @@ export class RetailerFinancialSubService {
                 $match: {
                   status: {
                     $in: [
-                      "Ready_For_Pickup",
-                      "Processing",
-                      "Placed",
-                      "Pending",
-                      "Payment_Completed",
-                      "Needs Action",
-                      "Hold",
-                      "Holding",
+                      ...RETAILER_ORDER_STAGE_STATUSES.NEEDS_ACTION,
+                      ...RETAILER_ORDER_STAGE_STATUSES.HOLDS,
+                      ...RETAILER_ORDER_STAGE_STATUSES.READY,
                     ],
                   },
                 },

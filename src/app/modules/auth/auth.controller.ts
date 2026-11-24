@@ -234,6 +234,21 @@ const updateMyProfile = catchAsync(async (req, res) => {
   });
 });
 
+// Client-side logout: tokens are stateless JWTs, so the app discards its token
+// and closes its own socket. No server-side revocation.
+const logout = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+
+  const result = await authServices.logoutService(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Logged out successfully.",
+    data: result,
+  });
+});
+
 const AuthController = {
   registerUserWithEmailPassword,
   registerUserWithSocialAccount,
@@ -252,5 +267,6 @@ const AuthController = {
 
   getMyProfile,
   updateMyProfile,
+  logout,
 };
 export default AuthController;

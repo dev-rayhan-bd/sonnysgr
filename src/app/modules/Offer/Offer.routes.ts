@@ -53,10 +53,10 @@ OfferRouter.get(
   OfferController.getMySentOffers
 );
 
-// Buyer: View inbound store purchase offers on locker items
+// Buyer / Reseller: View inbound store purchase offers on items they sell (Offer.sellerRole is Buyer | Reseller)
 OfferRouter.get(
   "/inbound-requests",
-  auth(["Buyer"]),
+  auth(["Buyer", "Reseller"]),
   OfferController.getInboundOffers
 );
 

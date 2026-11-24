@@ -3,6 +3,8 @@ import { IDrop } from "./Drop.interface";
 
 const DropSchema = new Schema<IDrop>(
   {
+    // Owning retailer (profile id). Each retailer runs at most one drop at a time.
+    retailerId: { type: Schema.Types.ObjectId, ref: "Retailer", required: true, index: true },
     dropImages: { type: [String], default: [] },
     name: { type: String, required: true },
     brand: { type: String, required: true },

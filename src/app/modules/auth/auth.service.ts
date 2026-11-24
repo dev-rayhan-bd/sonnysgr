@@ -961,6 +961,12 @@ const changePasswordService = async (
   return null;
 };
 
+// Client-side logout (stateless JWT): nothing to invalidate on the server.
+// Kept as a service hook so revocation can be added here later without touching the controller.
+const logoutService = async (_user: IJwtPayload) => {
+  return null;
+};
+
 const AuthServices = {
   registerWithEmailService,
   registerWithSocialService,
@@ -979,5 +985,6 @@ const AuthServices = {
   getMyProfileService,
   updateMyProfileService,
   changePasswordService,
+  logoutService,
 };
 export default AuthServices;

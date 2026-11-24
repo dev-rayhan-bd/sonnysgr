@@ -255,6 +255,31 @@
         }
       }
     },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logoutUser",
+        "tags": ["Authentication"],
+        "summary": "Log out the current user (client-side)",
+        "description": "Confirms logout. The client must delete its stored access token and disconnect its own Socket.IO connection. Tokens are stateless JWTs and remain valid until expiry; no server-side revocation is performed.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "statusCode": 200,
+                  "success": true,
+                  "message": "Logged out successfully.",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/401Unauthorized" }
+        }
+      }
+    },
     "/product/get-all-products": {
       "get": {
         "operationId": "getAllProducts",

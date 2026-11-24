@@ -14,8 +14,8 @@ const createDropService = async (
     throw new ApiError(403, "user.status == suspanded user can not perform add product");
   }
 
-  // Enforce one drop at a time (like a single banner)
-  await DropModel.deleteMany({});
+  // Enforce one drop at a time per retailer (like a single banner) — only this retailer's drops are replaced
+  await DropModel.deleteMany({ retailerId: userDetails.profileId });
 
   const imageUrls = files ? files.map(file => `uploads/product-image/${file.filename}`) : [];
 
@@ -31,6 +31,7 @@ const createDropService = async (
 
   const dropData = {
     ...payload,
+    retailerId: userDetails.profileId,
     dropImages: imageUrls,
     vipEalryAccess,
     raffledrop,
@@ -62,10 +63,13 @@ const editDropService = async (
     throw new ApiError(403, "user.status == suspanded user can not perform add product");
   }
 
-  const drop = await DropModel.findById(id);
+  const drop = await DropModel.findOne({ _id: id, retailerId: userDetails.profileId });
   if (!drop) {
     throw new ApiError(404, "Drop not found");
   }
+
+  // Ownership is not editable via payload
+  delete payload.retailerId;
 
   if (files && files.length > 0) {
     const imageUrls = files.map(file => `uploads/product-image/${file.filename}`);
@@ -112,7 +116,7 @@ const deleteDropService = async (userDetails: IJwtPayload, id: string) => {
     throw new ApiError(403, "user.status == suspanded user can not perform add product");
   }
 
-  const result = await DropModel.findByIdAndDelete(id);
+  const result = await DropModel.findOneAndDelete({ _id: id, retailerId: userDetails.profileId });
   if (!result) {
     throw new ApiError(404, "Drop not found");
   }
@@ -126,7 +130,7 @@ const getDropService = async (userDetails: IJwtPayload) => {
     throw new ApiError(403, "user.status == suspanded user can not perform add product");
   }
 
-  const drop = await DropModel.findOne({});
+  const drop = await DropModel.findOne({ retailerId: userDetails.profileId });
   return drop;
 };
 

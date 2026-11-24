@@ -112,9 +112,11 @@ const followUserService = async (userDetails: IJwtPayload ,receiverId: string) =
 
 const getNearbyUser = async (query: Record<string,unknown>) => {
 
-    const { latitude, longitude} = query;
+    // Query-string values arrive as strings; convert before validating
+    const latitude = Number(query.latitude);
+    const longitude = Number(query.longitude);
 
-    if (typeof latitude !== "number" || typeof longitude !== "number" ) {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
         throw new ApiError(400, "Invalid query parameters. Latitude, longitude");
     }
 

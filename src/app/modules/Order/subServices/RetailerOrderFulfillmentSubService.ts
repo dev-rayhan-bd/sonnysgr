@@ -7,6 +7,7 @@ import { ProductInventorySubService } from '../../Product/subServices/ProductInv
 import { ENUM_ORDER_ITEM_STATUS, ENUM_ORDER_STATUS } from '../../../../utilities/enum';
 import { BuyerLoyaltySubService } from '../../Buyer/subServices/BuyerLoyaltySubService';
 import { BuyerReferralSubService } from '../../Buyer/subServices/BuyerReferralSubService';
+import { RETAILER_ORDER_STAGE_STATUSES } from '../Order.constant';
 
 /**
  * Sub-Service dedicated to Retailer Order Actions: Accept, Mark Ready, Complete, Cancel
@@ -22,7 +23,7 @@ export class RetailerOrderFulfillmentSubService {
       {
         _id: orderItemId,
         retailerId: profileId,
-        status: { $in: ['Placed', 'Pending', 'Payment_Completed', 'Needs Action'] },
+        status: { $in: RETAILER_ORDER_STAGE_STATUSES.NEEDS_ACTION },
       },
       { $set: { status: ENUM_ORDER_ITEM_STATUS.PROCESSING } },
       { new: true }
@@ -52,13 +53,18 @@ export class RetailerOrderFulfillmentSubService {
         retailerId: profileId,
         status: ENUM_ORDER_ITEM_STATUS.PROCESSING,
       },
-      { $set: { status: 'Ready_For_Pickup' } },
+      { $set: { status: ENUM_ORDER_ITEM_STATUS.READY_FOR_PICKUP } },
       { new: true }
     );
 
     if (!orderItem) {
       throw new AppError(StatusCodes.NOT_FOUND, 'Order item not found in Processing stage.');
     }
+
+    // Buyer screens read the parent orderStatus — keep it in sync (as accept/complete do)
+    await OrderModel.findByIdAndUpdate(orderItem.orderId, {
+      $set: { orderStatus: ENUM_ORDER_STATUS.READY_FOR_PICKUP },
+    });
 
     return orderItem;
   }
@@ -73,7 +79,8 @@ export class RetailerOrderFulfillmentSubService {
       {
         _id: orderItemId,
         retailerId: profileId,
-        status: { $in: ['Ready_For_Pickup', 'Processing', 'Hold', 'On Hold'] },
+        // Holds are finalised via the hold-settlement flow (balance payment), not here
+        status: { $in: RETAILER_ORDER_STAGE_STATUSES.READY },
       },
       { $set: { status: ENUM_ORDER_ITEM_STATUS.COMPLETED } },
       { new: true }

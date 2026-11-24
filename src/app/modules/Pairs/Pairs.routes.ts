@@ -76,8 +76,10 @@ PairsRouter.post(
 //reseller
 //get all pair request
 
+// Previously also registered at "/get-product-requests", which shadowed it (Express matched the
+// earlier product-request route first), so this handler was unreachable.
 PairsRouter.get(
-  "/get-product-requests",
+  "/get-pair-requests",
   authorizeUser,
   // validateRequest(PairsValidations.addNewPairsZodSchema),
   PairsController.getAllpairRequestController,

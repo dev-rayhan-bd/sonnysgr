@@ -6,6 +6,17 @@ import { StatusCodes } from "http-status-codes";
 import { uploadMultipleToCloud } from "../../../../helper/cloudStorage";
 import { IPairs } from "../Pairs.interface";
 
+/**
+ * multipart/form-data sends booleans as strings, and Boolean("false") === true.
+ * Accepts real booleans or "true"/"false"/"1"/"0" (case-insensitive).
+ */
+const parseFormBoolean = (value: unknown): boolean => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") return ["true", "1"].includes(value.trim().toLowerCase());
+  return false;
+};
+
 export class PairsCommandSubService {
   /**
    * Reseller lists a new deadstock / consignment pair with multi-cloud media
@@ -45,9 +56,9 @@ export class PairsCommandSubService {
 
     // 3. Condition and visibility controls
     const condition = payload.condition || "Deadstock";
-    const isVisibleToStore = payload.isVisibleToStore !== undefined ? Boolean(payload.isVisibleToStore) : true;
-    const isShowAskingPrice = payload.isShowAskingPrice !== undefined ? Boolean(payload.isShowAskingPrice) : true;
-    const isAllowDirectRequest = payload.isAllowDirectRequest !== undefined ? Boolean(payload.isAllowDirectRequest) : true;
+    const isVisibleToStore = payload.isVisibleToStore !== undefined ? parseFormBoolean(payload.isVisibleToStore) : true;
+    const isShowAskingPrice = payload.isShowAskingPrice !== undefined ? parseFormBoolean(payload.isShowAskingPrice) : true;
+    const isAllowDirectRequest = payload.isAllowDirectRequest !== undefined ? parseFormBoolean(payload.isAllowDirectRequest) : true;
 
     let sneakerAttributes = payload.sneakerAttributes;
     if (typeof sneakerAttributes === "string") {
@@ -117,9 +128,9 @@ export class PairsCommandSubService {
     if (payload.condition) updateFields.condition = payload.condition;
     if (payload.description !== undefined) updateFields.description = payload.description;
     if (payload.productStatus) updateFields.productStatus = payload.productStatus;
-    if (payload.isVisibleToStore !== undefined) updateFields.isVisibleToStore = Boolean(payload.isVisibleToStore);
-    if (payload.isShowAskingPrice !== undefined) updateFields.isShowAskingPrice = Boolean(payload.isShowAskingPrice);
-    if (payload.isAllowDirectRequest !== undefined) updateFields.isAllowDirectRequest = Boolean(payload.isAllowDirectRequest);
+    if (payload.isVisibleToStore !== undefined) updateFields.isVisibleToStore = parseFormBoolean(payload.isVisibleToStore);
+    if (payload.isShowAskingPrice !== undefined) updateFields.isShowAskingPrice = parseFormBoolean(payload.isShowAskingPrice);
+    if (payload.isAllowDirectRequest !== undefined) updateFields.isAllowDirectRequest = parseFormBoolean(payload.isAllowDirectRequest);
 
     // Multi-Cloud Image Uploads if new files provided
     if (files && files.length > 0) {

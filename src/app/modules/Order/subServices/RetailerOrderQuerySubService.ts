@@ -3,6 +3,7 @@ import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
 import { IJwtPayload } from '../../../../interface/jwt.interface';
 import { OrderItemModel, OrderModel } from '../Order.model';
+import { RETAILER_ORDER_STAGE_STATUSES, getRetailerStageStatusFilter } from '../Order.constant';
 
 /**
  * Sub-Service dedicated to Retailer 4-Stage Orders Feeds & Performance Metrics
@@ -21,18 +22,7 @@ export class RetailerOrderQuerySubService {
     const retailerObjectId = new mongoose.Types.ObjectId(profileId);
 
     // Map the 4 UI tabs to status values
-    let stageFilter: any = {};
-    if (stage === 'Needs Action') {
-      stageFilter = { status: { $in: ['Placed', 'Pending', 'Payment_Completed', 'Needs Action'] } };
-    } else if (stage === 'Holds') {
-      stageFilter = { status: { $in: ['Hold', 'On Hold', 'Held'] } };
-    } else if (stage === 'Ready') {
-      stageFilter = { status: { $in: ['Processing', 'Ready', 'Ready_For_Pickup'] } };
-    } else if (stage === 'History') {
-      stageFilter = { status: { $in: ['Completed', 'Delivered', 'Cancelled', 'Refunded'] } };
-    } else {
-      stageFilter = { status: stage };
-    }
+    const stageFilter = getRetailerStageStatusFilter(stage);
 
     const pipeline: any[] = [
       {
@@ -110,19 +100,19 @@ export class RetailerOrderQuerySubService {
               { $count: 'count' },
             ],
             needsActionCount: [
-              { $match: { status: { $in: ['Placed', 'Pending', 'Payment_Completed', 'Needs Action'] } } },
+              { $match: { status: { $in: RETAILER_ORDER_STAGE_STATUSES.NEEDS_ACTION } } },
               { $count: 'count' },
             ],
             holdsCount: [
-              { $match: { status: { $in: ['Hold', 'On Hold', 'Held'] } } },
+              { $match: { status: { $in: RETAILER_ORDER_STAGE_STATUSES.HOLDS } } },
               { $count: 'count' },
             ],
             readyCount: [
-              { $match: { status: { $in: ['Processing', 'Ready', 'Ready_For_Pickup'] } } },
+              { $match: { status: { $in: RETAILER_ORDER_STAGE_STATUSES.READY } } },
               { $count: 'count' },
             ],
             historyCount: [
-              { $match: { status: { $in: ['Completed', 'Delivered', 'Cancelled', 'Refunded'] } } },
+              { $match: { status: { $in: RETAILER_ORDER_STAGE_STATUSES.HISTORY } } },
               { $count: 'count' },
             ],
           },

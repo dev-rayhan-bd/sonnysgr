@@ -40,10 +40,11 @@ export class OfferQuerySubService {
    * Get inbound store purchase offers received by the authenticated buyer
    */
   static async getInboundOffers(userDetails: IJwtPayload, query: Record<string, unknown>) {
-    const { profileId } = userDetails;
+    const { profileId, role } = userDetails;
 
     const baseFilter: Record<string, any> = {
       sellerId: new mongoose.Types.ObjectId(profileId),
+      sellerRole: role,
     };
 
     if (query.status) {
