@@ -11,12 +11,12 @@ export const sendVerificationEmail = async (email: string, data: any) => {
   try {
     await sendEmail({
       email,
-      subject: "Verify your email - sneaker hub Security Code",
+      subject: "Verify your email - GoSNKR Security Code",
       html: verifyEmailTemp(data),
     });
-  } catch (error) {
-    console.log(error);
-    throw new ApiError(500, "Email was not sent");
+  } catch (error: any) {
+    console.error("[EMAIL ERROR] sendVerificationEmail failed:", error);
+    throw new ApiError(500, `Email was not sent: ${error?.message || "SMTP error"}`);
   }
 };
 

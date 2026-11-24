@@ -70,17 +70,17 @@ const verifyEmailTemp = (data: any) => `
     <body>
       <div class="container">
 
-        <h1>Welcome to Sneakershub!</h1>
+        <h1>Welcome to GoSNKR!</h1>
 
         <p>Hello, ${data.name}</p>
 
         ${ !data?.isResetPassword ? `<p> To verify your email and secure your account, please use the one-time password (OTP) below:</p>` : `<p> To reset your password, please use the one-time password (OTP) below:</p>`}
 
-        <h3>Your Otp: ${data.code}</h3>
+        <h3>Your OTP: ${data.code}</h3>
 
-        <p>This code will expire in 10 minutes. If you didnt request this, please ignore this email.</p>
+        <p>This code will expire in 10 minutes. If you didn't request this, please ignore this email.</p>
         
-        <p>Best Regards,<br>Team Sneakershub</p>
+        <p>Best Regards,<br>Team GoSNKR</p>
       </div>
       <div class="footer">
         <a href="#"><img src="" class="logo-img"/></a>

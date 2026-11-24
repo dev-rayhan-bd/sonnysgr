@@ -152,7 +152,9 @@ const registerWithEmailService = async (payload: any) => {
 
     return newUser;
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     session.endSession();
 
     throw error;
@@ -404,7 +406,9 @@ const registerUserService = async (payload: TRegisterUser) => {
 
     return newUser;
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     session.endSession();
 
     throw error;
