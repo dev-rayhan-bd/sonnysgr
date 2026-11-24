@@ -20,5 +20,3 @@ AGENTS.md
 
 # Postman Collection (Kept locally at root, not pushed to git)
 *.postman_collection.json
-
-*.postman_environment.json
