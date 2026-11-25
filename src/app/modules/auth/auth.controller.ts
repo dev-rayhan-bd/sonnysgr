@@ -1,4 +1,5 @@
 import { register } from "module";
+import { uploadToCloud } from "../../../helper/cloudStorage";
 import {
   verifyAppleToken,
   verifyGoogleToken,
@@ -221,7 +222,7 @@ const updateMyProfile = catchAsync(async (req, res) => {
   let imagePath: string | undefined;
 
   if (req.file) {
-    imagePath = `uploads/profile-image/${req.file.filename}`;
+    imagePath = (await uploadToCloud(req.file, "profiles")).url;
   }
 
   const result = await authServices.updateMyProfileService(user, req.body, imagePath);

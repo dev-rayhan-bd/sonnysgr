@@ -6,6 +6,7 @@ import { BuyerHistorySubService } from "./subServices/BuyerHistorySubService";
 import { BuyerLoyaltySubService } from "./subServices/BuyerLoyaltySubService";
 import { BuyerReferralSubService } from "./subServices/BuyerReferralSubService";
 import { IBuyerNotification } from "./Buyer.interface";
+import AnalyticsFacadeService from "../Analytics/AnalyticsFacadeService";
 
 /**
  * Buyer Facade Service: High-Level Orchestrator
@@ -96,7 +97,12 @@ export class BuyerFacadeService {
   }
 
   static async getSingleRetailerByBuyer(userDetails: IJwtPayload, retailerId: string) {
-    return await BuyerEngagementSubService.getSingleRetailerByBuyer(userDetails, retailerId);
+    const result = await BuyerEngagementSubService.getSingleRetailerByBuyer(userDetails, retailerId);
+
+    // Module 18.2: count the store profile view (non-blocking)
+    AnalyticsFacadeService.recordStoreProfileView(retailerId);
+
+    return result;
   }
 
   static async getNearbyProductsForBuyer(userDetails: IJwtPayload, query: Record<string, any>) {

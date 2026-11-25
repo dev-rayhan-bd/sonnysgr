@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { uploadFilesToCloudUrls } from "../../../../helper/cloudStorage";
 import ApiError from "../../../../error/ApiError";
 import ReportModel from "../../Report/Report.model";
 import RetailerModel from "../../Retailer/Retailer.model";
@@ -47,9 +48,7 @@ const createReportService = async (
   // Handle uploaded files/images if any
   let imageUrls: string[] = [];
   if (files && files.length > 0) {
-    imageUrls = files.map((file) => {
-      return `uploads/report-image/${file.filename}`;
-    });
+    imageUrls = await uploadFilesToCloudUrls(files, "reports");
   }
 
   // Create the report

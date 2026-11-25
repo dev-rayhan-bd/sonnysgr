@@ -20,13 +20,13 @@ npm run docs:build   # render OpenAPI spec to docs.html
 - There is no test suite and no lint script. `.eslintrc.json` exists, but nothing in `package.json` runs it.
 - `npm run create-module` points to `src/app/create_module_tem.ts`, which does not exist, so the script is broken.
 - MongoDB must be a replica set (Atlas or local RS) because services use transactions. Copy `.env.example` to `.env`.
-- The interactive API docs are served at `/docs` (Redoc over `src/app/docs/openapi.json`). The Postman collection is in `GoSNKR_API_Collection.postman_collection.json`.
+- The interactive API docs are served at `/docs` and `/api/v1/docs` (Redoc over `src/app/docs/openapi.json`). The Postman collection is in `GoSNKR_API_Collection.postman_collection.json`.
 
 ## Architecture
 
 **Bootstrap** (`src/server.ts`): connect Mongoose → `seedAdmin()` (`src/app/DB`) → `app.listen` → `initializeSocket(server)` (`src/app/utils/socket.ts`) → start the node-cron jobs (`src/helper/cron.ts`). The cron jobs call facade services directly to expire promotions, holds, offers and sourcing.
 
-**App pipeline** (`src/app.ts`): helmet → mongo-sanitize → **Stripe webhook router mounted before `express.json`** (it needs the raw body, so keep this order) → JSON/urlencoded parsers → CORS → `globalLimiter` on `/api/v1` → `/docs` → `/api/v1` routes → `notFound` → `globalErrorHandler`.
+**App pipeline** (`src/app.ts`): helmet → mongo-sanitize → **Stripe webhook router at `/api/v1/order-payment/webhook`, mounted before `express.json`** (it needs the raw body, so keep this order) → JSON/urlencoded parsers → CORS → `globalLimiter` on `/api/v1` → `/docs` → `/api/v1` routes → `notFound` → `globalErrorHandler`.
 
 **Routing**: every module router is registered in the `moduleRoutes` array in `src/app/routes/index.ts` under `/api/v1/<path>`. Note that some paths differ from the module folder names: `Pairs` → `/pair`, `Offer` → `/offers`, `ReviewManagement` → `/review`. Dashboard has sub-folders (`Dashboard/auth`, `Dashboard/users`) mounted at `/dashboard` and `/dashboard/users`.
 
@@ -42,6 +42,8 @@ npm run docs:build   # render OpenAPI spec to docs.html
 
 **Media**: `src/helper/cloudStorage.ts` is the storage adapter. It uploads to Cloudinary by default and switches to S3 when the AWS env vars are set (`isAwsS3Configured()`). It returns `ICloudUploadResult`. Routes take files through `src/app/middleware/multerMiddleware.ts`.
 
+**Query builders** (`src/app/builder/`): use `QueryBuilder.ts` for `Model.find()` chains and `AggregationBuilder.ts` when a list needs `$lookup` joins. AggregationBuilder is the "aggregation equivalent" that AGENTS.md §5 refers to.
+
 **Shared constants**: the enums for statuses, types and roles live in `src/utilities/enum.ts`.
 
 ## Gotchas: duplicate helper locations
@@ -51,3 +53,4 @@ The code has parallel helper trees, so match the import that existing modules us
 - **Middleware and socket internals**: `src/app/utils/` (`catchAsync.ts`, `sendResponse.ts`, `socket.ts`).
 - **Config**: there are two config dirs, `src/app/config/index.ts` (the main one) and `src/config/` (Stripe, S3, Mongo clients).
 - **Multer**: both `src/helper/multer*.ts` and `src/app/middleware/multer*.ts` exist. New routes should use `src/app/middleware/multerMiddleware.ts`.
+- **Legacy `.populate()`**: about 29 files under `src/` still call `.populate()`, even though AGENTS.md bans it. Do not copy them as a pattern. Write new or rewritten queries with aggregation.

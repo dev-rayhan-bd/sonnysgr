@@ -5,6 +5,18 @@ import DemandEventModel from "./Demand.model";
 import BuyerModel from "../Buyer/Buyer.model";
 import RetailerModel from "../Retailer/Retailer.model";
 import { ProductModel } from "../Product/Product.model";
+import { DEFAULT_STORE_SETTINGS } from "../Retailer/Retailer.constant";
+
+/**
+ * Explicit ?radius wins; otherwise fall back to the store's configured service radius.
+ */
+const resolveRadiusMiles = (
+  retailer: { storeSettings?: { serviceRadiusMiles?: number } },
+  radius?: number
+): number => {
+  if (radius && radius > 0) return radius;
+  return retailer.storeSettings?.serviceRadiusMiles || DEFAULT_STORE_SETTINGS.serviceRadiusMiles;
+};
 
 /**
  * Log demand event asynchronously so it doesn't block the main flow.
@@ -57,7 +69,7 @@ const logDemandEventAsync = (payload: {
  */
 const getLocalDemandService = async (
   retailerId: string,
-  query: { radius: number; startDate?: string; endDate?: string }
+  query: { radius?: number; startDate?: string; endDate?: string }
 ) => {
   const retailer = (await RetailerModel.findById(retailerId).lean()) as any;
   if (!retailer || !retailer.location || !retailer.location.coordinates) {
@@ -66,7 +78,7 @@ const getLocalDemandService = async (
 
   const [lng, lat] = retailer.location.coordinates;
 // console.log("Retailer coordinates:", lng, lat);
-  const maxDistanceInMeters = query.radius * 1609.34; // Miles to Meters
+  const maxDistanceInMeters = resolveRadiusMiles(retailer, query.radius) * 1609.34; // Miles to Meters
 
   const dateFilter: any = {};
   if (query.startDate || query.endDate) {
@@ -162,7 +174,7 @@ const getLocalDemandService = async (
 const getSizeDemandService = async (
   retailerId: string,
   productId: string,
-  query: { radius: number; startDate?: string; endDate?: string }
+  query: { radius?: number; startDate?: string; endDate?: string }
 ) => {
   const retailer = (await RetailerModel.findById(retailerId).lean()) as any;
   if (!retailer || !retailer.location || !retailer.location.coordinates) {
@@ -170,7 +182,7 @@ const getSizeDemandService = async (
   }
 
   const [lng, lat] = retailer.location.coordinates;
-  const maxDistanceInMeters = query.radius * 1609.34;
+  const maxDistanceInMeters = resolveRadiusMiles(retailer, query.radius) * 1609.34;
 
   const dateFilter: any = {
     productId: new Types.ObjectId(productId),
@@ -252,7 +264,7 @@ const getSizeDemandService = async (
  */
 const getDemandGapsService = async (
   retailerId: string,
-  query: { radius: number; startDate?: string; endDate?: string }
+  query: { radius?: number; startDate?: string; endDate?: string }
 ) => {
   const retailer = (await RetailerModel.findById(retailerId).lean()) as any;
   if (!retailer || !retailer.location || !retailer.location.coordinates) {
@@ -260,7 +272,7 @@ const getDemandGapsService = async (
   }
 
   const [lng, lat] = retailer.location.coordinates;
-  const maxDistanceInMeters = query.radius * 1609.34;
+  const maxDistanceInMeters = resolveRadiusMiles(retailer, query.radius) * 1609.34;
 
   const dateFilter: any = {};
   if (query.startDate || query.endDate) {

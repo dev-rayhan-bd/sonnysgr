@@ -1,4 +1,5 @@
 import ApiError from "../../../error/ApiError";
+import { uploadToCloud } from "../../../helper/cloudStorage";
 import { Express } from "express";
 import { IChangePassword, IUser, TaddDate } from "./User.interface";
 import UserModel from "./User.model";
@@ -17,7 +18,7 @@ const updateUserProfile = async (
 ) => {
   let imagePath: string | undefined;
   if (file) {
-    imagePath = `uploads/profile-image/${file.filename}`;
+    imagePath = (await uploadToCloud(file, "profiles")).url;
   }
   return await AuthServices.updateMyProfileService(userDetails, payload, imagePath);
 };

@@ -1,4 +1,5 @@
 import ApiError from "../../../../error/ApiError";
+import { uploadToCloud } from "../../../../helper/cloudStorage";
 import { TLoginUser } from "../../auth/auth.interface";
 import AdminModel from "./Admin.model";
 import { IAdmin } from "./Dashboard.interface";
@@ -128,11 +129,9 @@ const editProfileService = async (
 
   // Handle image update
   if (file) {
-    if (admin.image) {
-      deleteOldFile(admin.image as string);
-    }
-
-    admin.image = `uploads/admin-image/${file.filename}`;
+    const previousImage = admin.image as string | undefined;
+    admin.image = (await uploadToCloud(file, "admins")).url;
+    deleteOldFile(previousImage);
   }
 
   if (payload.name) admin.name = payload.name;

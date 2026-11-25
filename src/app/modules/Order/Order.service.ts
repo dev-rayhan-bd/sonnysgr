@@ -16,6 +16,7 @@ const buyNowOrderService = OrderFacadeService.buyNowOrder;
 const holdOrderService = OrderFacadeService.holdOrder;
 const getMyActiveHoldsService = OrderFacadeService.getMyActiveHolds;
 const settleInStoreHoldOrderService = OrderFacadeService.settleInStoreHoldOrder;
+const verifyPickupService = OrderFacadeService.verifyPickup;
 const releaseExpiredHoldsService = OrderFacadeService.releaseExpiredHolds;
 const cartOrderService = OrderFacadeService.cartOrder;
 const getMyOrdersService = OrderFacadeService.getMyOrders;
@@ -35,6 +36,7 @@ const OrderServices = {
   holdOrderService,
   getMyActiveHoldsService,
   settleInStoreHoldOrderService,
+  verifyPickupService,
   releaseExpiredHoldsService,
   cartOrderService,
   getMyOrdersService,

@@ -1,4 +1,5 @@
 import ApiError from "../../../error/ApiError";
+import { uploadFilesToCloudUrls } from "../../../helper/cloudStorage";
 import notification from "../../../helper/notification";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
@@ -29,9 +30,7 @@ const addNewPairsToReseller = async (
     throw new ApiError(400, "At least one pair image is required.");
   }
 
-  const imageUrls = files.map((file) => {
-    return `uploads/pair-image/${file.filename}`;
-  });
+  const imageUrls = await uploadFilesToCloudUrls(files, "pairs");
 
   console.log("product images:", imageUrls);
 
@@ -120,9 +119,7 @@ const editPairsDetails = async (
   const existingImages = product.images || [];
 
   if (files && files.length > 0) {
-    const imageUrls = files.map((file) => {
-      return `uploads/pair-image/${file.filename}`;
-    });
+    const imageUrls = await uploadFilesToCloudUrls(files, "pairs");
     product.images = imageUrls;
   }
 
@@ -1392,9 +1389,7 @@ const createProductRequest = async (
   }
 
   // Process files
-  const imageUrls = (files || []).map((file) => {
-    return `uploads/pair-image/${file.filename}`;
-  });
+  const imageUrls = await uploadFilesToCloudUrls(files, "pairs");
 
   // Prepare data for validation
   const dataToValidate = {

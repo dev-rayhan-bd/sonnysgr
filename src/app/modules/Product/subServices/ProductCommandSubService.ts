@@ -7,6 +7,7 @@ import { ProductModel, ProductVariantModel } from '../Product.model';
 import AuthModel from '../../auth/auth.model';
 import { uploadMultipleToCloud, deleteFromCloud } from '../../../../helper/cloudStorage';
 import { ENUM_PRODUCT_AVAILABILITY, ENUM_PRODUCT_TYPE } from '../../../../utilities/enum';
+import { ProductBarcodeSubService } from './ProductBarcodeSubService';
 
 /**
  * Sub-Service dedicated to Product Creation, Updating, and Deletion
@@ -32,10 +33,6 @@ export class ProductCommandSubService {
       throw new AppError(StatusCodes.BAD_REQUEST, 'At least one product image is required.');
     }
 
-    // Upload product images to Cloudinary (or S3 if configured)
-    const uploadResults = await uploadMultipleToCloud(files, 'products');
-    const imageUrls = uploadResults.map((img) => img.url);
-
     // Parse variants if sent as stringified JSON in form-data
     let parsedVariants: any[] = [];
     if (payload.variant) {
@@ -44,14 +41,25 @@ export class ProductCommandSubService {
       parsedVariants = typeof payload.variants === 'string' ? JSON.parse(payload.variants) : payload.variants;
     }
 
+    // Barcodes scanned from the box (one per size); checked before any upload happens
+    const barcodes = await ProductBarcodeSubService.assertBarcodesAvailable(
+      profileId,
+      parsedVariants.map((v) => v.barcode)
+    );
+
     // Standardize variant structure
-    const formattedVariants = parsedVariants.map((v) => ({
+    const formattedVariants = parsedVariants.map((v, i) => ({
       gender: v.gender || payload.gender || 'Men',
       size: String(v.size),
       stock: Number(v.stock) || 0,
       price: Number(v.price) || Number(payload.price) || 0,
       reservedStock: 0,
+      barcode: barcodes[i],
     }));
+
+    // Upload product images to Cloudinary (or S3 if configured)
+    const uploadResults = await uploadMultipleToCloud(files, 'products');
+    const imageUrls = uploadResults.map((img) => img.url);
 
     // Calculate base price from variants if not specified
     let basePrice = Number(payload.price);
@@ -98,6 +106,7 @@ export class ProductCommandSubService {
           stock: v.stock,
           reservedStock: 0,
           sku: payload.styleCode || '',
+          barcode: v.barcode,
           isActive: availability === ENUM_PRODUCT_AVAILABILITY.ACTIVE,
         }));
         await ProductVariantModel.insertMany(variantDocs, { session });
@@ -158,13 +167,21 @@ export class ProductCommandSubService {
     // Handle variants update
     if (payload.variant || payload.variants) {
       const raw = payload.variant || payload.variants;
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      updateData.variant = parsed.map((v: any) => ({
+      const parsed: any[] = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      // A size sent without "barcode" keeps the one it already had; send null to remove it
+      const previous = new Map((product.variant || []).map((v: any) => [String(v.size), v.barcode ?? null]));
+      const barcodes = await ProductBarcodeSubService.assertBarcodesAvailable(
+        profileId,
+        parsed.map((v) => (v.barcode === undefined ? previous.get(String(v.size)) : v.barcode)),
+        productId
+      );
+      updateData.variant = parsed.map((v: any, i: number) => ({
         gender: v.gender || 'Men',
         size: String(v.size),
         stock: Number(v.stock) || 0,
         price: Number(v.price) || updateData.price || product.price,
         reservedStock: v.reservedStock || 0,
+        barcode: barcodes[i],
       }));
     }
 

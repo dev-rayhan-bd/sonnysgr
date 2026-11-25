@@ -77,6 +77,21 @@ RetailerRouter.patch(
   RetailerController.completeRetailerProfileController
 );
 
+// --- Store Operation Settings (prep time, hold duration, pickup window, service radius) ---
+
+RetailerRouter.get(
+  "/store-settings",
+  auth(["Retailer"]),
+  RetailerController.getStoreSettingsController
+);
+
+RetailerRouter.patch(
+  "/store-settings",
+  auth(["Retailer"]),
+  validateRequest(RetailerValidations.updateStoreSettingsValidationSchema),
+  RetailerController.updateStoreSettingsController
+);
+
 // --- Financials, Earnings Dashboard & Payout Engine ---
 
 RetailerRouter.get(

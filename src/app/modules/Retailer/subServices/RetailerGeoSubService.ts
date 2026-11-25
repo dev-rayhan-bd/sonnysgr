@@ -34,6 +34,14 @@ export class RetailerGeoSubService {
           query: { isApproved: true },
         },
       },
+      // Paid boost (BOOST store plan) is active while boost.endDate is in the future
+      {
+        $addFields: {
+          isBoosted: { $gt: [{ $ifNull: ['$boost.endDate', null] }, new Date()] },
+        },
+      },
+      // Boosted stores first, then nearest — sorted before $project strips distanceInMeters
+      { $sort: { isBoosted: -1, distanceInMeters: 1 } },
       {
         $addFields: {
           distanceInMiles: {
@@ -56,9 +64,10 @@ export class RetailerGeoSubService {
           operationHour: 1,
           distanceInMiles: 1,
           location: 1,
+          isBoosted: 1,
+          storeSettings: 1,
         },
       },
-      { $sort: { distanceInMeters: 1 } },
     ];
 
     const nearbyRetailers = await RetailerModel.aggregate(pipeline);
@@ -92,6 +101,14 @@ export class RetailerGeoSubService {
           query: { isApproved: true },
         },
       },
+      // Paid boost (BOOST store plan) is active while boost.endDate is in the future
+      {
+        $addFields: {
+          isBoosted: { $gt: [{ $ifNull: ['$boost.endDate', null] }, new Date()] },
+        },
+      },
+      // Boosted stores first, then nearest — sorted before $project strips distanceInMeters
+      { $sort: { isBoosted: -1, distanceInMeters: 1 } },
       {
         $project: {
           name: 1,
@@ -100,12 +117,12 @@ export class RetailerGeoSubService {
           badge: 1,
           averageRating: 1,
           location: 1,
+          isBoosted: 1,
           distanceInMiles: {
             $round: [{ $divide: ['$distanceInMeters', 1609.34] }, 1],
           },
         },
       },
-      { $sort: { distanceInMeters: 1 } },
     ];
 
     return await RetailerModel.aggregate(pipeline);

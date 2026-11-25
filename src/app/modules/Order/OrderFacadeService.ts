@@ -4,6 +4,7 @@ import { RetailerOrderFulfillmentSubService } from './subServices/RetailerOrderF
 import { OrderHoldSubService } from './subServices/OrderHoldSubService';
 import { OrderCheckoutSubService } from './subServices/OrderCheckoutSubService';
 import { BuyerOrderSubService } from './subServices/BuyerOrderSubService';
+import { OrderPickupVerificationSubService } from './subServices/OrderPickupVerificationSubService';
 
 /**
  * Order Facade Service: High-Level Orchestrator
@@ -50,6 +51,10 @@ export class OrderFacadeService {
 
   static async getMyActiveHolds(buyerId: string) {
     return await OrderHoldSubService.getMyActiveHolds(buyerId);
+  }
+
+  static async verifyPickup(userDetails: IJwtPayload, pickupVerificationCode: string) {
+    return await OrderPickupVerificationSubService.verifyPickup(userDetails, pickupVerificationCode);
   }
 
   static async settleInStoreHoldOrder(retailerId: string, payload: any) {

@@ -1,4 +1,5 @@
 import ApiError from "../../../error/ApiError";
+import { uploadToCloud } from "../../../helper/cloudStorage";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import deleteOldFile from "../../../utilities/deleteFile";
 import {  ENUM_PAIR_REQUEST_STATUS, ENUM_USER_Type } from "../../../utilities/enum";
@@ -116,7 +117,7 @@ const updateResellerProfileService = async (
     };
     
     if(file){
-        updateData.image = `uploads/profile-image/${file.filename}`;
+        updateData.image = (await uploadToCloud(file, "resellers/profile")).url;
 
         deleteOldFile(profile?.image);
     }

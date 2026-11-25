@@ -71,6 +71,8 @@ export class ProductCatalogSubService {
           'retailer.averageRating': 1,
           'retailer.badge': 1,
           'retailer.location': 1,
+          // prep time / hold duration / pickup window shown on the product page
+          'retailer.storeSettings': 1,
         },
       },
     ];

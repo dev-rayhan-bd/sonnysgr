@@ -8,6 +8,7 @@ import { ENUM_ORDER_ITEM_STATUS, ENUM_ORDER_STATUS } from '../../../../utilities
 import { BuyerLoyaltySubService } from '../../Buyer/subServices/BuyerLoyaltySubService';
 import { BuyerReferralSubService } from '../../Buyer/subServices/BuyerReferralSubService';
 import { RETAILER_ORDER_STAGE_STATUSES } from '../Order.constant';
+import { RetailerStoreSettingsSubService } from '../../Retailer/subServices/RetailerStoreSettingsSubService';
 
 /**
  * Sub-Service dedicated to Retailer Order Actions: Accept, Mark Ready, Complete, Cancel
@@ -25,7 +26,7 @@ export class RetailerOrderFulfillmentSubService {
         retailerId: profileId,
         status: { $in: RETAILER_ORDER_STAGE_STATUSES.NEEDS_ACTION },
       },
-      { $set: { status: ENUM_ORDER_ITEM_STATUS.PROCESSING } },
+      { $set: { status: ENUM_ORDER_ITEM_STATUS.PROCESSING, acceptedAt: new Date() } },
       { new: true }
     );
 
@@ -47,13 +48,24 @@ export class RetailerOrderFulfillmentSubService {
   static async markReady(userDetails: IJwtPayload, orderItemId: string) {
     const { profileId } = userDetails;
 
+    // The buyer must collect within the store's configured pickup window
+    const { pickupWindowHours } = await RetailerStoreSettingsSubService.getSettingsInternal(profileId);
+    const readyAt = new Date();
+    const pickupDeadline = new Date(readyAt.getTime() + pickupWindowHours * 60 * 60 * 1000);
+
     const orderItem = await OrderItemModel.findOneAndUpdate(
       {
         _id: orderItemId,
         retailerId: profileId,
         status: ENUM_ORDER_ITEM_STATUS.PROCESSING,
       },
-      { $set: { status: ENUM_ORDER_ITEM_STATUS.READY_FOR_PICKUP } },
+      {
+        $set: {
+          status: ENUM_ORDER_ITEM_STATUS.READY_FOR_PICKUP,
+          readyAt,
+          pickupTime: pickupDeadline,
+        },
+      },
       { new: true }
     );
 
@@ -82,7 +94,7 @@ export class RetailerOrderFulfillmentSubService {
         // Holds are finalised via the hold-settlement flow (balance payment), not here
         status: { $in: RETAILER_ORDER_STAGE_STATUSES.READY },
       },
-      { $set: { status: ENUM_ORDER_ITEM_STATUS.COMPLETED } },
+      { $set: { status: ENUM_ORDER_ITEM_STATUS.COMPLETED, completedAt: new Date() } },
       { new: true }
     );
 
@@ -97,22 +109,27 @@ export class RetailerOrderFulfillmentSubService {
     );
 
     if (parentOrder && parentOrder.buyerId) {
-      BuyerLoyaltySubService.awardPointsInternal(
-        parentOrder.buyerId,
-        90,
-        "PURCHASE",
-        "Order completion reward (+90 VIP pts)",
-        orderItem.orderId,
-        "Order"
-      ).catch(() => {});
-
-      BuyerReferralSubService.processFirstPurchaseRewardInternal(
-        parentOrder.buyerId,
-        orderItem.orderId
-      ).catch(() => {});
+      RetailerOrderFulfillmentSubService.awardCompletionRewards(parentOrder.buyerId, orderItem.orderId);
     }
 
     return orderItem;
+  }
+
+  /**
+   * Fire-and-forget buyer rewards on completion: +90 VIP pts and the first-purchase referral reward.
+   * Shared by manual completion and QR pickup verification.
+   */
+  static awardCompletionRewards(buyerId: mongoose.Types.ObjectId, orderId: mongoose.Types.ObjectId) {
+    BuyerLoyaltySubService.awardPointsInternal(
+      buyerId,
+      90,
+      "PURCHASE",
+      "Order completion reward (+90 VIP pts)",
+      orderId,
+      "Order"
+    ).catch(() => {});
+
+    BuyerReferralSubService.processFirstPurchaseRewardInternal(buyerId, orderId).catch(() => {});
   }
 
   /**

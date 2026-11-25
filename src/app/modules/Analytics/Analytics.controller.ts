@@ -1,19 +1,37 @@
+import { StatusCodes } from "http-status-codes";
+import { AuthRequest } from "../../../interface/authRequest";
 import catchAsync from "../../../utilities/catchasync";
 import sendResponse from "../../../utilities/sendResponse";
 import AnalyticsServices from "./Analytics.service";
 
-const u = catchAsync(async (req, res) => {
+const getStoreOverview = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await AnalyticsServices.getStoreOverview(user, req.query);
 
-    // const result = await AnalyticsServices.u();
-
-    // sendResponse(res, {
-    //     statusCode: 200,
-    //     success: true,
-    //     message: "P",
-    //     data: result,
-    // });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Store analytics retrieved successfully.",
+    data: result,
+  });
 });
 
-const AnalyticsController = {  };
+const getTopProducts = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await AnalyticsServices.getTopProducts(user, req.query);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Product performance retrieved successfully.",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const AnalyticsController = {
+  getStoreOverview,
+  getTopProducts,
+};
 
 export default AnalyticsController;

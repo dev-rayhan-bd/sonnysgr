@@ -16,6 +16,9 @@ const getTrendingNowAndRecentSearchesSevice = ProductFacadeService.getTrendingNo
 const deleteRecentSearchService = ProductFacadeService.deleteRecentSearch;
 const adjustSizeStock = ProductFacadeService.adjustSizeStock;
 const toggleAvailability = ProductFacadeService.toggleAvailability;
+const lookupBarcodeService = ProductFacadeService.lookupBarcode;
+const scanRestockService = ProductFacadeService.scanRestock;
+const assignBarcodeService = ProductFacadeService.assignBarcode;
 
 const ProductServices = {
   addProductService,
@@ -30,6 +33,9 @@ const ProductServices = {
   deleteRecentSearchService,
   adjustSizeStock,
   toggleAvailability,
+  lookupBarcodeService,
+  scanRestockService,
+  assignBarcodeService,
 };
 
 export default ProductServices;

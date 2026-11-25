@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import { IJwtPayload } from '../../../../interface/jwt.interface';
 import { OrderItemModel } from '../../Order/Order.model';
 import { getRetailerStageStatusFilter } from '../../Order/Order.constant';
+import { AnalyticsFunnelSubService } from '../../Analytics/subServices/AnalyticsFunnelSubService';
+import { RetailerStoreSettingsSubService } from './RetailerStoreSettingsSubService';
 
 /**
  * Sub-Service dedicated to Retailer Orders & 4-Stage Lifecycle queries
@@ -99,12 +101,19 @@ export class RetailerOrderSubService {
     const todayCount = metrics[0]?.todayOrdersCount[0]?.total || 0;
     const stageCounts = metrics[0]?.stageCounts || [];
 
+    // Real average prep time (accepted -> ready); falls back to the store's configured prep time
+    const [measuredPrep, storeSettings] = await Promise.all([
+      AnalyticsFunnelSubService.getAveragePrepMinutes(profileId),
+      RetailerStoreSettingsSubService.getSettingsInternal(profileId),
+    ]);
+
     return {
       activeStage: stage,
       orders,
       metrics: {
         todayOrdersCount: todayCount,
-        averagePrepTimeMinutes: 8, // Derived average prep time matching UI specs
+        averagePrepTimeMinutes: measuredPrep ?? storeSettings.prepTimeMinutes,
+        targetPrepTimeMinutes: storeSettings.prepTimeMinutes,
         stageCounts,
       },
     };

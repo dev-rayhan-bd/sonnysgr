@@ -124,6 +124,43 @@ const getAllProductsController = catchAsync(async (req, res) => {
   });
 });
 
+// --- Barcode scanner (retailer) ---
+const lookupBarcodeController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await ProductServices.lookupBarcodeService(user, String(req.params.barcode));
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.found ? "Barcode found in your inventory" : "Barcode not in your inventory yet",
+    data: result,
+  });
+});
+
+const scanRestockController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await ProductServices.scanRestockService(user, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Added ${result.addedQuantity} to size ${result.variant.size}. Stock is now ${result.variant.stock}.`,
+    data: result,
+  });
+});
+
+const assignBarcodeController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await ProductServices.assignBarcodeService(user, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Barcode linked to product size",
+    data: result,
+  });
+});
+
 const ProductController = {
   addProductController,
   editProductController,
@@ -133,6 +170,9 @@ const ProductController = {
   getProductDetailByIdController,
   deleteRecentSearchController,
   getAllProductsController,
+  lookupBarcodeController,
+  scanRestockController,
+  assignBarcodeController,
 };
 
 export default ProductController;

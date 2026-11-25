@@ -109,6 +109,18 @@ const settleInStoreHoldOrderController = catchAsync(async (req, res) => {
   });
 });
 
+const verifyPickupController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await OrderServices.verifyPickupService(user, req.body.pickupVerificationCode);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Pickup verified. Order released to the buyer.',
+    data: result,
+  });
+});
+
 // --- Buyer Order Controllers ---
 
 const createBuyNowOrderController = catchAsync(async (req, res) => {
@@ -187,6 +199,7 @@ const cancelBuyerOrderController = catchAsync(async (req, res) => {
 });
 
 const OrderController = {
+  verifyPickupController,
   getRetailerOrdersByStageController,
   getRetailerHomePageOrderStatDataController,
   getOrderDetailController,

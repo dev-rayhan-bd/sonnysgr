@@ -18,9 +18,12 @@ const config = {
   smtp_from: process.env.SMTP_FROM,
   SMTP_USER: process.env.SMTP_USER || process.env.SMTP_MAIL,
   SMTP_PASS: process.env.SMTP_PASS || process.env.APP_PASSWARD || process.env.APP_PASSWORD || process.env.SMTP_PASSWORD,
-  cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  cloudinary_api_key: process.env.CLOUDINARY_API_KEYS,
-  cloudinary_api_secret: process.env.CLOUDINARY_SECRET_KEYS,
+  // Either the three CLOUDINARY_* vars or a single CLOUDINARY_URL (cloudinary://key:secret@cloud_name)
+  cloudinary_url: process.env.CLOUDINARY_URL,
+  cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_NAME,
+  cloudinary_api_key: process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_KEY || process.env.CLOUDINARY_API_KEYS,
+  cloudinary_api_secret:
+    process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_SECRET || process.env.CLOUDINARY_SECRET_KEYS,
   super_admin_email: process.env.SUPER_ADMIN_EMAIL || 'admin@sneakerhub.com',
   super_admin_password: process.env.SUPER_ADMIN_PASSWORD || 'Admin@123456',
   super_admin_first_name: process.env.SUPER_ADMIN_FIRST_NAME || 'Super',

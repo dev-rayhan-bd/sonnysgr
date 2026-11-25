@@ -21,6 +21,8 @@ const updatePayoutSettings = RetailerFacadeService.updatePayoutSettings;
 const requestPayout = RetailerFacadeService.requestPayout;
 const getPayoutHistory = RetailerFacadeService.getPayoutHistory;
 const adminProcessPayout = RetailerFacadeService.adminProcessPayout;
+const getStoreSettings = RetailerFacadeService.getStoreSettings;
+const updateStoreSettings = RetailerFacadeService.updateStoreSettings;
 
 const RetailerServices = {
   filterNearbyRetailers,
@@ -40,6 +42,8 @@ const RetailerServices = {
   requestPayout,
   getPayoutHistory,
   adminProcessPayout,
+  getStoreSettings,
+  updateStoreSettings,
 };
 
 export default RetailerServices;

@@ -1,6 +1,8 @@
 import express from "express";
 import { auth, authorizeUser } from "../../middleware/auth";
 import OrderController from "./Order.controller";
+import validateRequest from "../../middleware/validateRequest";
+import OrderValidations from "./Order.validation";
 
 const OrderRouter = express.Router();
 
@@ -45,6 +47,14 @@ OrderRouter.patch(
   "/retailer-cancel-order/:id",
   auth(["Retailer"]),
   OrderController.retailerCancelOrderController
+);
+
+// Retailer "Verify Pickup" tool: scan the buyer's QR / enter the 6-digit code to release a Buy Now order
+OrderRouter.post(
+  "/verify-pickup",
+  auth(["Retailer"]),
+  validateRequest(OrderValidations.verifyPickupValidation),
+  OrderController.verifyPickupController
 );
 
 // Retailer In-Store Verification & Settlement of Hold Reservations

@@ -1,5 +1,6 @@
 import { model, Schema, models } from "mongoose";
 import { IOrder, IOrderItem } from "./Order.interface";
+import { generatePickupCode } from "./Order.constant";
 import {
   ENUM_ORDER_ITEM_STATUS,
   ENUM_ORDER_STATUS,
@@ -65,6 +66,15 @@ const OrderSchema = new Schema<IOrder>(
 );
 
 // Order Item model schema
+// Every order gets a pickup code (REQUIREMENTS 10.2) whichever checkout path created it.
+// Hold orders set their own GS-HOLD-xxxxxx code before saving, so they are left untouched.
+OrderSchema.pre("validate", function (next) {
+  if (!this.pickupVerificationCode) {
+    this.pickupVerificationCode = generatePickupCode();
+  }
+  next();
+});
+
 const OrderItemSchema = new Schema<IOrderItem>(
   {
     buyerId: { type: Schema.Types.ObjectId, ref: "Buyer", required: true },
@@ -81,6 +91,10 @@ const OrderItemSchema = new Schema<IOrderItem>(
     unitPrice: { type: Number, required: true },
     totalPrice: { type: Number, required: true },
     pickupTime: { type: Date },
+    // Fulfillment milestones (Module 18.3 order funnel: prep time & pickup completion)
+    acceptedAt: { type: Date, default: null },
+    readyAt: { type: Date, default: null },
+    completedAt: { type: Date, default: null },
     status: {
       type: String,
       enum: Object.values(ENUM_ORDER_ITEM_STATUS),

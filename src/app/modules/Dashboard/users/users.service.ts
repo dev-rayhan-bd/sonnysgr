@@ -155,7 +155,7 @@ const getRetailerAnalyticsService = async (id: string) => {
     ]),
     AnalyticsModel.aggregate([
       { $match: { retailerId: retailer._id } },
-      { $group: { _id: null, storeViews: { $sum: "$profileViewCount" }, productViews: { $sum: "$productViewCount" } } },
+      { $group: { _id: null, storeViews: { $sum: "$profileViews" }, productViews: { $sum: "$productViews" } } },
     ]),
   ]);
 

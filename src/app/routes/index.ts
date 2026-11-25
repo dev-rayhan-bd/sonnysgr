@@ -26,6 +26,7 @@ import DemandRouter from "../modules/Demand/Demand.routes";
 import SubscriptionPaymentRouter from "../modules/SubscriptionPayment/SubscriptionPayment.routes";
 import LockerRouter from "../modules/Locker/Locker.routes";
 import OfferRouter from "../modules/Offer/Offer.routes";
+import AnalyticsRouter from "../modules/Analytics/Analytics.routes";
 
 const router = Router();
 
@@ -57,6 +58,7 @@ const moduleRoutes = [
   { path: "/subscription-payment", router: SubscriptionPaymentRouter },
   { path: "/locker", router: LockerRouter },
   { path: "/offers", router: OfferRouter },
+  { path: "/analytics", router: AnalyticsRouter },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.router));

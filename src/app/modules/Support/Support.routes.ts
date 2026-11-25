@@ -5,6 +5,7 @@ import SupportValidations from "./Support.validation";
 import SupportController from "./Support.controller";
 
 import { uploadProfile } from "../../middleware/multerMiddleware";
+import { uploadFilesToCloudUrls } from "../../../helper/cloudStorage";
 
 const SupportRouter = express.Router();
 
@@ -13,18 +14,14 @@ SupportRouter.post(
   "/tickets",
   auth(["Buyer"]),
   uploadProfile.any(), // Parses multipart/form-data text fields and files into req.body/req.files
-  (req, res, next) => {
+  async (req, res, next) => {
     // Transform isTimeSensitive to boolean if sent as string from form-data
     if (typeof req.body.isTimeSensitive === 'string') {
       req.body.isTimeSensitive = req.body.isTimeSensitive === 'true';
     }
-    // Handle uploaded files through multipart/form-data
-    if (req.files && Array.isArray(req.files)) {
-      const fileUrls = req.files.map((file: any) => {
-        // If file.location is present (MulterS3), use it, otherwise use local path
-        return file.location || `uploads/profile-image/${file.filename}`;
-      });
-      req.body.attachments = fileUrls;
+    // Handle uploaded files through multipart/form-data: stream them to Cloudinary / S3
+    if (Array.isArray(req.files) && req.files.length > 0) {
+      req.body.attachments = await uploadFilesToCloudUrls(req.files, "support");
     } else if (typeof req.body.attachments === 'string') {
       try {
         req.body.attachments = JSON.parse(req.body.attachments);

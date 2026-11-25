@@ -10,7 +10,7 @@ const getLocalDemand = catchAsync(async (req, res) => {
   const result = await DemandServices.getLocalDemandService(
     user.profileId,
     {
-      radius: Number(radius),
+      radius: radius ? Number(radius) : undefined,
       startDate,
       endDate,
     }
@@ -33,7 +33,7 @@ const getSizeDemand = catchAsync(async (req, res) => {
     user.profileId,
     productId,
     {
-      radius: Number(radius),
+      radius: radius ? Number(radius) : undefined,
       startDate,
       endDate,
     }
@@ -54,7 +54,7 @@ const getDemandGaps = catchAsync(async (req, res) => {
   const result = await DemandServices.getDemandGapsService(
     user.profileId,
     {
-      radius: Number(radius),
+      radius: radius ? Number(radius) : undefined,
       startDate,
       endDate,
     }

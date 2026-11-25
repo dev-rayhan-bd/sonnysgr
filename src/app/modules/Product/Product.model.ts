@@ -24,6 +24,8 @@ const ProductSchema = new Schema<IProduct>({
       stock: { type: Number, required: true },
       price: { type: Number, required: true },
       reservedStock: { type: Number, default: 0 },
+      // UPC / EAN printed on the box; one per size, unique within a store
+      barcode: { type: String, default: null, trim: true, uppercase: true },
     }
   ],
 
@@ -64,6 +66,9 @@ const ProductSchema = new Schema<IProduct>({
   totalSearchCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
+// Barcode scanner lookups: "which of my products has this barcode?"
+ProductSchema.index({ retailerId: 1, "variant.barcode": 1 });
+
 // Pre-save middleware to set availability based on stock
 // ProductSchema.pre("save", function (next) {
 //     this.availability = getAvailability(this.variant);
@@ -100,6 +105,11 @@ const ProductVariantSchema = new Schema<IProductVariant>(
       // required: true,
       // unique: true,
       default: null
+    },
+
+    barcode: {
+      type: String,
+      default: null,
     },
 
     price: {

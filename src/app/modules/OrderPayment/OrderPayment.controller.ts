@@ -6,6 +6,7 @@ import sendResponse from "../../../utilities/sendResponse";
 import OrderPaymentCheckoutServices from "./OrderPaymentCheckout.service";
 import { completeOrderAfterPayment } from "./OrderPaymentSuccess.service";
 import ApiError from "../../../error/ApiError";
+import StorePlanFacadeService from "../SubscriptionPayment/StorePlanFacadeService";
 
 import stripe from "../../../config/stripe";
 
@@ -41,6 +42,20 @@ const stripeWebhookHandler = catchAsync(async (req: Request, res: Response) => {
   } catch (err: any) {
     // console.log(`Webhook Error: ${err.message}`);
     throw new ApiError(400, `Webhook Error: ${err.message}`);
+  }
+
+  // Store plan purchases (subscription / boost) share this Stripe webhook endpoint
+  if (event.type.startsWith("checkout.session.")) {
+    const planSession = event.data.object as Stripe.Checkout.Session;
+    if (StorePlanFacadeService.isStorePlanSession(planSession)) {
+      await StorePlanFacadeService.handleCheckoutEvent(event.type, planSession);
+      return sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Store plan webhook event processed successfully.",
+        data: null,
+      });
+    }
   }
 
   // Handle checkout session webhook events

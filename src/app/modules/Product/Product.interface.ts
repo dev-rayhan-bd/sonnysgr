@@ -15,7 +15,8 @@ export interface IProduct {
     size: string,
     stock: number,
     price: number,
-    reservedStock?: number
+    reservedStock?: number,
+    barcode?: string | null
   }[];
   sneakerAttributes?: {};
   tshirtAttributes?: {};
@@ -30,6 +31,7 @@ export interface IProductVariant {
   size: string;
   color: string;
   sku: string;
+  barcode?: string | null;
   price: number;
   stock: number;
   reservedStock: number;

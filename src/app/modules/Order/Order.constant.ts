@@ -1,4 +1,16 @@
+import { randomInt } from "crypto";
 import { ENUM_ORDER_ITEM_STATUS } from "../../../utilities/enum";
+
+export const PICKUP_CODE_PREFIX = "GS-PICKUP-";
+
+/** QR payload for in-store pickup: GS-PICKUP- + a random 6-digit code (REQUIREMENTS 10.2). */
+export const generatePickupCode = () => `${PICKUP_CODE_PREFIX}${randomInt(100000, 1000000)}`;
+
+/** Accept the scanned QR value or the 6 digits typed by hand. */
+export const normalisePickupCode = (input: string) => {
+  const code = String(input || "").trim().toUpperCase();
+  return /^\d{6}$/.test(code) ? `${PICKUP_CODE_PREFIX}${code}` : code;
+};
 
 /**
  * Legacy status strings written by older code paths before statuses were aligned with

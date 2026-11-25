@@ -2,10 +2,8 @@ import { z } from "zod";
 
 const localDemandQuerySchema = z.object({
   query: z.object({
-    radius: z.preprocess(
-      (val) => (val ? Number(val) : 10),
-      z.number().min(0.1).max(500)
-    ).default(10), // in miles
+    // in miles; omitted -> the store's configured service radius
+    radius: z.coerce.number().min(0.1).max(500).optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
   }),
@@ -13,10 +11,8 @@ const localDemandQuerySchema = z.object({
 
 const sizeDemandQuerySchema = z.object({
   query: z.object({
-    radius: z.preprocess(
-      (val) => (val ? Number(val) : 10),
-      z.number().min(0.1).max(500)
-    ).default(10), // in miles
+    // in miles; omitted -> the store's configured service radius
+    radius: z.coerce.number().min(0.1).max(500).optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
   }),
@@ -24,10 +20,8 @@ const sizeDemandQuerySchema = z.object({
 
 const demandGapsQuerySchema = z.object({
   query: z.object({
-    radius: z.preprocess(
-      (val) => (val ? Number(val) : 10),
-      z.number().min(0.1).max(500)
-    ).default(10), // in miles
+    // in miles; omitted -> the store's configured service radius
+    radius: z.coerce.number().min(0.1).max(500).optional(),
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
   }),

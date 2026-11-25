@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STORE_SETTINGS_LIMITS } from "./Retailer.constant";
 
         
 const validateLatLongTofilterNearbyRetailers = z.object({
@@ -89,8 +90,32 @@ const getRetailerInventoryValidationSchema = z.object({
     }),
 });
 
-const RetailerValidations = { 
+const settingNumber = (limits: { min: number; max: number }, label: string) =>
+    z.coerce
+        .number({ error: `${label} must be a number.` })
+        .int(`${label} must be a whole number.`)
+        .min(limits.min, `${label} must be at least ${limits.min}.`)
+        .max(limits.max, `${label} must be at most ${limits.max}.`)
+        .optional();
+
+// Store operation settings (prep time, hold duration, pickup window, service radius)
+const updateStoreSettingsValidationSchema = z.object({
+    body: z
+        .object({
+            prepTimeMinutes: settingNumber(STORE_SETTINGS_LIMITS.prepTimeMinutes, "Prep time (minutes)"),
+            holdDurationHours: settingNumber(STORE_SETTINGS_LIMITS.holdDurationHours, "Hold duration (hours)"),
+            pickupWindowHours: settingNumber(STORE_SETTINGS_LIMITS.pickupWindowHours, "Pickup window (hours)"),
+            serviceRadiusMiles: settingNumber(STORE_SETTINGS_LIMITS.serviceRadiusMiles, "Service radius (miles)"),
+        })
+        .strict()
+        .refine((body) => Object.values(body).some((value) => value !== undefined), {
+            message: "Provide at least one setting to update.",
+        }),
+});
+
+const RetailerValidations = {
     validateLatLongTofilterNearbyRetailers ,
+    updateStoreSettingsValidationSchema,
     addNewBranchValidationSchema,
     addVerificationInfoValidationSchema,
     completeRetailerProfileValidation,

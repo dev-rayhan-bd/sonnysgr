@@ -202,7 +202,35 @@ const adminProcessPayoutController = catchAsync(async (req, res) => {
   });
 });
 
+// --- Store Operation Settings ---
+
+const getStoreSettingsController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await RetailerServices.getStoreSettings(user);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Store settings retrieved successfully.",
+    data: result,
+  });
+});
+
+const updateStoreSettingsController = catchAsync(async (req, res) => {
+  const { user } = req as AuthRequest;
+  const result = await RetailerServices.updateStoreSettings(user, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Store settings updated successfully.",
+    data: result,
+  });
+});
+
 const RetailerController = {
+  getStoreSettingsController,
+  updateStoreSettingsController,
   filterNearbyRetailersController,
   getAllNearbyRetailerForMap,
   getRetailerInventoryController,

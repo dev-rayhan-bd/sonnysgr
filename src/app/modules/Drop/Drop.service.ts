@@ -1,4 +1,5 @@
 import ApiError from "../../../error/ApiError";
+import { uploadFilesToCloudUrls } from "../../../helper/cloudStorage";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import AuthModel from "../auth/auth.model";
 import DropModel from "./Drop.model";
@@ -17,7 +18,7 @@ const createDropService = async (
   // Enforce one drop at a time per retailer (like a single banner) — only this retailer's drops are replaced
   await DropModel.deleteMany({ retailerId: userDetails.profileId });
 
-  const imageUrls = files ? files.map(file => `uploads/product-image/${file.filename}`) : [];
+  const imageUrls = await uploadFilesToCloudUrls(files, "drops");
 
   // Parse types from form-data payload
   const vipEalryAccess = payload.vipEalryAccess === "true" || payload.vipEalryAccess === true;
@@ -78,7 +79,7 @@ const editDropService = async (
   delete payload.rejectionReason;
 
   if (files && files.length > 0) {
-    const imageUrls = files.map(file => `uploads/product-image/${file.filename}`);
+    const imageUrls = await uploadFilesToCloudUrls(files, "drops");
     payload.dropImages = imageUrls;
   }
 

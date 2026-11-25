@@ -48,6 +48,9 @@ export interface IOrderItem {
   unitPrice: number;
   totalPrice: number;
   pickupTime?: Date;
+  acceptedAt?: Date | null;
+  readyAt?: Date | null;
+  completedAt?: Date | null;
   status: string;
   createdAt?: Date;
   updatedAt?: Date;

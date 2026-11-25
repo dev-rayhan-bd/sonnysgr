@@ -1,16 +1,18 @@
-import ApiError from "../../../error/ApiError";
-import SubscriptionPaymentModel from "./SubscriptionPayment.model";
+import StorePlanFacadeService from "./StorePlanFacadeService";
 
-const stripeSubscriptionPaymentService = async () => {
-  // check which plan
-  // if individual plan
-  // only this user's subscription will be updated.
-  // if Couple plan
-  // both user's subscription will be updated
-};
-
+/**
+ * Store Plan (Subscription + Boost) Services Entry Point
+ * Proxies calls through StorePlanFacadeService.
+ */
 export const SubscriptionPaymentServices = {
-  stripeSubscriptionPaymentService,
+  createPlan: StorePlanFacadeService.createPlan,
+  updatePlan: StorePlanFacadeService.updatePlan,
+  deactivatePlan: StorePlanFacadeService.deactivatePlan,
+  getPlans: StorePlanFacadeService.getPlans,
+  getPlanById: StorePlanFacadeService.getPlanById,
+  createCheckout: StorePlanFacadeService.createCheckout,
+  getMyPlanStatus: StorePlanFacadeService.getMyPlanStatus,
+  getPurchaseHistory: StorePlanFacadeService.getPurchaseHistory,
 };
 
 export default SubscriptionPaymentServices;

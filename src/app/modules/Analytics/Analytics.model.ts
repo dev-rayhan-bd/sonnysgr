@@ -1,18 +1,22 @@
 import { model, Schema, models } from "mongoose";
-import { IAnalytics, IAnalyticsReseller } from "./Analytics.interface";
+import { IStoreDailyAnalytics } from "./Analytics.interface";
 
-const AnalyticsSchema = new Schema<IAnalytics>({
+const StoreDailyAnalyticsSchema = new Schema<IStoreDailyAnalytics>(
+  {
     retailerId: { type: Schema.Types.ObjectId, required: true, ref: "Retailer" },
-    profileViewCount: { type: Number, default: 1 },
-    productViewCount: { type: Number, default: 1 }
-}, { timestamps: true });
+    productId: { type: Schema.Types.ObjectId, ref: "Product", default: null },
+    date: { type: Date, required: true },
+    profileViews: { type: Number, default: 0 },
+    productViews: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
 
-const AnalyticsSchemaReseller = new Schema<IAnalyticsReseller>({
-    resellerId: { type: Schema.Types.ObjectId, required: true, ref: "Reseller" },
-    profileViewCount: { type: Number, default: 1 },
-    pairViewCount: { type: Number, default: 1 }
-}, { timestamps: true });
+// One counter document per store/product per day; also serves the range queries
+StoreDailyAnalyticsSchema.index({ retailerId: 1, date: 1, productId: 1 }, { unique: true });
 
-const AnalyticsModel = models.Analytics || model<IAnalytics>("Analytics", AnalyticsSchema);
+const StoreDailyAnalyticsModel =
+  models.StoreDailyAnalytics ||
+  model<IStoreDailyAnalytics>("StoreDailyAnalytics", StoreDailyAnalyticsSchema);
 
-export default AnalyticsModel;
+export default StoreDailyAnalyticsModel;

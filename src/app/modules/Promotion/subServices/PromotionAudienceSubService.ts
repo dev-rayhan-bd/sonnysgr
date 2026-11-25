@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { IJwtPayload } from '../../../../interface/jwt.interface';
 import { FollowModel } from '../../Engagement/Engagement.model';
 import RetailerModel from '../../Retailer/Retailer.model';
+import { DEFAULT_STORE_SETTINGS } from '../../Retailer/Retailer.constant';
 import BuyerModel from '../../Buyer/Buyer.model';
 import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
@@ -28,7 +29,13 @@ export class PromotionAudienceSubService {
       throw new AppError(StatusCodes.NOT_FOUND, 'Retailer profile not found.');
     }
 
-    const radiusMiles = Number(query.radiusMiles || query.radius || 10);
+    // Explicit radius wins; otherwise the store's configured service radius
+    const radiusMiles = Number(
+      query.radiusMiles ||
+        query.radius ||
+        retailer.storeSettings?.serviceRadiusMiles ||
+        DEFAULT_STORE_SETTINGS.serviceRadiusMiles
+    );
     const radiusMeters = radiusMiles * 1609.34;
     const targetSize = query.shoeSize ? Number(query.shoeSize) : null;
 

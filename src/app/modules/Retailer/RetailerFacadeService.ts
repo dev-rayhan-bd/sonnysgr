@@ -5,6 +5,8 @@ import { RetailerInventorySubService } from './subServices/RetailerInventorySubS
 import { RetailerStoreAdminSubService } from './subServices/RetailerStoreAdminSubService';
 import { RetailerOrderSubService } from './subServices/RetailerOrderSubService';
 import { RetailerFinancialSubService } from './subServices/RetailerFinancialSubService';
+import { RetailerStoreSettingsSubService } from './subServices/RetailerStoreSettingsSubService';
+import { IStoreSettings } from './Retailer.interface';
 
 /**
  * Retailer Facade Service: High-Level Orchestrator
@@ -56,6 +58,15 @@ export class RetailerFacadeService {
     query: Record<string, unknown>
   ) {
     return await RetailerProfileSubService.toggleOperationHour(userDetails, query);
+  }
+
+  // --- Store Operation Settings (prep time, hold duration, pickup window, radius) ---
+  static async getStoreSettings(userDetails: IJwtPayload) {
+    return await RetailerStoreSettingsSubService.getStoreSettings(userDetails);
+  }
+
+  static async updateStoreSettings(userDetails: IJwtPayload, payload: Partial<IStoreSettings>) {
+    return await RetailerStoreSettingsSubService.updateStoreSettings(userDetails, payload);
   }
 
   // --- Geospatial Scanning & Maps ---

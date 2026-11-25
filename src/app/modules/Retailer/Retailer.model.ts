@@ -1,5 +1,6 @@
 import { model, Schema, models } from "mongoose";
 import { IRetailer } from "./Retailer.interface";
+import { STORE_SETTINGS_LIMITS } from "./Retailer.constant";
 
 
 const defaultOperationHours = () => [
@@ -53,7 +54,39 @@ const RetailerSchema = new Schema<IRetailer>({
         default: defaultOperationHours
     },
     socialLink:{type:Object,default:{}},
-    subscription:{type:Schema.Types.ObjectId,ref:"Subscription"},
+    storeSettings:{
+        prepTimeMinutes:{
+            type:Number,
+            min:STORE_SETTINGS_LIMITS.prepTimeMinutes.min,
+            max:STORE_SETTINGS_LIMITS.prepTimeMinutes.max,
+            default:STORE_SETTINGS_LIMITS.prepTimeMinutes.default
+        },
+        holdDurationHours:{
+            type:Number,
+            min:STORE_SETTINGS_LIMITS.holdDurationHours.min,
+            max:STORE_SETTINGS_LIMITS.holdDurationHours.max,
+            default:STORE_SETTINGS_LIMITS.holdDurationHours.default
+        },
+        pickupWindowHours:{
+            type:Number,
+            min:STORE_SETTINGS_LIMITS.pickupWindowHours.min,
+            max:STORE_SETTINGS_LIMITS.pickupWindowHours.max,
+            default:STORE_SETTINGS_LIMITS.pickupWindowHours.default
+        },
+        serviceRadiusMiles:{
+            type:Number,
+            min:STORE_SETTINGS_LIMITS.serviceRadiusMiles.min,
+            max:STORE_SETTINGS_LIMITS.serviceRadiusMiles.max,
+            default:STORE_SETTINGS_LIMITS.serviceRadiusMiles.default
+        },
+    },
+    // Visibility boost bought from a BOOST store plan; active while endDate > now
+    boost:{
+        planId:{type:Schema.Types.ObjectId,ref:"StorePlan",default:null},
+        startDate:{type:Date,default:null},
+        endDate:{type:Date,default:null,index:true},
+    },
+    subscription:{type:Schema.Types.ObjectId,ref:"StorePlan"},
     subscriptionStartDate:{type:Date},
     subscriptionEndDate:{type:Date},
     followersCount:{type:Number,default:0},

@@ -7,6 +7,21 @@ export interface IOperationHour {
     isOpen: boolean;
 }
 
+// Store operation settings (prep time, hold duration, pickup window, service radius)
+export interface IStoreSettings {
+  prepTimeMinutes: number;
+  holdDurationHours: number;
+  pickupWindowHours: number;
+  serviceRadiusMiles: number;
+}
+
+// Active store boost (visibility boost purchased from a BOOST plan)
+export interface IStoreBoost {
+  planId: Types.ObjectId | null;
+  startDate: Date | null;
+  endDate: Date | null;
+}
+
 // Retailer Interface
 export interface IRetailer {
   id: Types.ObjectId;
@@ -35,6 +50,8 @@ export interface IRetailer {
     isInStorePickupAvailable: boolean;
     customPickupRule: string;
   };
+  storeSettings?: IStoreSettings;
+  boost?: IStoreBoost;
   socialLink: {};
   subscription: Types.ObjectId;
   subscriptionStartDate: Date;

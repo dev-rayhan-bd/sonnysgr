@@ -56,6 +56,28 @@ ProductRouter.get(
     ProductController.getProductDetailByIdController
 );
 
+// --- Barcode scanner (retailer in-store tool) ---
+ProductRouter.get(
+    "/lookup-barcode/:barcode",
+    auth(["Retailer"]),
+    validateRequest(ProductValidations.lookupBarcodeValidation),
+    ProductController.lookupBarcodeController
+);
+
+ProductRouter.post(
+    "/scan-restock",
+    auth(["Retailer"]),
+    validateRequest(ProductValidations.scanRestockValidation),
+    ProductController.scanRestockController
+);
+
+ProductRouter.patch(
+    "/assign-barcode",
+    auth(["Retailer"]),
+    validateRequest(ProductValidations.assignBarcodeValidation),
+    ProductController.assignBarcodeController
+);
+
 ProductRouter.delete(
     "/delete-recent-search/:id",
     authorizeUser,

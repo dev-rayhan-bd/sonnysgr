@@ -3,6 +3,8 @@ import { ProductCommandSubService } from './subServices/ProductCommandSubService
 import { ProductCatalogSubService } from './subServices/ProductCatalogSubService';
 import { ProductSearchSubService } from './subServices/ProductSearchSubService';
 import { ProductInventorySubService } from './subServices/ProductInventorySubService';
+import { ProductBarcodeSubService } from './subServices/ProductBarcodeSubService';
+import AnalyticsFacadeService from '../Analytics/AnalyticsFacadeService';
 
 /**
  * Product Facade Service: High-Level Orchestrator
@@ -37,7 +39,14 @@ export class ProductFacadeService {
   }
 
   static async getProductDetailById(productId: string) {
-    return await ProductCatalogSubService.getProductDetailById(productId);
+    const product = await ProductCatalogSubService.getProductDetailById(productId);
+
+    // Module 18.2: count the view for the owning store's analytics (non-blocking)
+    if (product?.retailer?._id) {
+      AnalyticsFacadeService.recordProductView(product.retailer._id, product._id);
+    }
+
+    return product;
   }
 
   // --- Search & Trending ---
@@ -69,6 +78,22 @@ export class ProductFacadeService {
       quantityChange,
       reserveChange
     );
+  }
+
+  // --- Barcode scanner (retailer) ---
+  static async lookupBarcode(userDetails: IJwtPayload, barcode: string) {
+    return await ProductBarcodeSubService.lookupBarcode(userDetails, barcode);
+  }
+
+  static async scanRestock(userDetails: IJwtPayload, payload: { barcode: string; quantity?: number }) {
+    return await ProductBarcodeSubService.scanRestock(userDetails, payload);
+  }
+
+  static async assignBarcode(
+    userDetails: IJwtPayload,
+    payload: { productId: string; size: string; barcode: string }
+  ) {
+    return await ProductBarcodeSubService.assignBarcode(userDetails, payload);
   }
 
   static async toggleAvailability(

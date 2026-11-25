@@ -1,4 +1,12 @@
 import { z } from "zod";
+import { BARCODE_FORMAT_MESSAGE, BARCODE_REGEX, MAX_SCAN_RESTOCK_QUANTITY } from "./Product.constant";
+
+// Trimmed + upper-cased before the format check, matching how the service stores it
+const barcodeField = z.preprocess(
+  (v) => (typeof v === "string" ? v.trim().toUpperCase() : v),
+  z.string().regex(BARCODE_REGEX, BARCODE_FORMAT_MESSAGE)
+);
+const objectIdField = (label: string) => z.string().regex(/^[0-9a-fA-F]{24}$/, `${label} must be a valid id`);
 
 
 const SneakerAttributesSchema = z.object({
@@ -23,6 +31,7 @@ const ProductVariantSchema = z.object({
   size: z.string().min(1),
   color: z.string().min(1).optional(),
   sku: z.string().min(1).optional(),
+  barcode: barcodeField.optional(),
   price: z.number().positive().optional(),
   stock: z.number().int().min(1),
 });
@@ -73,8 +82,37 @@ export const addNewProductValidation = z.object({
 });
 
 
+// GET /product/lookup-barcode/:barcode
+const lookupBarcodeValidation = z.object({
+  params: z.object({ barcode: barcodeField }),
+});
+
+// POST /product/scan-restock
+const scanRestockValidation = z.object({
+  body: z
+    .object({
+      barcode: barcodeField,
+      quantity: z.coerce.number().int().min(1).max(MAX_SCAN_RESTOCK_QUANTITY).optional(),
+    })
+    .strict(),
+});
+
+// PATCH /product/assign-barcode
+const assignBarcodeValidation = z.object({
+  body: z
+    .object({
+      productId: objectIdField("productId"),
+      size: z.coerce.string().trim().min(1),
+      barcode: barcodeField,
+    })
+    .strict(),
+});
+
 const ProductValidations = { 
-    addNewProductValidation
+    addNewProductValidation,
+    lookupBarcodeValidation,
+    scanRestockValidation,
+    assignBarcodeValidation,
  };
 
 export default ProductValidations;

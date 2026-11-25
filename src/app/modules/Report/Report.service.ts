@@ -1,4 +1,5 @@
 import ApiError from "../../../error/ApiError";
+import { uploadFilesToCloudUrls } from "../../../helper/cloudStorage";
 import { IJwtPayload } from "../../../interface/jwt.interface";
 import { IReport } from "./Report.interface";
 import ReportModel from "./Report.model";
@@ -16,16 +17,12 @@ const createNewReport = async (
 
     let imageUrls;
 
-    if(files.length > 0){
+    if(files && files.length > 0){
 
-        imageUrls = files.map(file => {
-            // Assuming you have a function to upload the file and get its URL
-            return `uploads/report-image/${file.filename}`; // Replace with actual URL generation logic
-        });
+        imageUrls = await uploadFilesToCloudUrls(files, "reports");
     }
 
 
-    console.log("product images:",imageUrls);
 
 
     const report = await ReportModel.create({

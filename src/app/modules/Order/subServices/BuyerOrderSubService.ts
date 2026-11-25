@@ -5,6 +5,7 @@ import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
 import { ENUM_ORDER_ITEM_STATUS, ENUM_ORDER_STATUS } from '../../../../utilities/enum';
 import { ProductInventorySubService } from '../../Product/subServices/ProductInventorySubService';
+import { OrderPickupVerificationSubService } from './OrderPickupVerificationSubService';
 
 /**
  * Sub-Service dedicated to Buyer Order History, Tracking & Cancellation
@@ -106,11 +107,11 @@ export class BuyerOrderSubService {
 
     const order = orders[0];
 
-    // Build pickup code from order number if in-store pickup
-    const pickupVerificationCode =
-      order.orderType === 'HOLD' || order.shippingAddress?.address?.includes('Pickup')
-        ? `GS-PICKUP-${order.orderNumber.replace(/[^0-9]/g, '').slice(-6) || '928374'}`
-        : undefined;
+    // Stored pickup code shown to the buyer as QR + 6 digits; older orders get one on first view
+    const pickupVerificationCode = await OrderPickupVerificationSubService.ensurePickupCode(
+      order._id,
+      order.pickupVerificationCode
+    );
 
     return {
       ...order,

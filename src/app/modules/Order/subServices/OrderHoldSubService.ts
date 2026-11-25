@@ -8,6 +8,7 @@ import { ProductInventorySubService } from "../../Product/subServices/ProductInv
 import { BuyerHistorySubService } from "../../Buyer/subServices/BuyerHistorySubService";
 import { BuyerLoyaltySubService } from "../../Buyer/subServices/BuyerLoyaltySubService";
 import { BuyerReferralSubService } from "../../Buyer/subServices/BuyerReferralSubService";
+import { RetailerStoreSettingsSubService } from "../../Retailer/subServices/RetailerStoreSettingsSubService";
 import {
   ENUM_ORDER_ITEM_STATUS,
   ENUM_ORDER_STATUS,
@@ -42,7 +43,6 @@ export class OrderHoldSubService {
       productId,
       selectedSize,
       quantity = 1,
-      holdingTimeHours = 3, // Default 3 hours for high-demand sneaker drops
       partialDepositAmount,
       shippingAddress,
     } = payload;
@@ -72,6 +72,15 @@ export class OrderHoldSubService {
       // Deposit calculation: e.g. Flat $30 or 20% of total
       const deposit = partialDepositAmount || Math.min(30, Math.round(totalAmount * 0.2 * 100) / 100);
       const remainingBalance = Math.max(0, totalAmount - deposit);
+
+      // Module 9.2: the store's configured hold duration is the default and the upper bound;
+      // a buyer may request a shorter hold but never a longer one.
+      const storeSettings = await RetailerStoreSettingsSubService.getSettingsInternal(retailerId, session);
+      const requestedHours = Number(payload.holdingTimeHours);
+      const holdingTimeHours =
+        requestedHours > 0
+          ? Math.min(requestedHours, storeSettings.holdDurationHours)
+          : storeSettings.holdDurationHours;
 
       const holdStart = new Date();
       const holdEnd = new Date(holdStart.getTime() + holdingTimeHours * 60 * 60 * 1000);
@@ -310,6 +319,7 @@ export class OrderHoldSubService {
         );
 
         item.status = ENUM_ORDER_ITEM_STATUS.COMPLETED;
+        item.completedAt = new Date();
         await item.save({ session });
       }
 
