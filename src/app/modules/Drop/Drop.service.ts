@@ -29,6 +29,10 @@ const createDropService = async (
   const estimatedDemand = payload.estimatedDemand || "";
   const staus = payload.staus || "upcomming";
 
+  // Moderation state is admin-controlled; a new drop always starts as Pending
+  delete payload.approvalStatus;
+  delete payload.rejectionReason;
+
   const dropData = {
     ...payload,
     retailerId: userDetails.profileId,
@@ -68,8 +72,10 @@ const editDropService = async (
     throw new ApiError(404, "Drop not found");
   }
 
-  // Ownership is not editable via payload
+  // Ownership and moderation state are not editable via payload
   delete payload.retailerId;
+  delete payload.approvalStatus;
+  delete payload.rejectionReason;
 
   if (files && files.length > 0) {
     const imageUrls = files.map(file => `uploads/product-image/${file.filename}`);

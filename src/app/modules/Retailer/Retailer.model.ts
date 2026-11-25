@@ -59,6 +59,15 @@ const RetailerSchema = new Schema<IRetailer>({
     followersCount:{type:Number,default:0},
     averageRating:{type:Number,default:0},
     isApproved:{type:Boolean,default:false},
+    // Admin store-review workflow (Module 19.2); isApproved stays in sync for existing consumers
+    approvalStatus:{
+        type:String,
+        enum:["Pending","Under Review","More Info Requested","Approved","Rejected"],
+        default:"Pending",
+        index:true
+    },
+    approvalNote:{type:String,default:""},
+    approvalUpdatedAt:{type:Date,default:null},
 }, { timestamps: true });
 
 //to enable geospatial queries efficiently

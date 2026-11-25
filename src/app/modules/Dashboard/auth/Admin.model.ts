@@ -38,9 +38,18 @@ const adminSchema = new Schema<IAdmin>({
         type: String,
         default: ''
     },
+    // Granular dashboard permission keys managed by a Super_Admin (e.g. "users", "finance")
+    permissions: {
+        type: [String],
+        default: []
+    },
     verificationCode: {
         type: String,
         default: ''
+    },
+    verificationCodeExpiresAt: {
+        type: Date,
+        default: null
     },
     isEmailVerified:{
         type: Boolean,

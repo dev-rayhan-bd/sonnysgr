@@ -10,7 +10,9 @@ class QueryBuilder<T> {
   }
 
   search(searchableFields: string[]) {
-    const search = (this?.query?.search || this?.query?.searchTerm) as string;
+    const rawSearch = (this?.query?.search || this?.query?.searchTerm) as string;
+    // Escape regex metacharacters so user input like "(" can't crash the query
+    const search = rawSearch ? String(rawSearch).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : rawSearch;
     if (search) {
       this.modelQuery = this.modelQuery.find({
         $or: searchableFields.map(

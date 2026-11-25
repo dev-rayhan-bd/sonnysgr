@@ -7,7 +7,7 @@ import LockerValidations from "./Locker.validation";
 
 const LockerRouter = express.Router();
 
-const allRoles = ["Buyer", "Retailer", "Reseller", "Super Admin"];
+const allRoles = ["Buyer", "Retailer", "Reseller", "Super_Admin"];
 
 // Buyer: Add sneaker to personal locker collection (multi-photo Cloudinary/S3 upload)
 LockerRouter.post(

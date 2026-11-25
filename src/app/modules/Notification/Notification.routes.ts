@@ -1,5 +1,5 @@
 import express from "express";
-import { authorizeUser } from "../../middleware/auth";
+import { auth, authorizeUser } from "../../middleware/auth";
 import NotificationController from "./Notification.controller";
 
 const notificationRouter = express.Router();
@@ -31,16 +31,19 @@ notificationRouter.delete(
 // Dashboard / Admin notifications
 notificationRouter.get(
   "/get-admin-notification",
+  auth(["Admin", "Super_Admin"]),
   NotificationController.getAllAdminNotification
 );
 
 notificationRouter.delete(
   "/delete-admin-notification/:id",
+  auth(["Admin", "Super_Admin"]),
   NotificationController.deleteAdminNotification
 );
 
 notificationRouter.patch(
   "/make-admin-notification-seen/:id",
+  auth(["Admin", "Super_Admin"]),
   NotificationController.makeAdminNotificationSeen
 );
 

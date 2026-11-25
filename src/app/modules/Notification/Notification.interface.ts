@@ -15,6 +15,10 @@ export interface INotification {
 export interface IAdminNotification {
     title :string;
     // details: string;  
+    description?: string;
+    type?: string;
+    referenceId?: Types.ObjectId;
+    referenceModel?: string;
     isSeen: boolean;
 }
 

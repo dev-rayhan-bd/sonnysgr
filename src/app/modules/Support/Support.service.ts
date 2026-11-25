@@ -5,6 +5,7 @@ import { OrderModel } from "../Order/Order.model";
 import { s3 } from "../../../config/awsS3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import stripe from "../../../config/stripe";
+import { notifyAdmins } from "../Dashboard/notifications/adminNotification.service";
 
 const generatePresignedUrl = async (fileName: string, fileType: string) => {
   const bucketName = process.env.AWS_BUCKET_NAME || "sonnysgr-bucket";
@@ -30,6 +31,15 @@ const createTicket = async (buyerId: string, payload: any) => {
     buyerId,
     ...payload,
   });
+
+  await notifyAdmins({
+    title: `New support ticket: ${result.category}`,
+    description: String(result.description).slice(0, 200),
+    type: result.category === "Refund/Dispute" ? "NEW_DISPUTE" : "NEW_SUPPORT_TICKET",
+    referenceId: result._id,
+    referenceModel: "SupportTicket",
+  });
+
   return result;
 };
 
@@ -104,10 +114,15 @@ const resolveTicket = async (ticketId: string, adminId: string, payload: any) =>
 
         if (paymentIntentId) {
           const refundAmount = payload.refundAmount || order.totalAmount;
-          await stripe.refunds.create({
+          const refund = await stripe.refunds.create({
             payment_intent: paymentIntentId,
             amount: Math.round(refundAmount * 100), // In cents
           });
+
+          // Recorded on the ticket so the admin refunds ledger can list it
+          ticket.refundAmount = refundAmount;
+          ticket.refundReference = refund.id;
+          ticket.refundedAt = new Date();
         }
       }
     }

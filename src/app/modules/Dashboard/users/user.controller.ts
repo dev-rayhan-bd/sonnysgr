@@ -114,11 +114,31 @@ const adjustResellerTrustScore = catchAsync(async (req, res) => {
 });
 
 const reviewRetailerStore = catchAsync(async (req, res) => {
-    const result = await usersDashboardServices.reviewRetailerStoreService(req.params.id, req.body.action);
+    const result = await usersDashboardServices.reviewRetailerStoreService(req.params.id as string, req.body.action, req.body.note);
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: `Retailer store review processed successfully. Store is now ${req.body.action === 'Approve' ? 'Approved' : 'Disapproved'}.`,
+        message: `Retailer store review processed successfully. Store is now ${result.approvalStatus}.`,
+        data: result,
+    });
+});
+
+const requestMoreInfoFromStore = catchAsync(async (req, res) => {
+    const result = await usersDashboardServices.reviewRetailerStoreService(req.params.id as string, "RequestMoreInfo", req.body.note);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "More information requested from the store.",
+        data: result,
+    });
+});
+
+const rejectReseller = catchAsync(async (req, res) => {
+    const result = await usersDashboardServices.rejectResellerService(req.params.id as string, req.body.reason);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Reseller rejected successfully.",
         data: result,
     });
 });
@@ -129,6 +149,8 @@ const userManagementController = {
     updateUserStatus,
     approveRetailerStore,
     reviewRetailerStore,
+    requestMoreInfoFromStore,
+    rejectReseller,
     suspendStore,
     reactivateStore,
     getRetailerDocuments,

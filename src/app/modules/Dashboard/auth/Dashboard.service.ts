@@ -7,15 +7,13 @@ import bcrypt from "bcrypt";
 import { JwtPayload, Secret, SignOptions } from "jsonwebtoken";
 import { createToken } from "../../../../helper/jwtHelper";
 import { IChangePassword } from "../../User/User.interface";
-import generateVerifyCode from "../../../../utilities/codeGenerator";
-import { sendVerificationEmail } from "../../../../helper/emailHelper";
 import deleteOldFile from "../../../../utilities/deleteFile";
-import UserModel from "../../User/User.model";
+import AdminPasswordRecoveryService from "./AdminPasswordRecovery.service";
 // import PostModel from "../Post/Post.model";
 // import { ENUM_POST_STATUS } from "../../../../utilities/enum";
 
 const registerAdminService = async (payload: IAdmin) => {
-  const { name, email, password, phone } = payload;
+  const { name, email, password, phone, address, contact, role, permissions } = payload;
 
   const hashedPassword = await bcrypt.hash(
     password,
@@ -27,6 +25,10 @@ const registerAdminService = async (payload: IAdmin) => {
     email: email.toLowerCase(),
     password: hashedPassword,
     phone: phone,
+    address,
+    contact,
+    role: role === "Super_Admin" ? "Super_Admin" : "Admin",
+    permissions: permissions || [],
   });
 
   if (!admin) {
@@ -45,7 +47,7 @@ const loginAdminService = async (payload: TLoginUser) => {
   const { email, password } = payload;
 
   // Service logic goes here
-  const admin = await AdminModel.findOne({ email: email });
+  const admin = await AdminModel.findOne({ email: email.trim().toLowerCase() });
 
   if (!admin) {
     throw new ApiError(404, "This admin does not exist");
@@ -109,110 +111,6 @@ const getMyProfileService = async (userDetails: JwtPayload) => {
   }
 
   return admin;
-};
-
-const adminVerifyCode = async (payload: {
-  email: string;
-  verifyCode: string;
-}) => {
-  const { email, verifyCode } = payload;
-
-  const admin = await AdminModel.findOne({ email: email }).select(
-    "profile email role verificationCode isEmailVerified",
-  );
-
-  if (!admin) {
-    throw new ApiError(404, "Admin not found to verify otp");
-  }
-
-  if (verifyCode !== admin.verificationCode) {
-    throw new ApiError(400, "Code doesn't match");
-  }
-
-  admin.verificationCode = "";
-  admin.isEmailVerified = true;
-  await admin.save();
-  return null;
-};
-const adminResetPasswordService = async (
-  userDetails: JwtPayload,
-  payload: any,
-) => {
-  const newPassword = payload.newPassword || payload.password;
-  const email = payload.email || userDetails?.email;
-
-  const admin = await AdminModel.findOne({ email: email });
-
-  if (!admin) {
-    throw new ApiError(404, "This admin does not exist to reset password");
-  }
-
-  if (admin.isBlocked) {
-    throw new ApiError(403, "This user is blocked. Cannot reset password");
-  }
-
-
-  const hashedPassword = await bcrypt.hash(
-    newPassword,
-    Number(config.bcrypt.salt_round || 10),
-  );
-  console.log("new password", newPassword);
-  console.log("Hash:", hashedPassword);
-  console.log(
-    "Test Compare:",
-    await bcrypt.compare(newPassword, hashedPassword),
-  );
-  admin.password = hashedPassword;
-  await admin.save();
-
-  //generate new token after password reset
-  const tokenPayload = {
-    userId: admin?._id as string,
-    role: admin?.role,
-    email: admin?.email,
-  };
-
-  const accessToken: string = createToken(
-    tokenPayload,
-    config.jwt.secret as Secret,
-    config.jwt.expires_in as SignOptions["expiresIn"],
-  );
-
-
-
-  return {
-    user: { name: admin.name, email: admin.email, role: admin.role },
-    accessToken,
-  };
-};
-
-
-
-
-
-
-
-const adminSendVerifyCodeService = async (payload: { email: string }) => {
-  const { email } = payload;
-
-  const admin = await AdminModel.findOne({ email: email });
-
-  if (!admin) {
-    throw new ApiError(404, "Admin not found to send otp");
-  }
-
-  const { code, expiredAt } = generateVerifyCode(10);
-
-  admin.verificationCode = code;
-
-  await admin.save();
-
-  await sendVerificationEmail(email, {
-    name: admin.name,
-    code: code,
-  });
-
-  return null;
 };
 
 const editProfileService = async (
@@ -306,6 +204,12 @@ const blockAdminService = async (userId: string) => {
   }
 
   const admin = await AdminModel.findById(userId);
+  if (!admin) {
+    throw new ApiError(404, "Admin not found to block");
+  }
+  if (admin.role === "Super_Admin") {
+    throw new ApiError(403, "A Super Admin cannot be blocked");
+  }
 
   //block unblock admin
   admin.isBlocked = !admin.isBlocked;
@@ -338,9 +242,7 @@ const DashboardService = {
   registerAdminService,
   loginAdminService,
   // forgotPasswordService,
-  adminVerifyCode,
-  adminSendVerifyCodeService,
-  adminResetPasswordService,
+  ...AdminPasswordRecoveryService,
   editProfileService,
   changeAdminPasswordService,
   deleteAdminService,

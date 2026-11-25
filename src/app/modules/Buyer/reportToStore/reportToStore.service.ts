@@ -4,6 +4,8 @@ import ReportModel from "../../Report/Report.model";
 import RetailerModel from "../../Retailer/Retailer.model";
 import { OrderModel } from "../../Order/Order.model";
 import { IReport } from "../../Report/Report.interface";
+import { notifyAdmins } from "../../Dashboard/notifications/adminNotification.service";
+import { FRAUD_REPORT_TITLES } from "../../Dashboard/dashboard.shared";
 
 const createReportService = async (
   buyerId: string,
@@ -67,6 +69,14 @@ const createReportService = async (
   if (!report) {
     throw new ApiError(500, "Failed to submit report.");
   }
+
+  await notifyAdmins({
+    title: `New report: ${title}`,
+    description: String(content).slice(0, 200),
+    type: FRAUD_REPORT_TITLES.includes(String(title)) ? "FRAUD_ALERT" : "NEW_REPORT",
+    referenceId: report._id,
+    referenceModel: "Report",
+  });
 
   return report;
 };

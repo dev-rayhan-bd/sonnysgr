@@ -9,6 +9,7 @@ const adminUserRouter = express.Router();
 adminUserRouter.get(
   "/get-all-users",
   auth(["Admin", "Super_Admin"]),
+  validateRequest(UsersValidations.getAllUsersValidationSchema),
   userManagementController.getAllUsers
 );
 
@@ -39,6 +40,13 @@ adminUserRouter.post(
 );
 
 adminUserRouter.post(
+  "/retailer/request-more-info/:id",
+  auth(["Admin", "Super_Admin"]),
+  validateRequest(UsersValidations.requestMoreInfoValidationSchema),
+  userManagementController.requestMoreInfoFromStore
+);
+
+adminUserRouter.post(
   "/retailer/suspend-store/:id",
   auth(["Admin", "Super_Admin"]),
   userManagementController.suspendStore
@@ -66,6 +74,13 @@ adminUserRouter.post(
   "/reseller/verify/:id",
   auth(["Admin", "Super_Admin"]),
   userManagementController.verifyReseller
+);
+
+adminUserRouter.post(
+  "/reseller/reject/:id",
+  auth(["Admin", "Super_Admin"]),
+  validateRequest(UsersValidations.rejectResellerValidationSchema),
+  userManagementController.rejectReseller
 );
 
 adminUserRouter.get(

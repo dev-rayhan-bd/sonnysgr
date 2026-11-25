@@ -7,7 +7,7 @@ import { uploadChatFiles } from "../../middleware/multerMiddleware";
 
 const ChatRouter = express.Router();
 
-const allowedRoles = ["Buyer", "Retailer", "Reseller", "Super Admin"];
+const allowedRoles = ["Buyer", "Retailer", "Reseller", "Super_Admin"];
 
 // Initiate or retrieve an existing conversation thread
 ChatRouter.post(

@@ -8,7 +8,9 @@ export interface IAdmin {
     password: string;
     role: string;
     image?: string;
+    permissions?: string[];
     verificationCode: string;
+    verificationCodeExpiresAt?: Date | null;
     isEmailVerified: boolean;
     isBlocked: boolean;
 }

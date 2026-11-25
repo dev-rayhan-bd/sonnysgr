@@ -44,6 +44,10 @@ const NotificationSchema = new Schema<INotification>({
 
 const AdminNotificationSchema = new Schema<IAdminNotification>({
     title: { type: String, required: true },
+    description: { type: String, default: "" },
+    type: { type: String, default: "SYSTEM" },
+    referenceId: { type: Schema.Types.ObjectId },
+    referenceModel: { type: String },
     isSeen: { type: Boolean, default: false },
 }, { timestamps: true });
 

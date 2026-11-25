@@ -58,7 +58,9 @@ const resolveTicket = catchAsync(async (req: Request, res: Response) => {
   const { user } = req as AuthRequest;
   const { ticketId } = req.params;
 
-  const result = await SupportServices.resolveTicket(ticketId as string, user.profileId, req.body);
+  // Admin tokens carry `userId` (Admin collection); profileId is kept as a fallback
+  const adminId = (user as any).userId || user.profileId;
+  const result = await SupportServices.resolveTicket(ticketId as string, adminId, req.body);
 
   sendResponse(res, {
     statusCode: 200,

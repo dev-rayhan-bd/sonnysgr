@@ -49,13 +49,13 @@ SupportRouter.get(
 // Admin endpoints
 SupportRouter.get(
   "/admin/tickets",
-  auth(["Retailer", "Reseller"]), // Standard platform admin verification in current roles structure
+  auth(["Admin", "Super_Admin"]),
   SupportController.getTicketsAdmin
 );
 
 SupportRouter.post(
   "/admin/tickets/:ticketId/resolve",
-  auth(["Retailer", "Reseller"]),
+  auth(["Admin", "Super_Admin"]),
   validateRequest(SupportValidations.resolveTicketValidationSchema),
   SupportController.resolveTicket
 );

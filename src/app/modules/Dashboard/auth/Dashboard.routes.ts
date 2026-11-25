@@ -3,6 +3,8 @@ import validateRequest from "../../../middleware/validateRequest";
 import { auth, authorizeUser } from "../../../middleware/auth";
 import {
   adminLoginValidation,
+  adminIdParamValidation,
+  adminResetPasswordValidation,
   changeAdminPasswordValidation,
   createAdminvalidation,
   editProfilevalidation,
@@ -10,6 +12,13 @@ import {
 import DashboardController from "./Dashboard.controller";
 import AuthValidations from "../../auth/auth.validation";
 import { uploadAdminImage } from "../../../middleware/multerMiddleware";
+import adminManagementRouter from "../admins/adminManagement.routes";
+import adminAnalyticsRouter from "../analytics/adminAnalytics.routes";
+import adminFinanceRouter from "../finance/adminFinance.routes";
+import adminDisputeRouter from "../disputes/adminDispute.routes";
+import adminModerationRouter from "../moderation/adminModeration.routes";
+import adminNotificationRouter from "../notifications/adminNotification.routes";
+import adminSearchRouter from "../search/adminSearch.routes";
 
 const dashboardRouter = express.Router();
 
@@ -52,10 +61,10 @@ dashboardRouter.post(
   DashboardController.adminSendVerifyCode,
 );
 
+// Public: authorised by the short-lived resetToken returned from /admin-verify-code
 dashboardRouter.post(
   "/admin-reset-password",
-  authorizeUser,
-  validateRequest(AuthValidations.resetPasswordValidation),
+  validateRequest(adminResetPasswordValidation),
   DashboardController.adminResetPassword,
 );
 
@@ -86,17 +95,25 @@ dashboardRouter.delete(
 
 dashboardRouter.post(
   "/block-admin/:id",
-  // auth(["Super_Admin"]), only super admin can block a admin
-  // validateRequest(adminLoginValidation),
+  auth(["Super_Admin"]), // only super admin can block a admin
+  validateRequest(adminIdParamValidation),
   DashboardController.blockAdmin,
 );
 
 dashboardRouter.get(
   "/dashboard-stat",
-  // auth(["Super_Admin"]),
-  // validateRequest(adminLoginValidation),
+  auth(["Admin", "Super_Admin"]),
   DashboardController.dashboardStat,
 );
+
+// Admin panel feature routers (Module 19 / 22.2)
+dashboardRouter.use("/", adminManagementRouter);
+dashboardRouter.use("/analytics", adminAnalyticsRouter);
+dashboardRouter.use("/finance", adminFinanceRouter);
+dashboardRouter.use("/disputes", adminDisputeRouter);
+dashboardRouter.use("/moderation", adminModerationRouter);
+dashboardRouter.use("/notifications", adminNotificationRouter);
+dashboardRouter.use("/search", adminSearchRouter);
 
 import adminUserRouter from "../users/users.route";
 dashboardRouter.use("/users", adminUserRouter);

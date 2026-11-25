@@ -16,6 +16,14 @@ const DropSchema = new Schema<IDrop>(
     earlyMinustes: { type: Number, default: 0 },
     raffledrop: { type: Boolean, default: false },
     maximumEntries: { type: Number, default: 0 },
+    // Admin moderation (Module 19.4)
+    approvalStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+      index: true,
+    },
+    rejectionReason: { type: String, default: "" },
     stockAvailablity: {
       availablePairs: { type: Number, default: 0 },
       estimatedDemand: { type: String, default: "" },

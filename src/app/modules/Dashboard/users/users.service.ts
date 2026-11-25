@@ -1,70 +1,25 @@
+import mongoose from "mongoose";
 import ApiError from "../../../../error/ApiError";
 import AuthModel from "../../auth/auth.model";
-import BuyerModel from "../../Buyer/Buyer.model";
 import RetailerModel from "../../Retailer/Retailer.model";
 import ResellerModel from "../../Reseller/Reseller.model";
 import { PairsModel, ProductRequestModel } from "../../Pairs/Pairs.model";
 import { ProductModel } from "../../Product/Product.model";
-import QueryBuilder from "../../../builder/QueryBuilder";
+import { OrderItemModel } from "../../Order/Order.model";
+import AnalyticsModel from "../../Analytics/Analytics.model";
+import NotificationHelper from "../../../../helper/notification";
+import { ENUM_NOTIFICATION_TYPE } from "../../../../utilities/enum";
+import { SOLD_ITEM_STATUSES } from "../dashboard.shared";
 import { IUpdateUserStatusPayload } from "./users.interface";
+import usersQueryServices from "./users.query.service";
 
-const getAllUsersService = async (query: Record<string, any>) => {
-  let profileIds: any[] = [];
-  const search = query.searchTerm || query.searchText;
+type TStoreReviewAction = "Approve" | "Reject" | "UnderReview" | "RequestMoreInfo";
 
-  if (search) {
-    const [buyers, retailers, resellers] = await Promise.all([
-      BuyerModel.find({ name: { $regex: search, $options: "i" } }).select("_id"),
-      RetailerModel.find({ name: { $regex: search, $options: "i" } }).select("_id"),
-      ResellerModel.find({ name: { $regex: search, $options: "i" } }).select("_id"),
-    ]);
-
-    profileIds = [
-      ...buyers.map((b) => b._id),
-      ...retailers.map((r) => r._id),
-      ...resellers.map((r) => r._id),
-    ];
-  }
-
-  // Exclude auth credentials like password
-  const userQuery = AuthModel.find().select("-password").populate("profile");
-  
-  const queryBuilder = new QueryBuilder(userQuery, query)
-    .sort()
-    .paginate();
-
-  if (search) {
-    queryBuilder.modelQuery = queryBuilder.modelQuery.find({
-      $or: [
-        { email: { $regex: search, $options: "i" } },
-        { profile: { $in: profileIds } },
-      ],
-    });
-  }
-
-  if (query.role) {
-    queryBuilder.modelQuery = queryBuilder.modelQuery.find({ role: query.role });
-  }
-
-  if (query.status) {
-    queryBuilder.modelQuery = queryBuilder.modelQuery.find({ status: query.status });
-  }
-
-  const data = await queryBuilder.modelQuery;
-  const meta = await queryBuilder.countTotal();
-
-  return {
-    meta,
-    data,
-  };
-};
-
-const getSingleUserService = async (id: string) => {
-  const user = await AuthModel.findById(id).select("-password").populate("profile");
-  if (!user) {
-    throw new ApiError(404, "User not found.");
-  }
-  return user;
+const STORE_REVIEW_STATUS: Record<TStoreReviewAction, string> = {
+  Approve: "Approved",
+  Reject: "Rejected",
+  UnderReview: "Under Review",
+  RequestMoreInfo: "More Info Requested",
 };
 
 const updateUserStatusService = async (id: string, payload: IUpdateUserStatusPayload) => {
@@ -89,8 +44,37 @@ const updateUserStatusService = async (id: string, payload: IUpdateUserStatusPay
 };
 
 // Retailer Specific Services
-const approveRetailerStoreService = async (id: string) => {
+
+/** Move a store through the review workflow and tell the retailer what happened. */
+const reviewRetailerStoreService = async (id: string, action: TStoreReviewAction, note = "") => {
   const retailer = await RetailerModel.findById(id);
+  if (!retailer) {
+    throw new ApiError(404, "Retailer store not found.");
+  }
+
+  const approvalStatus = STORE_REVIEW_STATUS[action];
+  retailer.approvalStatus = approvalStatus;
+  retailer.approvalNote = note;
+  retailer.approvalUpdatedAt = new Date();
+  // isApproved stays the single flag the rest of the app reads
+  retailer.isApproved = action === "Approve";
+  await retailer.save();
+
+  await NotificationHelper.createNotification({
+    toId: String(retailer._id),
+    toModel: "Retailer",
+    title: `Store application: ${approvalStatus}`,
+    description: note || `Your store application status is now "${approvalStatus}".`,
+    type: ENUM_NOTIFICATION_TYPE.STORE_REVIEW_UPDATE,
+    referenceId: String(retailer._id),
+    referenceModel: "Retailer",
+  });
+
+  return retailer;
+};
+
+const approveRetailerStoreService = async (id: string) => {
+  const retailer = await RetailerModel.findById(id).select("isApproved").lean<{ isApproved: boolean }>();
   if (!retailer) {
     throw new ApiError(404, "Retailer store not found.");
   }
@@ -99,26 +83,7 @@ const approveRetailerStoreService = async (id: string) => {
     throw new ApiError(400, "Retailer store is already approved.");
   }
 
-  retailer.isApproved = true;
-  await retailer.save();
-
-  return retailer;
-};
-
-const reviewRetailerStoreService = async (id: string, action: "Approve" | "Reject") => {
-  const retailer = await RetailerModel.findById(id);
-  if (!retailer) {
-    throw new ApiError(404, "Retailer store not found.");
-  }
-
-  if (action === "Approve") {
-    retailer.isApproved = true;
-  } else {
-    retailer.isApproved = false;
-  }
-
-  await retailer.save();
-  return retailer;
+  return reviewRetailerStoreService(id, "Approve");
 };
 
 const suspendReactivateStoreService = async (id: string, action: "Suspend" | "Reactivate") => {
@@ -155,21 +120,61 @@ const getRetailerDocumentsService = async (id: string) => {
   return retailer;
 };
 
+/** Real store analytics computed from orders, products and view counters. */
 const getRetailerAnalyticsService = async (id: string) => {
-  const retailer = await RetailerModel.findById(id);
+  const retailer = await RetailerModel.findById(id)
+    .select("name averageRating followersCount")
+    .lean<{ _id: mongoose.Types.ObjectId; name: string; averageRating: number; followersCount: number }>();
   if (!retailer) {
     throw new ApiError(404, "Retailer store not found.");
   }
 
-  const totalProducts = await ProductModel.countDocuments({ retailerId: retailer._id });
+  const [totalProducts, [sales], [views]] = await Promise.all([
+    ProductModel.countDocuments({ retailerId: retailer._id }),
+    OrderItemModel.aggregate([
+      { $match: { retailerId: retailer._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $addToSet: "$orderId" },
+          completedOrders: {
+            $addToSet: { $cond: [{ $in: ["$status", SOLD_ITEM_STATUSES] }, "$orderId", "$$REMOVE"] },
+          },
+          totalSales: { $sum: { $cond: [{ $in: ["$status", SOLD_ITEM_STATUSES] }, "$quantity", 0] } },
+          totalRevenue: { $sum: { $cond: [{ $in: ["$status", SOLD_ITEM_STATUSES] }, "$totalPrice", 0] } },
+        },
+      },
+      {
+        $project: {
+          totalOrders: { $size: "$totalOrders" },
+          completedOrders: { $size: "$completedOrders" },
+          totalSales: 1,
+          totalRevenue: 1,
+        },
+      },
+    ]),
+    AnalyticsModel.aggregate([
+      { $match: { retailerId: retailer._id } },
+      { $group: { _id: null, storeViews: { $sum: "$profileViewCount" }, productViews: { $sum: "$productViewCount" } } },
+    ]),
+  ]);
+
+  const storeViews: number = views?.storeViews || 0;
+  const completedOrders: number = sales?.completedOrders || 0;
 
   return {
     storeName: retailer.name,
     totalProducts,
-    totalSales: 0,
-    totalRevenue: 0,
-    storeViews: 120,
-    conversionRate: "2.5%",
+    totalOrders: sales?.totalOrders || 0,
+    completedOrders,
+    totalSales: sales?.totalSales || 0,
+    totalRevenue: sales?.totalRevenue || 0,
+    storeViews,
+    productViews: views?.productViews || 0,
+    // null when there is no view data to divide by
+    conversionRate: storeViews > 0 ? `${((completedOrders / storeViews) * 100).toFixed(1)}%` : null,
+    averageRating: retailer.averageRating || 0,
+    followersCount: retailer.followersCount || 0,
   };
 };
 
@@ -186,6 +191,28 @@ const verifyResellerService = async (id: string) => {
 
   reseller.isApproved = true;
   await reseller.save();
+
+  return reseller;
+};
+
+const rejectResellerService = async (id: string, reason: string) => {
+  const reseller = await ResellerModel.findById(id);
+  if (!reseller) {
+    throw new ApiError(404, "Reseller profile not found.");
+  }
+
+  reseller.isApproved = false;
+  await reseller.save();
+
+  await NotificationHelper.createNotification({
+    toId: String(reseller._id),
+    toModel: "Reseller",
+    title: "Reseller verification rejected",
+    description: reason,
+    type: ENUM_NOTIFICATION_TYPE.STORE_REVIEW_UPDATE,
+    referenceId: String(reseller._id),
+    referenceModel: "Reseller",
+  });
 
   return reseller;
 };
@@ -219,8 +246,7 @@ const adjustResellerTrustScoreService = async (id: string, trustScore: number) =
 };
 
 const usersDashboardServices = {
-  getAllUsersService,
-  getSingleUserService,
+  ...usersQueryServices,
   updateUserStatusService,
   approveRetailerStoreService,
   reviewRetailerStoreService,
@@ -228,6 +254,7 @@ const usersDashboardServices = {
   getRetailerDocumentsService,
   getRetailerAnalyticsService,
   verifyResellerService,
+  rejectResellerService,
   getResellerInventoryService,
   adjustResellerTrustScoreService,
 };

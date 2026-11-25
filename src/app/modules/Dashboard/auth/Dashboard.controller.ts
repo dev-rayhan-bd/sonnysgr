@@ -3,6 +3,7 @@ import { AuthRequest } from "../../../../interface/authRequest";
 import catchAsync from "../../../../utilities/catchasync";
 import sendResponse from "../../../../utilities/sendResponse";
 import DashboardService from "./Dashboard.service";
+import AdminAnalyticsService from "../analytics/adminAnalytics.service";
 import { StatusCodes } from "http-status-codes";
 
 
@@ -56,7 +57,7 @@ const adminVerifyCode = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Code verified successfully.",
+    message: "Code verified successfully. Use resetToken to reset the password.",
     data: result,
   });
 });
@@ -75,12 +76,7 @@ const adminSendVerifyCode = catchAsync(async (req, res) => {
 
 
 const adminResetPassword = catchAsync(async (req, res) => {
-  const { user } = req as AuthRequest;
-
-  const result = await DashboardService.adminResetPasswordService(
-    user,
-    req.body,
-  );
+  const result = await DashboardService.adminResetPasswordService(req.body);
 
   sendResponse(res, {
     statusCode: 200,
@@ -136,13 +132,13 @@ const deleteAdminAccount = catchAsync(async (req, res) => {
 });
 
 const dashboardStat = catchAsync(async (req, res) => {
-  // const result = await DashboardService.dashboardStatService();
-  // sendResponse(res,{
-  //     statusCode: 200,
-  //     success: true,
-  //     message: "Got website stat",
-  //     data: result
-  // });
+  const result = await AdminAnalyticsService.getDashboardStats();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Got website stat",
+    data: result,
+  });
 });
 
 const blockAdmin = catchAsync(async (req, res) => {

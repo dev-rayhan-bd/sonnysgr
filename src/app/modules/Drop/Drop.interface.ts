@@ -13,6 +13,8 @@ export interface IDrop {
   earlyMinustes: number;
   raffledrop: boolean;
   maximumEntries: number;
+  approvalStatus?: "Pending" | "Approved" | "Rejected";
+  rejectionReason?: string;
   stockAvailablity: {
     availablePairs: number;
     estimatedDemand: string;

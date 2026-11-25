@@ -111,7 +111,7 @@ RetailerRouter.get(
 
 RetailerRouter.patch(
   "/admin-process-payout/:id",
-  auth(["Admin", "SuperAdmin"]),
+  auth(["Admin", "Super_Admin"]),
   RetailerController.adminProcessPayoutController
 );
 

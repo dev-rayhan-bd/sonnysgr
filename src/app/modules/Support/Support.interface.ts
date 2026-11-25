@@ -8,7 +8,13 @@ export interface ISupportTicket {
   attachments: string[];
   desiredResolution: "Full refund" | "Partial refund" | "Store credit" | "Just want it resolved";
   isTimeSensitive: boolean;
-  status: "Open" | "In Progress" | "Resolved" | "Rejected";
+  status: "Open" | "In Progress" | "Escalated" | "Resolved" | "Rejected";
+  isEscalated?: boolean;
+  escalatedAt?: Date;
+  escalationNote?: string;
+  refundAmount?: number;
+  refundReference?: string;
+  refundedAt?: Date;
   adminResolutionDetails?: string;
   resolvedAt?: Date;
   resolvedBy?: Types.ObjectId;

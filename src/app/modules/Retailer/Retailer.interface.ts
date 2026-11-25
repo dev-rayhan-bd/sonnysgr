@@ -42,5 +42,8 @@ export interface IRetailer {
   followersCount: number;
   averageRating: number;
   isApproved: boolean;
+  approvalStatus?: "Pending" | "Under Review" | "More Info Requested" | "Approved" | "Rejected";
+  approvalNote?: string;
+  approvalUpdatedAt?: Date | null;
   createdAT: Date;
 }

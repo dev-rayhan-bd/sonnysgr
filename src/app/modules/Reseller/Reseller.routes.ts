@@ -31,7 +31,7 @@ ResellerRouter.get(
 // Public profile lookup (respects visibility controls)
 ResellerRouter.get(
   "/public-profile/:id",
-  auth(["Buyer", "Retailer", "Reseller", "Super Admin"]),
+  auth(["Buyer", "Retailer", "Reseller", "Super_Admin"]),
   ResellerController.getPublicResellerProfileController
 );
 
