@@ -3,6 +3,7 @@ import catchAsync from '../../../utilities/catchasync';
 import sendResponse from '../../../utilities/sendResponse';
 import OrderServices from './Order.service';
 import { StatusCodes } from 'http-status-codes';
+import OrderPaymentFacadeService from '../OrderPayment/OrderPaymentFacadeService';
 
 /**
  * Get Retailer Orders for 4 stages: Needs Action, Holds, Ready, History
@@ -125,24 +126,30 @@ const verifyPickupController = catchAsync(async (req, res) => {
 
 const createBuyNowOrderController = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
-  const result = await OrderServices.buyNowOrderService(user, req.body);
+  // Unpaid "Pending Payment" order + Stripe link; the webhook marks it paid
+  const result = await OrderPaymentFacadeService.buyNow(user.profileId, req.body);
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Direct buy order placed successfully.',
+    message: 'Order created. Complete payment via the payment link.',
     data: result,
   });
 });
 
 const createHoldDepositOrderController = catchAsync(async (req, res) => {
   const { user } = req as AuthRequest;
-  const result = await OrderServices.holdOrderService(user, req.body);
+  const { partialDepositAmount, depositAmount, ...rest } = req.body;
+  // The hold countdown starts only after the deposit is paid (Stripe webhook)
+  const result = await OrderPaymentFacadeService.holdDeposit(user.profileId, {
+    ...rest,
+    depositAmount: depositAmount ?? partialDepositAmount,
+  });
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Hold reservation created with countdown timer.',
+    message: 'Hold created. Pay the deposit via the payment link to start the hold timer.',
     data: result,
   });
 });

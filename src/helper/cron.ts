@@ -3,6 +3,7 @@ import { handleActivePromotion, handleExpiredPromotion } from "../app/modules/Pr
 import OrderFacadeService from "../app/modules/Order/OrderFacadeService";
 import OfferFacadeService from "../app/modules/Offer/OfferFacadeService";
 import { SourcingFacadeService } from "../app/modules/Sourcing/SourcingFacadeService";
+import OrderPaymentFacadeService from "../app/modules/OrderPayment/OrderPaymentFacadeService";
 
 // -------------------------------
 // SAFE WRAPPER
@@ -56,6 +57,20 @@ export const runCronJobEverydatAtNight = () => {
   cron.schedule("0 * * * *", async () => {
     await safeRun("Expire Overdue Sourcing Requests Job", async () => {
       await SourcingFacadeService.expireOverdueSourcingRequests();
+    });
+  });
+
+  // 7. Every 10 minutes: reconcile checkouts whose webhook never arrived (confirm or cancel + release stock)
+  cron.schedule("2-59/10 * * * *", async () => {
+    await safeRun("Reconcile Stale Checkouts Job", async () => {
+      await OrderPaymentFacadeService.reconcileStaleCheckouts();
+    });
+  });
+
+  // 8. Every 15 minutes: retry refunds Stripe has not confirmed yet (refund outbox)
+  cron.schedule("7-59/15 * * * *", async () => {
+    await safeRun("Retry Pending Refunds Job", async () => {
+      await OrderPaymentFacadeService.retryPendingRefunds();
     });
   });
 

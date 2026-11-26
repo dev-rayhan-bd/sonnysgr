@@ -4,7 +4,8 @@ import { SupportTicketModel, SupportAuditLogModel } from "./Support.model";
 import { OrderModel } from "../Order/Order.model";
 import { s3 } from "../../../config/awsS3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import stripe from "../../../config/stripe";
+import OrderPaymentFacadeService from "../OrderPayment/OrderPaymentFacadeService";
+import { REFUND_REASON } from "../OrderPayment/OrderPayment.constant";
 import { notifyAdmins } from "../Dashboard/notifications/adminNotification.service";
 
 const generatePresignedUrl = async (fileName: string, fileType: string) => {
@@ -82,6 +83,7 @@ const getTicketsAdmin = async (query: Record<string, any>) => {
 
 const resolveTicket = async (ticketId: string, adminId: string, payload: any) => {
   const session = await mongoose.startSession();
+  let refundPaymentId: mongoose.Types.ObjectId | undefined;
 
   try {
     session.startTransaction();
@@ -104,26 +106,22 @@ const resolveTicket = async (ticketId: string, adminId: string, payload: any) =>
         throw new ApiError(404, "Associated order not found for refund processing");
       }
 
-      // Fetch payment record
-      const OrderPaymentModel = mongoose.model("OrderPayment");
-      const payment = await OrderPaymentModel.findOne({ orderId: order._id }).session(session);
+      // Queue the refund in this transaction (outbox); Stripe is called after commit.
+      // refundKey per ticket: resolving the same ticket twice can never refund twice.
+      const queued = await OrderPaymentFacadeService.queueRefund({
+        orderId: order._id,
+        amount: payload.refundAmount || undefined,
+        reason: REFUND_REASON.DISPUTE_RESOLUTION,
+        refundKey: `dispute:${ticket._id}`,
+        session,
+      });
 
-      if (payment && payment.gateway === "STRIPE" && payment.gatewayResponse) {
-        const stripeSession = payment.gatewayResponse;
-        const paymentIntentId = stripeSession.payment_intent;
-
-        if (paymentIntentId) {
-          const refundAmount = payload.refundAmount || order.totalAmount;
-          const refund = await stripe.refunds.create({
-            payment_intent: paymentIntentId,
-            amount: Math.round(refundAmount * 100), // In cents
-          });
-
-          // Recorded on the ticket so the admin refunds ledger can list it
-          ticket.refundAmount = refundAmount;
-          ticket.refundReference = refund.id;
-          ticket.refundedAt = new Date();
-        }
+      if (queued) {
+        refundPaymentId = queued.paymentId;
+        // Recorded on the ticket so the admin refunds ledger can list it
+        ticket.refundAmount = queued.amount;
+        ticket.refundReference = queued.refundKey;
+        ticket.refundedAt = new Date();
       }
     }
 
@@ -150,6 +148,12 @@ const resolveTicket = async (ticketId: string, adminId: string, payload: any) =>
     );
 
     await session.commitTransaction();
+
+    if (refundPaymentId) {
+      await OrderPaymentFacadeService.processPaymentRefunds(refundPaymentId).catch((err) =>
+        console.error("[REFUND] dispute refund will retry via cron:", err)
+      );
+    }
     return ticket;
   } catch (error: any) {
     await session.abortTransaction();

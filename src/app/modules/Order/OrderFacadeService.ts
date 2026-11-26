@@ -2,7 +2,6 @@ import { IJwtPayload } from '../../../interface/jwt.interface';
 import { RetailerOrderQuerySubService } from './subServices/RetailerOrderQuerySubService';
 import { RetailerOrderFulfillmentSubService } from './subServices/RetailerOrderFulfillmentSubService';
 import { OrderHoldSubService } from './subServices/OrderHoldSubService';
-import { OrderCheckoutSubService } from './subServices/OrderCheckoutSubService';
 import { BuyerOrderSubService } from './subServices/BuyerOrderSubService';
 import { OrderPickupVerificationSubService } from './subServices/OrderPickupVerificationSubService';
 
@@ -45,10 +44,6 @@ export class OrderFacadeService {
   }
 
   // --- Holds & Countdown Reservations (Module 9) ---
-  static async holdOrder(userDetails: IJwtPayload, payload: any) {
-    return await OrderHoldSubService.holdOrder(userDetails, payload);
-  }
-
   static async getMyActiveHolds(buyerId: string) {
     return await OrderHoldSubService.getMyActiveHolds(buyerId);
   }
@@ -65,30 +60,7 @@ export class OrderFacadeService {
     return await OrderHoldSubService.releaseExpiredHolds();
   }
 
-  // --- Checkout: Buy Now & Cart ---
-  static async buyNowOrder(userDetails: IJwtPayload, payload: any) {
-    return await OrderCheckoutSubService.buyNowOrder(userDetails, payload);
-  }
-
-  static async cartOrder(userDetails: IJwtPayload, payload: any) {
-    return await OrderCheckoutSubService.cartOrder(userDetails, payload);
-  }
-
-  static async createDirectPendingOrderService(
-    buyerId: string,
-    orderItems: any[],
-    shippingAddress: any,
-    paymentMethod: string,
-    session: any
-  ) {
-    return await OrderCheckoutSubService.createDirectPendingOrderService(
-      buyerId,
-      orderItems,
-      shippingAddress,
-      paymentMethod,
-      session
-    );
-  }
+  // Checkout (Buy Now, cart, hold deposit) lives in OrderPaymentFacadeService: every order is paid via Stripe.
 
   // --- Buyer Orders ---
   static async getMyOrders(buyerId: string, query: Record<string, unknown>) {

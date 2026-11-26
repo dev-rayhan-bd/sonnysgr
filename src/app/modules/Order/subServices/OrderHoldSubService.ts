@@ -1,14 +1,14 @@
 import mongoose from "mongoose";
 import AppError from "../../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
-import { IJwtPayload } from "../../../../interface/jwt.interface";
 import { OrderItemModel, OrderModel } from "../Order.model";
-import { ProductModel } from "../../Product/Product.model";
-import { ProductInventorySubService } from "../../Product/subServices/ProductInventorySubService";
+import { OrderInventorySubService } from "./OrderInventorySubService";
+import OrderPaymentModel from "../../OrderPayment/OrderPayment.model";
+import { ORDER_PAYMENT_STATUS, ORDER_PAYMENT_TYPE } from "../../OrderPayment/OrderPayment.constant";
+import { runInTransaction } from "../../OrderPayment/OrderPayment.utils";
 import { BuyerHistorySubService } from "../../Buyer/subServices/BuyerHistorySubService";
 import { BuyerLoyaltySubService } from "../../Buyer/subServices/BuyerLoyaltySubService";
 import { BuyerReferralSubService } from "../../Buyer/subServices/BuyerReferralSubService";
-import { RetailerStoreSettingsSubService } from "../../Retailer/subServices/RetailerStoreSettingsSubService";
 import {
   ENUM_ORDER_ITEM_STATUS,
   ENUM_ORDER_STATUS,
@@ -21,161 +21,8 @@ import {
  * Module 9: Hold & Reservation Engine
  */
 export class OrderHoldSubService {
-  /**
-   * Create a deposit-backed hold reservation with countdown timer (3h to 24h)
-   */
-  static async holdOrder(
-    userDetails: IJwtPayload,
-    payload: {
-      retailerId: string;
-      productId: string;
-      selectedSize: number | string;
-      quantity?: number;
-      unitPrice?: number;
-      holdingTimeHours?: number;
-      partialDepositAmount?: number;
-      shippingAddress?: any;
-    }
-  ) {
-    const { profileId } = userDetails;
-    const {
-      retailerId,
-      productId,
-      selectedSize,
-      quantity = 1,
-      partialDepositAmount,
-      shippingAddress,
-    } = payload;
-
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-
-      const product = (await ProductModel.findById(productId).session(session)) as any;
-      if (!product) {
-        throw new AppError(StatusCodes.NOT_FOUND, "Sneaker not found for hold reservation.");
-      }
-
-      const sizeStr = String(selectedSize);
-      const variant = product.variant?.find((v: any) => String(v.size) === sizeStr);
-
-      if (!variant || variant.stock < quantity) {
-        throw new AppError(
-          StatusCodes.BAD_REQUEST,
-          `Insufficient stock in size ${sizeStr} to create a hold reservation.`
-        );
-      }
-
-      const unitPrice = payload.unitPrice || variant.price || product.price;
-      const totalAmount = unitPrice * quantity;
-
-      // Deposit calculation: e.g. Flat $30 or 20% of total
-      const deposit = partialDepositAmount || Math.min(30, Math.round(totalAmount * 0.2 * 100) / 100);
-      const remainingBalance = Math.max(0, totalAmount - deposit);
-
-      // Module 9.2: the store's configured hold duration is the default and the upper bound;
-      // a buyer may request a shorter hold but never a longer one.
-      const storeSettings = await RetailerStoreSettingsSubService.getSettingsInternal(retailerId, session);
-      const requestedHours = Number(payload.holdingTimeHours);
-      const holdingTimeHours =
-        requestedHours > 0
-          ? Math.min(requestedHours, storeSettings.holdDurationHours)
-          : storeSettings.holdDurationHours;
-
-      const holdStart = new Date();
-      const holdEnd = new Date(holdStart.getTime() + holdingTimeHours * 60 * 60 * 1000);
-
-      const timestamp = Date.now().toString().slice(-6);
-      const orderNumber = `GS-HOLD-${timestamp}-${Math.floor(100 + Math.random() * 900)}`;
-      const pickupVerificationCode = `GS-HOLD-${Math.floor(100000 + Math.random() * 900000)}`;
-
-      // 1. Create Parent Hold Order Record
-      const [order] = await OrderModel.create(
-        [
-          {
-            buyerId: new mongoose.Types.ObjectId(profileId),
-            orderNumber,
-            subtotal: totalAmount,
-            shippingCharge: 0,
-            discountAmount: 0,
-            totalAmount,
-            totalItems: quantity,
-            orderStatus: ENUM_ORDER_STATUS.HOLDING,
-            orderType: ENUM_ORDER_TYPE.HOLD,
-            paymentStatus: ENUM_PAYMENT_STATUS.PAID, // Deposit paid
-            holdingTime: holdingTimeHours,
-            holdingStartTime: holdStart,
-            holdingEndTime: holdEnd,
-            partialPayment: deposit,
-            pickupVerificationCode,
-            pickupTime: holdEnd,
-            shippingAddress: shippingAddress || {
-              name: "In-Store Boutique Hold",
-              phone: "N/A",
-              address: "Local Store Pickup & Settlement",
-              city: "Local",
-              lat: 0,
-              lng: 0,
-            },
-          },
-        ],
-        { session }
-      );
-
-      // 2. Create Order Item under retailer
-      const [orderItem] = await OrderItemModel.create(
-        [
-          {
-            orderId: order._id,
-            buyerId: new mongoose.Types.ObjectId(profileId),
-            retailerId: new mongoose.Types.ObjectId(retailerId),
-            productId: new mongoose.Types.ObjectId(productId),
-            productSnapshot: {
-              name: product.name,
-              image: product.images?.[0] || "",
-              brand: product.brand,
-            },
-            selectedSize: sizeStr,
-            quantity,
-            unitPrice,
-            totalPrice: totalAmount,
-            status: ENUM_ORDER_ITEM_STATUS.HOLDING,
-            pickupTime: holdEnd,
-          },
-        ],
-        { session }
-      );
-
-      // 3. Atomically lock size stock (decrement live stock, increment reservedStock)
-      await ProductInventorySubService.adjustSizeStock(
-        productId,
-        sizeStr,
-        -quantity,
-        quantity,
-        session
-      );
-
-      await session.commitTransaction();
-
-      return {
-        order,
-        orderItem,
-        reservation: {
-          orderNumber,
-          pickupVerificationCode,
-          depositPaid: deposit,
-          remainingBalanceAtCounter: remainingBalance,
-          holdingHours: holdingTimeHours,
-          expiresAt: holdEnd,
-        },
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
+  // Hold creation (deposit checkout) lives in OrderPayment/PendingOrderSubService +
+  // PaymentSettlementSubService: a hold only becomes HOLDING after Stripe confirms the deposit.
 
   /**
    * Get buyer's active holds with live countdown timers and remaining balances
@@ -310,13 +157,7 @@ export class OrderHoldSubService {
 
       // Permanently finalize reserved stock
       for (const item of items) {
-        await ProductInventorySubService.adjustSizeStock(
-          String(item.productId),
-          String(item.selectedSize),
-          0,
-          -item.quantity, // Release reserved stock
-          session
-        );
+        await OrderInventorySubService.commitReservation(item, session);
 
         item.status = ENUM_ORDER_ITEM_STATUS.COMPLETED;
         item.completedAt = new Date();
@@ -325,7 +166,7 @@ export class OrderHoldSubService {
 
       order.orderStatus = ENUM_ORDER_STATUS.COMPLETED;
       order.paymentStatus = ENUM_PAYMENT_STATUS.PAID;
-      order.paymentMethod = paymentMethod;
+      order.balancePaymentMethod = paymentMethod; // paymentMethod stays Stripe (the deposit)
       await order.save({ session });
 
       await session.commitTransaction();
@@ -360,6 +201,7 @@ export class OrderHoldSubService {
         totalAmount: order.totalAmount,
         depositDeducted: depositPaid,
         balanceCollectedAtCounter,
+        balancePaymentMethod: paymentMethod,
         orderStatus: ENUM_ORDER_STATUS.COMPLETED,
         message: "In-store hold verified and settled successfully.",
       };
@@ -372,35 +214,51 @@ export class OrderHoldSubService {
   }
 
   /**
-   * Release expired holds automatically and return locked stock to inventory
+   * Release expired holds (no-show) and return locked stock to inventory.
+   * Module 9.5: the paid deposit is forfeited. Each hold is released in its own transaction with
+   * a compare-and-set on HOLDING, so it can never race an in-store settlement.
    */
   static async releaseExpiredHolds() {
-    const now = new Date();
     const expiredOrders = await OrderModel.find({
       orderType: ENUM_ORDER_TYPE.HOLD,
       orderStatus: ENUM_ORDER_STATUS.HOLDING,
-      holdingEndTime: { $lte: now },
-    });
+      holdingEndTime: { $lte: new Date() },
+    })
+      .select("_id")
+      .lean();
 
     let releasedCount = 0;
+    for (const { _id } of expiredOrders) {
+      try {
+        const released = await runInTransaction(async (session) => {
+          const order = await OrderModel.findOneAndUpdate(
+            { _id, orderStatus: ENUM_ORDER_STATUS.HOLDING, holdingEndTime: { $lte: new Date() } },
+            { $set: { orderStatus: ENUM_ORDER_STATUS.CANCELLED } },
+            { new: true, session }
+          );
+          if (!order) return false;
 
-    for (const order of expiredOrders) {
-      const items = await OrderItemModel.find({ orderId: order._id });
-      for (const item of items) {
-        // Return reserved stock to available stock
-        await ProductInventorySubService.adjustSizeStock(
-          String(item.productId),
-          String(item.selectedSize),
-          item.quantity, // restore stock
-          -item.quantity // clear reserved stock
-        );
-        item.status = ENUM_ORDER_ITEM_STATUS.CANCELLED;
-        await item.save();
+          const items = await OrderItemModel.find({
+            orderId: order._id,
+            status: ENUM_ORDER_ITEM_STATUS.HOLDING,
+          }).session(session);
+          for (const item of items) {
+            await OrderInventorySubService.returnToStock(item, session);
+            item.status = ENUM_ORDER_ITEM_STATUS.CANCELLED;
+            await item.save({ session });
+          }
+
+          await OrderPaymentModel.updateMany(
+            { orderId: order._id, paymentType: ORDER_PAYMENT_TYPE.HOLD_DEPOSIT, status: ORDER_PAYMENT_STATUS.SUCCESS },
+            { $set: { depositForfeitedAt: new Date() } },
+            { session }
+          );
+          return true;
+        });
+        if (released) releasedCount++;
+      } catch (error) {
+        console.error(`[HOLD] failed to release expired hold ${_id}:`, error);
       }
-
-      order.orderStatus = ENUM_ORDER_STATUS.CANCELLED;
-      await order.save();
-      releasedCount++;
     }
 
     return { releasedCount };

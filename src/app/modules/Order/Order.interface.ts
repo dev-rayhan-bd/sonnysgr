@@ -26,6 +26,7 @@ export interface IOrder {
   holdingStartTime?: Date;
   holdingEndTime?: Date;
   partialPayment?: number; // deposit paid upfront (e.g. $30 or 20%)
+  balancePaymentMethod?: string | null; // how the in-store balance of a hold was paid
   pickupVerificationCode?: string; // 6-digit dropoff/pickup verification code (GS-HOLD-XXXXXX)
   pickupTime: Date;
   createdAt?: Date;

@@ -3,6 +3,8 @@ import { auth, authorizeUser } from "../../middleware/auth";
 import OrderController from "./Order.controller";
 import validateRequest from "../../middleware/validateRequest";
 import OrderValidations from "./Order.validation";
+import idempotency from "../../middleware/idempotency";
+import OrderPaymentValidations from "../OrderPayment/OrderPayment.validation";
 
 const OrderRouter = express.Router();
 
@@ -46,6 +48,8 @@ OrderRouter.patch(
 OrderRouter.patch(
   "/retailer-cancel-order/:id",
   auth(["Retailer"]),
+  idempotency({ required: false }),
+  validateRequest(OrderValidations.retailerCancelValidation),
   OrderController.retailerCancelOrderController
 );
 
@@ -61,19 +65,26 @@ OrderRouter.post(
 OrderRouter.post(
   "/settle-hold",
   auth(["Retailer"]),
+  validateRequest(OrderValidations.settleHoldValidation),
   OrderController.settleInStoreHoldOrderController
 );
 
 // --- 2. Buyer Order, Holds & Checkout Lifecycle Endpoints ---
+// Returns a Stripe paymentLink; the order is "Pending Payment" until the webhook confirms it
 OrderRouter.post(
   "/create-buy-now",
   auth(["Buyer"]),
+  idempotency(),
+  validateRequest(OrderPaymentValidations.buyNowValidationSchema),
   OrderController.createBuyNowOrderController
 );
 
+// Returns a Stripe paymentLink for the deposit; the hold timer starts once it is paid
 OrderRouter.post(
   "/create-hold-deposit",
   auth(["Buyer"]),
+  idempotency(),
+  validateRequest(OrderPaymentValidations.holdDepositValidationSchema),
   OrderController.createHoldDepositOrderController
 );
 
@@ -98,6 +109,8 @@ OrderRouter.get(
 OrderRouter.post(
   "/cancel/:orderId",
   auth(["Buyer"]),
+  idempotency({ required: false }),
+  validateRequest(OrderValidations.cancelOrderValidation),
   OrderController.cancelBuyerOrderController
 );
 

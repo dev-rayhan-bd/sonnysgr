@@ -4,7 +4,11 @@ import QueryBuilder from '../../../builder/QueryBuilder';
 import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
 import { ENUM_ORDER_ITEM_STATUS, ENUM_ORDER_STATUS } from '../../../../utilities/enum';
-import { ProductInventorySubService } from '../../Product/subServices/ProductInventorySubService';
+import { OrderInventorySubService } from './OrderInventorySubService';
+import OrderPaymentFacadeService from '../../OrderPayment/OrderPaymentFacadeService';
+import OrderPaymentModel from '../../OrderPayment/OrderPayment.model';
+import { HOLD_DEPOSIT_RULES, REFUND_REASON } from '../../OrderPayment/OrderPayment.constant';
+import { runInTransaction } from '../../OrderPayment/OrderPayment.utils';
 import { OrderPickupVerificationSubService } from './OrderPickupVerificationSubService';
 
 /**
@@ -28,6 +32,7 @@ export class BuyerOrderSubService {
     } else if (tab === 'active') {
       filter.orderStatus = {
         $in: [
+          ENUM_ORDER_STATUS.PENDING_PAYMENT, // unpaid checkout: app offers "Continue payment" / cancel
           ENUM_ORDER_STATUS.PLACED,
           ENUM_ORDER_STATUS.PROCESSING,
           ENUM_ORDER_STATUS.READY_FOR_PICKUP,
@@ -36,7 +41,9 @@ export class BuyerOrderSubService {
       };
     }
 
-    const queryBuilder = new QueryBuilder(OrderModel.find(filter), query)
+    // `tab` is resolved above; QueryBuilder.filter() would otherwise match it as a field ({ tab: 'active' })
+    const { tab: _tab, ...listQuery } = query;
+    const queryBuilder = new QueryBuilder(OrderModel.find(filter), listQuery)
       .search(['orderNumber'])
       .filter()
       .sort()
@@ -120,68 +127,94 @@ export class BuyerOrderSubService {
   }
 
   /**
-   * Cancel unfulfilled order or hold according to store refund rules
+   * Cancel an unfulfilled order or hold (Module 9.5 refund rules).
+   * - Pending Payment: the Stripe checkout is closed, reserved stock returned, nothing charged.
+   * - Paid order not yet accepted by any store: stock returned, full refund queued.
+   * - Active hold: stock returned, deposit refunded when HOLD_DEPOSIT_RULES.refundOnBuyerCancel.
+   * Cancellation and the refund record commit in one transaction; Stripe is called after commit.
    */
   static async cancelBuyerOrder(buyerId: string, orderId: string, reason?: string) {
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       throw new AppError(StatusCodes.BAD_REQUEST, 'Invalid order ID format.');
     }
 
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-
-      const order = await OrderModel.findOne({
-        _id: orderId,
-        buyerId,
-      }).session(session);
-
+    const outcome = await runInTransaction(async (session) => {
+      const order = await OrderModel.findOne({ _id: orderId, buyerId }).session(session);
       if (!order) {
         throw new AppError(StatusCodes.NOT_FOUND, 'Order not found.');
       }
 
-      const cancellableStatuses = [
-        ENUM_ORDER_STATUS.PLACED,
-        ENUM_ORDER_STATUS.HOLDING,
-      ];
+      if (order.orderStatus === ENUM_ORDER_STATUS.PENDING_PAYMENT) {
+        await OrderPaymentFacadeService.cancelUnpaidOrderInTx(order, session);
+        const payment = await OrderPaymentModel.findOne({ orderId: order._id })
+          .sort({ createdAt: -1 })
+          .select('stripeSessionId')
+          .session(session)
+          .lean();
+        return { order, refund: null, stripeSessionId: payment?.stripeSessionId || null };
+      }
 
-      if (!cancellableStatuses.includes(order.orderStatus as any)) {
+      const cancellableItemStatuses = [ENUM_ORDER_ITEM_STATUS.PLACED, ENUM_ORDER_ITEM_STATUS.HOLDING];
+      const items = await OrderItemModel.find({ orderId: order._id }).session(session);
+      const blocked = items.some(
+        (i) => i.status !== ENUM_ORDER_ITEM_STATUS.CANCELLED && !cancellableItemStatuses.includes(i.status)
+      );
+      const cancellableOrder = [ENUM_ORDER_STATUS.PLACED, ENUM_ORDER_STATUS.HOLDING].includes(order.orderStatus);
+      if (!cancellableOrder || blocked) {
         throw new AppError(
           StatusCodes.BAD_REQUEST,
-          `Cannot cancel order with status '${order.orderStatus}'. Please contact store support.`
+          `Cannot cancel order with status '${order.orderStatus}'. The store has already started it, please contact store support.`
         );
       }
 
-      // Return reserved inventory
-      const items = await OrderItemModel.find({ orderId: order._id }).session(session);
-      for (const item of items) {
-        await ProductInventorySubService.adjustSizeStock(
-          String(item.productId),
-          String(item.selectedSize),
-          item.quantity,
-          0,
-          session
-        );
+      // Compare-and-set so a double tap or a concurrent store action cannot cancel twice
+      const claimed = await OrderModel.updateOne(
+        { _id: order._id, orderStatus: order.orderStatus },
+        { $set: { orderStatus: ENUM_ORDER_STATUS.CANCELLED } },
+        { session }
+      );
+      if (!claimed.modifiedCount) {
+        throw new AppError(StatusCodes.CONFLICT, 'Order status changed. Please refresh and try again.');
+      }
 
+      for (const item of items.filter((i) => cancellableItemStatuses.includes(i.status))) {
+        await OrderInventorySubService.returnToStock(item, session);
         item.status = ENUM_ORDER_ITEM_STATUS.CANCELLED;
         await item.save({ session });
       }
 
-      order.orderStatus = ENUM_ORDER_STATUS.CANCELLED;
-      await order.save({ session });
+      const isHold = order.orderStatus === ENUM_ORDER_STATUS.HOLDING;
+      const refund =
+        isHold && !HOLD_DEPOSIT_RULES.refundOnBuyerCancel
+          ? null
+          : await OrderPaymentFacadeService.queueRefund({
+              orderId: order._id,
+              reason: REFUND_REASON.BUYER_CANCELLED,
+              refundKey: `buyer-cancel:${order._id}`,
+              session,
+            });
+      return { order, refund, stripeSessionId: null };
+    });
 
-      await session.commitTransaction();
-
-      return {
-        orderId: order._id,
-        orderStatus: ENUM_ORDER_STATUS.CANCELLED,
-        message: 'Order cancelled successfully. Any holds/reservations have been released.',
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+    if (outcome.stripeSessionId) {
+      // Close the checkout so it cannot be paid; a payment that slips through is auto-refunded
+      await OrderPaymentFacadeService.expireCheckoutSession(outcome.stripeSessionId);
     }
+    if (outcome.refund?.paymentId) {
+      await OrderPaymentFacadeService.processPaymentRefunds(outcome.refund.paymentId).catch((err) =>
+        console.error('[REFUND] will retry via cron:', err)
+      );
+    }
+
+    return {
+      orderId: outcome.order._id,
+      orderStatus: ENUM_ORDER_STATUS.CANCELLED,
+      reason: reason || null,
+      refundAmount: outcome.refund?.amount || 0,
+      refundStatus: outcome.refund ? 'PENDING' : null,
+      message: outcome.refund
+        ? 'Order cancelled. Your refund has been issued to the original payment method.'
+        : 'Order cancelled successfully. Any holds/reservations have been released.',
+    };
   }
 }

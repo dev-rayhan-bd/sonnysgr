@@ -12,7 +12,10 @@ const listQuery = {
 const transactionsValidation = z.object({
   query: z.object({
     ...listQuery,
-    status: z.enum(["PENDING", "SUCCESS", "FAILED"]).optional(),
+    status: z
+      .enum(["PENDING", "SUCCESS", "FAILED", "CANCELLED", "PARTIALLY_REFUNDED", "REFUNDED"])
+      .optional(),
+    paymentType: z.enum(["ORDER", "HOLD_DEPOSIT"]).optional(),
     gateway: z.enum(["STRIPE"]).optional(),
   }),
 });

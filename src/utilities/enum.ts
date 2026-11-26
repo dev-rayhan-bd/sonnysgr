@@ -35,6 +35,8 @@ export const ENUM_SUBSCRIPTION_TYPE = {
 };
 
 export const ENUM_ORDER_STATUS = {
+  // Order created, Stripe checkout not paid yet: hidden from retailer stages, stock reserved
+  PENDING_PAYMENT: "Pending Payment",
   HOLDING: "Holding",
   PLACED: "Placed",
   ACCEPTED: "Accepted",
@@ -48,6 +50,7 @@ export const ENUM_ORDER_STATUS = {
 };
 
 export const ENUM_ORDER_ITEM_STATUS = {
+  PENDING_PAYMENT: "Pending Payment",
   HOLDING: "Holding",
   PLACED: "Placed",
   SHIPPED: "Shipped",

@@ -1,6 +1,7 @@
 import express from "express";
 import { auth, authorizeUser } from "../../middleware/auth";
 import validateRequest from "../../middleware/validateRequest";
+import idempotency from "../../middleware/idempotency";
 import SubscriptionPaymentValidations from "./SubscriptionPayment.validation";
 import SubscriptionPaymentController from "./SubscriptionPayment.controller";
 
@@ -48,6 +49,7 @@ SubscriptionPaymentRouter.delete(
 SubscriptionPaymentRouter.post(
   "/checkout",
   auth(["Retailer"]),
+  idempotency(),
   validateRequest(SubscriptionPaymentValidations.checkoutValidationSchema),
   SubscriptionPaymentController.createCheckout
 );

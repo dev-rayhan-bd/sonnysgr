@@ -20,6 +20,28 @@ const verifyPickupValidation = z.object({
     }),
 });
 
-const OrderValidations = { u, verifyPickupValidation };
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+
+const cancelOrderValidation = z.object({
+    params: z.object({ orderId: z.string().regex(objectIdRegex, "Invalid order ID format.") }),
+    body: z.object({ reason: z.string().trim().max(500).optional() }).optional(),
+});
+
+const retailerCancelValidation = z.object({
+    params: z.object({ id: z.string().regex(objectIdRegex, "Invalid order item ID format.") }),
+    body: z.object({ reason: z.string().trim().max(500).optional() }).optional(),
+});
+
+const settleHoldValidation = z.object({
+    body: z
+        .object({
+            orderId: z.string().regex(objectIdRegex, "Invalid order ID format.").optional(),
+            pickupVerificationCode: z.string().trim().min(6).optional(),
+            paymentMethod: z.enum(["IN_STORE_CASH", "IN_STORE_CARD"]).optional(),
+        })
+        .refine((b) => b.orderId || b.pickupVerificationCode, "orderId or pickupVerificationCode is required."),
+});
+
+const OrderValidations = { u, verifyPickupValidation, cancelOrderValidation, retailerCancelValidation, settleHoldValidation };
 
 export default OrderValidations;

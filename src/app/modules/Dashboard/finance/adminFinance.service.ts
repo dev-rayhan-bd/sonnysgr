@@ -22,7 +22,7 @@ const orderLookup = () =>
 /** Stripe order payments ledger. `gatewayResponse` is never returned. */
 const getTransactions = async (query: TQuery) =>
   new AggregationBuilder(OrderPaymentModel, query, dateRangeMatch(query))
-    .filter({ status: "string", gateway: "string" })
+    .filter({ status: "string", gateway: "string", paymentType: "string" })
     .search(["transactionId"])
     .sort()
     .execute([...buyerLookup(), ...orderLookup(), { $project: { gatewayResponse: 0, __v: 0 } }]);

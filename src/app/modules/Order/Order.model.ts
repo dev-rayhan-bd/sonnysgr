@@ -58,6 +58,8 @@ const OrderSchema = new Schema<IOrder>(
     holdingStartTime: { type: Date, default: null },
     holdingEndTime: { type: Date, default: null, index: true },
     partialPayment: { type: Number, default: 0 },
+    // Hold settlement: how the remaining balance was paid at the counter (deposit stays Stripe)
+    balancePaymentMethod: { type: String, enum: ["IN_STORE_CASH", "IN_STORE_CARD", null], default: null },
     pickupVerificationCode: { type: String, index: true },
 
     pickupTime: { type: Date, required: true },

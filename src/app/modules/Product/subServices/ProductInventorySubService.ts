@@ -53,6 +53,42 @@ export class ProductInventorySubService {
   }
 
   /**
+   * Move `quantity` from available stock into reservedStock, only if that much stock exists.
+   * The stock check and the decrement are one atomic update, so two buyers can never both
+   * reserve the last pair (one gets 409).
+   */
+  static async reserveSizeStock(
+    productId: string,
+    size: string,
+    quantity: number,
+    session?: mongoose.ClientSession
+  ) {
+    const product = await ProductModel.findOneAndUpdate(
+      {
+        _id: productId,
+        variant: { $elemMatch: { size, stock: { $gte: quantity } } },
+      },
+      { $inc: { 'variant.$.stock': -quantity, 'variant.$.reservedStock': quantity } },
+      { new: true, session }
+    );
+
+    if (!product) {
+      throw new AppError(
+        StatusCodes.CONFLICT,
+        `Size ${size} no longer has ${quantity} pair(s) available. Please refresh and try again.`
+      );
+    }
+
+    await ProductVariantModel.findOneAndUpdate(
+      { productId, size },
+      { $inc: { stock: -quantity, reservedStock: quantity } },
+      { session }
+    );
+
+    return product;
+  }
+
+  /**
    * Toggle product availability status (Active vs Coming Soon)
    */
   static async toggleAvailability(

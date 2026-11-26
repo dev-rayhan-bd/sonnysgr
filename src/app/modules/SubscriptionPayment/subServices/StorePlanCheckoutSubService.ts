@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import AppError from "../../../errors/AppError";
 import config from "../../../config";
@@ -39,7 +40,7 @@ export class StorePlanCheckoutSubService {
       throw new AppError(StatusCodes.NOT_FOUND, "Plan not found or no longer available.");
     }
 
-    const transactionId = `SP-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const transactionId = `SP-${randomUUID()}`;
 
     const purchase = await StorePlanPurchaseModel.create({
       retailerId: new mongoose.Types.ObjectId(profileId),
@@ -85,7 +86,8 @@ export class StorePlanCheckoutSubService {
           purchaseId: purchase._id.toString(),
           transactionId,
         },
-      });
+      },
+      { idempotencyKey: `store-plan-checkout:${purchase._id}` });
 
       await StorePlanPurchaseModel.updateOne(
         { _id: purchase._id },
