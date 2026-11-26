@@ -72,12 +72,17 @@ export class PromotionCommandSubService {
    * Schedule promotion for a future time
    */
   private static async schedulePromotion(payload: IPromotion) {
-    const startAt = payload.scheduledAt || new Date();
-    const durationHours = payload.duration || 24;
+    // multipart sends scheduledAt as a string; .getTime() on it used to throw (500)
+    const startAt = payload.scheduledAt ? new Date(payload.scheduledAt) : new Date();
+    if (Number.isNaN(startAt.getTime())) {
+      throw new AppError(StatusCodes.BAD_REQUEST, 'scheduledAt must be a valid date.');
+    }
+    const durationHours = Number(payload.duration) || 24;
     const expiresAt = new Date(startAt.getTime() + durationHours * 60 * 60 * 1000);
 
     const promotion = await PromotionModel.create({
       ...payload,
+      scheduledAt: startAt,
       startAt,
       expiresAt,
       status: ENUM_PROMOTION_STATUS.SCHEDULED,
@@ -139,7 +144,9 @@ export class PromotionCommandSubService {
   }
 
   /**
-   * Edit existing promotion
+   * Edit a promotion that has not gone out yet (Draft or Scheduled).
+   * Only content fields are editable; status/isActive/startAt/expiresAt are derived, never taken
+   * from the request (the old version spread the raw body into $set).
    */
   static async editPromotion(
     userDetails: IJwtPayload,
@@ -148,24 +155,60 @@ export class PromotionCommandSubService {
     payload: Partial<IPromotion>
   ) {
     const { profileId } = userDetails;
-    const updateData: any = { ...payload };
+    const promotion = await PromotionModel.findOne({ _id: promotionId, retailerID: profileId }).lean<IPromotion>();
+    if (!promotion) {
+      throw new AppError(StatusCodes.NOT_FOUND, 'Promotion not found or access denied.');
+    }
+
+    const editable = [ENUM_PROMOTION_STATUS.DRAFT, ENUM_PROMOTION_STATUS.SCHEDULED];
+    if (!editable.includes(promotion.status as string)) {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        `A promotion that is ${promotion.status} has already been sent and can no longer be edited.`
+      );
+    }
+
+    const set: Record<string, unknown> = {};
+    for (const key of ['title', 'content', 'type', 'recepient'] as const) {
+      if (payload[key] !== undefined) set[key] = payload[key];
+    }
+    if (payload.duration !== undefined) set.duration = Number(payload.duration);
+
+    // A scheduled promotion's window follows its (possibly new) start time and duration
+    if (promotion.status === ENUM_PROMOTION_STATUS.SCHEDULED && (payload.scheduledAt || payload.duration !== undefined)) {
+      const startAt = payload.scheduledAt ? new Date(payload.scheduledAt) : new Date(promotion.startAt as Date);
+      if (startAt.getTime() <= Date.now()) {
+        throw new AppError(StatusCodes.BAD_REQUEST, 'scheduledAt must be in the future.');
+      }
+      const hours = Number(set.duration ?? promotion.duration) || 24;
+      Object.assign(set, {
+        scheduledAt: startAt,
+        startAt,
+        expiresAt: new Date(startAt.getTime() + hours * 60 * 60 * 1000),
+      });
+    } else if (payload.scheduledAt) {
+      set.scheduledAt = new Date(payload.scheduledAt);
+    }
 
     if (files && files.length > 0) {
       const uploadedMedia = await uploadMultipleToCloud(files, 'promotions');
-      updateData.images = uploadedMedia.map((m) => m.url);
+      set.images = uploadedMedia.map((m) => m.url);
     }
 
-    const updatedPromotion = await PromotionModel.findOneAndUpdate(
-      { _id: promotionId, retailerID: profileId },
-      { $set: updateData },
-      { new: true }
-    );
+    if (Object.keys(set).length === 0) {
+      throw new AppError(StatusCodes.BAD_REQUEST, 'Nothing to update.');
+    }
 
+    // Status in the filter: a cron activation between read and write makes this a 409, not a silent edit
+    const updatedPromotion = await PromotionModel.findOneAndUpdate(
+      { _id: promotionId, retailerID: profileId, status: promotion.status },
+      { $set: set },
+      { new: true, runValidators: true }
+    );
     if (!updatedPromotion) {
-      throw new AppError(StatusCodes.NOT_FOUND, 'Promotion not found or access denied.');
+      throw new AppError(StatusCodes.CONFLICT, 'Promotion status changed while editing. Refresh and try again.');
     }
 
     return updatedPromotion;
   }
 }
-

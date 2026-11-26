@@ -36,7 +36,11 @@ export class PromotionAudienceSubService {
         retailer.storeSettings?.serviceRadiusMiles ||
         DEFAULT_STORE_SETTINGS.serviceRadiusMiles
     );
-    const radiusMeters = radiusMiles * 1609.34;
+    if (!Number.isFinite(radiusMiles) || radiusMiles <= 0) {
+      throw new AppError(StatusCodes.BAD_REQUEST, 'radius must be a positive number of miles.');
+    }
+    // $centerSphere takes radians: distance / Earth radius (3963.2 miles)
+    const radiusRadians = radiusMiles / 3963.2;
     const targetSize = query.shoeSize ? Number(query.shoeSize) : null;
 
     // 1. Live Store Followers Count
@@ -49,15 +53,11 @@ export class PromotionAudienceSubService {
     const [storeLng, storeLat] = retailer.location?.coordinates || [0, 0];
 
     if (storeLng !== 0 || storeLat !== 0) {
-      const matchConditions: any = {
+      // $geoWithin (not $nearSphere): MongoDB rejects $near/$nearSphere inside countDocuments,
+      // which made this endpoint return 500. $geoWithin counts the same circle without sorting.
+      const matchConditions: Record<string, unknown> = {
         location: {
-          $nearSphere: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [storeLng, storeLat],
-            },
-            $maxDistance: radiusMeters,
-          },
+          $geoWithin: { $centerSphere: [[storeLng, storeLat], radiusRadians] },
         },
       };
 

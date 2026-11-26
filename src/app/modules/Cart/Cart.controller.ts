@@ -91,7 +91,7 @@ const checkoutCartController = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: "Order placed successfully from cart.",
+    message: "Order created. Complete payment via the payment link.",
     data: result,
   });
 });

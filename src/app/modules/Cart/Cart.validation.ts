@@ -31,6 +31,8 @@ const checkoutCartValidation = z.object({
     paymentMethod: z.string().default("CARD"),
     promoCode: z.string().optional(),
     notes: z.string().optional(),
+    successUrl: z.string().url("successUrl must be a full URL.").optional(),
+    cancelUrl: z.string().url("cancelUrl must be a full URL.").optional(),
     shippingAddress: z
       .object({
         name: z.string().optional(),

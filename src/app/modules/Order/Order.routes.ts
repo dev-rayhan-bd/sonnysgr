@@ -24,6 +24,7 @@ OrderRouter.get(
 OrderRouter.get(
   "/get-order-detail/:id",
   authorizeUser,
+  validateRequest(OrderValidations.orderItemIdParamValidation),
   OrderController.getOrderDetailController
 );
 

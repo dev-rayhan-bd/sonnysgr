@@ -20,6 +20,7 @@ PromotionRouter.patch(
   "/edit-promotion/:id",
   auth(["Retailer"]),
   uploadPromotionalImage.array("promotion-image", 5),
+  validateRequest(PromotionValidations.editPromotionValidation),
   PromotionController.editPromotion
 );
 

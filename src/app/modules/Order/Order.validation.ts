@@ -42,6 +42,17 @@ const settleHoldValidation = z.object({
         .refine((b) => b.orderId || b.pickupVerificationCode, "orderId or pickupVerificationCode is required."),
 });
 
-const OrderValidations = { u, verifyPickupValidation, cancelOrderValidation, retailerCancelValidation, settleHoldValidation };
+const orderItemIdParamValidation = z.object({
+    params: z.object({ id: z.string().regex(objectIdRegex, "Invalid order item ID format.") }),
+});
+
+const OrderValidations = {
+    u,
+    verifyPickupValidation,
+    cancelOrderValidation,
+    retailerCancelValidation,
+    settleHoldValidation,
+    orderItemIdParamValidation,
+};
 
 export default OrderValidations;

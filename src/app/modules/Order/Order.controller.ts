@@ -34,7 +34,8 @@ const getRetailerHomePageOrderStatDataController = catchAsync(async (req, res) =
 });
 
 const getOrderDetailController = catchAsync(async (req, res) => {
-  const result = await OrderServices.getOrderDetailsById(req.params.id);
+  const { user } = req as AuthRequest;
+  const result = await OrderServices.getOrderDetailsById(user, String(req.params.id));
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

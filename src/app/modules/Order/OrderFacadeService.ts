@@ -18,8 +18,8 @@ export class OrderFacadeService {
     return await RetailerOrderQuerySubService.getRetailerOrdersByStage(userDetails, query);
   }
 
-  static async getOrderDetailsById(orderItemId: string) {
-    return await RetailerOrderQuerySubService.getOrderDetailsById(orderItemId);
+  static async getOrderDetailsById(userDetails: IJwtPayload, orderItemId: string) {
+    return await RetailerOrderQuerySubService.getOrderDetailsById(userDetails, orderItemId);
   }
 
   // --- Retailer Fulfillment Actions ---

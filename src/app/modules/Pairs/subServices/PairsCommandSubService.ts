@@ -3,7 +3,7 @@ import { PairsModel } from "../Pairs.model";
 import { IJwtPayload } from "../../../../interface/jwt.interface";
 import AppError from "../../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
-import { uploadMultipleToCloud } from "../../../../helper/cloudStorage";
+import { deleteFromCloud, uploadMultipleToCloud } from "../../../../helper/cloudStorage";
 import { IPairs } from "../Pairs.interface";
 
 /**
@@ -15,6 +15,17 @@ const parseFormBoolean = (value: unknown): boolean => {
   if (typeof value === "number") return value === 1;
   if (typeof value === "string") return ["true", "1"].includes(value.trim().toLowerCase());
   return false;
+};
+
+/** multipart fields carry JSON as strings; arrays/objects may already be parsed */
+const parseFormJson = <T>(value: unknown): T | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string") return value as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return value as unknown as T;
+  }
 };
 
 export class PairsCommandSubService {
@@ -50,7 +61,7 @@ export class PairsCommandSubService {
 
     // Calculate total quantity from variant matrix
     const totalStock = parsedVariants.reduce(
-      (sum, v) => sum + (Number(v.stock) || Number(v.quantity) || 1),
+      (sum, v) => sum + Math.max(0, Number(v.stock ?? v.quantity ?? 0) || 0),
       0
     );
 
@@ -60,14 +71,13 @@ export class PairsCommandSubService {
     const isShowAskingPrice = payload.isShowAskingPrice !== undefined ? parseFormBoolean(payload.isShowAskingPrice) : true;
     const isAllowDirectRequest = payload.isAllowDirectRequest !== undefined ? parseFormBoolean(payload.isAllowDirectRequest) : true;
 
-    let sneakerAttributes = payload.sneakerAttributes;
-    if (typeof sneakerAttributes === "string") {
-      try {
-        sneakerAttributes = JSON.parse(sneakerAttributes);
-      } catch (e) {
-        sneakerAttributes = {};
-      }
-    }
+    // condition / color belong to sneakerAttributes (top-level values were silently dropped)
+    const parsedAttributes = parseFormJson<Record<string, unknown>>(payload.sneakerAttributes);
+    const sneakerAttributes = {
+      ...(typeof parsedAttributes === "object" && parsedAttributes ? parsedAttributes : {}),
+      ...(payload.condition ? { condition } : {}),
+      ...(payload.color ? { color: String(payload.color).trim() } : {}),
+    };
 
     const newPair = await PairsModel.create({
       resellerId: resellerObjectId,
@@ -96,75 +106,99 @@ export class PairsCommandSubService {
   }
 
   /**
-   * Edit pair details and update images / variant matrix
+   * Edit a pair listing (multipart/form-data).
+   * - `condition` / `color` are stored in `sneakerAttributes` (top-level or nested input accepted).
+   * - Images: `existingImages` = URLs to keep; new `pair-image` files are added after them.
+   *   Without `existingImages`, uploading files REPLACES the gallery; without files nothing changes.
+   * - Variant stock may be 0; quantity is the real sum of stock.
    */
   static async editPairs(
     user: IJwtPayload,
     pairId: string,
     files: Express.Multer.File[] | undefined,
-    payload: any
+    payload: Record<string, any>
   ) {
-    const resellerObjectId = new Types.ObjectId(user.profileId);
-    const pairObjectId = new Types.ObjectId(pairId);
-
+    if (!Types.ObjectId.isValid(pairId)) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Invalid pair id.");
+    }
     const pair = await PairsModel.findOne({
-      _id: pairObjectId,
-      resellerId: resellerObjectId,
-    });
-
+      _id: new Types.ObjectId(pairId),
+      resellerId: new Types.ObjectId(user.profileId),
+    }).lean<IPairs & { _id: Types.ObjectId }>();
     if (!pair) {
       throw new AppError(StatusCodes.NOT_FOUND, "Pair listing not found or unauthorized");
     }
 
-    const updateFields: any = {};
-
-    if (payload.name) updateFields.name = payload.name;
-    if (payload.brand) updateFields.brand = payload.brand;
-    if (payload.styleCode) updateFields.styleCode = payload.styleCode;
-    if (payload.type) updateFields.type = payload.type;
-    if (payload.details) updateFields.details = payload.details;
-    if (payload.color) updateFields.color = payload.color;
-    if (payload.askingPrice !== undefined) updateFields.askingPrice = Number(payload.askingPrice);
-    if (payload.condition) updateFields.condition = payload.condition;
-    if (payload.description !== undefined) updateFields.description = payload.description;
-    if (payload.productStatus) updateFields.productStatus = payload.productStatus;
-    if (payload.isVisibleToStore !== undefined) updateFields.isVisibleToStore = parseFormBoolean(payload.isVisibleToStore);
-    if (payload.isShowAskingPrice !== undefined) updateFields.isShowAskingPrice = parseFormBoolean(payload.isShowAskingPrice);
-    if (payload.isAllowDirectRequest !== undefined) updateFields.isAllowDirectRequest = parseFormBoolean(payload.isAllowDirectRequest);
-
-    // Multi-Cloud Image Uploads if new files provided
-    if (files && files.length > 0) {
-      const uploadedImages = await uploadMultipleToCloud(files, "gosnkr/pairs");
-      const newUrls = uploadedImages.map((img) => img.url);
-      updateFields.images = [...(pair.images || []), ...newUrls];
+    const set: Record<string, unknown> = {};
+    for (const key of ["name", "brand", "styleCode", "type", "details", "description", "productStatus"]) {
+      if (typeof payload[key] === "string" && payload[key].trim() !== "") set[key] = payload[key].trim();
+    }
+    if (payload.description === "") set.description = "";
+    if (payload.askingPrice !== undefined && payload.askingPrice !== "") {
+      const price = Number(payload.askingPrice);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "Asking price must be a positive number.");
+      }
+      set.askingPrice = price;
+    }
+    for (const key of ["isVisibleToStore", "isShowAskingPrice", "isAllowDirectRequest"]) {
+      if (payload[key] !== undefined && payload[key] !== "") set[key] = parseFormBoolean(payload[key]);
     }
 
-    // Variant parsing
-    if (payload.variant) {
-      let parsedVariants: any[] = [];
-      if (typeof payload.variant === "string") {
-        try {
-          parsedVariants = JSON.parse(payload.variant);
-        } catch (e) {
-          parsedVariants = [];
-        }
-      } else if (Array.isArray(payload.variant)) {
-        parsedVariants = payload.variant;
+    // condition / color live in sneakerAttributes (they were silently dropped at top level)
+    const nested = parseFormJson<Record<string, unknown>>(payload.sneakerAttributes) || {};
+    const condition = payload.condition ?? nested.condition;
+    const color = payload.color ?? nested.color;
+    if (condition !== undefined && condition !== "") set["sneakerAttributes.condition"] = condition;
+    if (color !== undefined) set["sneakerAttributes.color"] = String(color).trim();
+
+    if (payload.variant !== undefined && payload.variant !== "") {
+      const variants = parseFormJson<any[]>(payload.variant);
+      if (!Array.isArray(variants) || variants.length === 0) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "variant must be a non-empty JSON array.");
       }
-      if (parsedVariants.length > 0) {
-        updateFields.variant = parsedVariants;
-        updateFields.quantity = parsedVariants.reduce(
-          (sum, v) => sum + (Number(v.stock) || Number(v.quantity) || 1),
-          0
-        );
-      }
+      set.variant = variants.map((v) => ({
+        gender: v.gender,
+        size: String(v.size),
+        stock: Math.max(0, Math.floor(Number(v.stock ?? v.quantity ?? 0)) || 0),
+      }));
+      set.quantity = (set.variant as { stock: number }[]).reduce((sum, v) => sum + v.stock, 0);
     }
 
-    const updatedPair = await PairsModel.findByIdAndUpdate(
-      pairObjectId,
-      { $set: updateFields },
+    // Images
+    const current: string[] = pair.images || [];
+    const keepInput = payload.existingImages !== undefined ? parseFormJson<string[] | string>(payload.existingImages) : undefined;
+    const keepList = keepInput === undefined ? undefined : Array.isArray(keepInput) ? keepInput : [keepInput];
+    const hasNewFiles = !!files && files.length > 0;
+    let removedImages: string[] = [];
+
+    if (keepList !== undefined || hasNewFiles) {
+      const kept = keepList === undefined ? [] : current.filter((url) => keepList.includes(url));
+      if (kept.length + (files?.length || 0) > 8) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "A pair can have at most 8 images.");
+      }
+      if (kept.length + (files?.length || 0) === 0) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "A pair needs at least one image.");
+      }
+      const uploaded = hasNewFiles ? (await uploadMultipleToCloud(files!, "gosnkr/pairs")).map((img) => img.url) : [];
+      set.images = [...kept, ...uploaded];
+      removedImages = current.filter((url) => !kept.includes(url));
+    }
+
+    if (Object.keys(set).length === 0) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Nothing to update.");
+    }
+
+    const updatedPair = await PairsModel.findOneAndUpdate(
+      { _id: pair._id, resellerId: pair.resellerId },
+      { $set: set },
       { new: true, runValidators: true }
     );
+
+    // Old files are removed only after the DB points at the new gallery (best effort)
+    for (const url of removedImages) {
+      deleteFromCloud(url).catch((err) => console.warn("[PAIRS] could not delete old image:", (err as Error).message));
+    }
 
     return updatedPair;
   }

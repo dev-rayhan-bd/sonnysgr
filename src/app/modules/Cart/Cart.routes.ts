@@ -1,6 +1,7 @@
 import express from "express";
 import { auth, authorizeUser } from "../../middleware/auth";
 import validateRequest from "../../middleware/validateRequest";
+import idempotency from "../../middleware/idempotency";
 import CartValidations from "./Cart.validation";
 import CartController from "./Cart.controller";
 
@@ -84,6 +85,7 @@ CartRouter.post(
 CartRouter.post(
   "/checkout",
   auth(["Buyer"]),
+  idempotency(),
   validateRequest(CartValidations.checkoutCartValidation),
   CartController.checkoutCartController
 );

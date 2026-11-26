@@ -40,4 +40,6 @@ export type TCheckoutCartPayload = {
   paymentMethod: string;
   promoCode?: string;
   notes?: string;
+  successUrl?: string;
+  cancelUrl?: string;
 };

@@ -29,6 +29,61 @@ const addnewPairValidationSchema = z.object({
     }),
 });
 
+// ---- multipart/form-data helpers: every field arrives as a string ----
+const formBoolean = z.preprocess(
+    (v) => (typeof v === "string" ? ["true", "1"].includes(v.trim().toLowerCase()) : v),
+    z.boolean()
+);
+const formJson = <T extends z.ZodTypeAny>(schema: T) =>
+    z.preprocess((v) => {
+        if (typeof v !== "string") return v;
+        try {
+            return JSON.parse(v);
+        } catch {
+            return v; // let the inner schema report the error
+        }
+    }, schema);
+
+export const PAIR_CONDITIONS = ["New", "Used", "Deadstock"] as const;
+
+const editPairValidationSchema = z.object({
+    params: z.object({ id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid pair id.") }),
+    body: z
+        .object({
+            name: z.string().trim().min(1).optional(),
+            brand: z.string().trim().min(1).optional(),
+            styleCode: z.string().trim().optional(),
+            type: z.enum(["Shoes", "Clothing"]).optional(),
+            details: z.string().optional(),
+            description: z.string().optional(),
+            askingPrice: z.coerce.number().min(0, "Asking price must be a positive number").optional(),
+            // Stored in sneakerAttributes; accepted top-level (what the app sends) or nested
+            condition: z.enum(PAIR_CONDITIONS, { error: "condition must be New, Used or Deadstock." }).optional(),
+            color: z.string().trim().max(60).optional(),
+            sneakerAttributes: formJson(
+                z.object({ condition: z.enum(PAIR_CONDITIONS).optional(), color: z.string().max(60).optional() })
+            ).optional(),
+            variant: formJson(
+                z
+                    .array(
+                        z.object({
+                            gender: z.enum(["Men", "Women", "Kids"]),
+                            size: z.coerce.string().min(1, "Size is required"),
+                            stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
+                        })
+                    )
+                    .min(1, "At least one size is required")
+            ).optional(),
+            // Images to KEEP (URLs already on the pair). New files in `pair-image` are added to these.
+            existingImages: formJson(z.union([z.array(z.string().url()), z.string().url()])).optional(),
+            productStatus: z.enum(["active", "inactive"]).optional(),
+            isVisibleToStore: formBoolean.optional(),
+            isShowAskingPrice: formBoolean.optional(),
+            isAllowDirectRequest: formBoolean.optional(),
+        })
+        .passthrough(),
+});
+
 const makeRequestForPairValidationSchema = z.object({
     body: z.object({
         pairId: z.string().min(24, "Pair ID is required"),
@@ -95,6 +150,7 @@ const proposeCounterOfferValidationSchema = z.object({
 
 const PairsValidations = { 
     addnewPairValidationSchema,
+    editPairValidationSchema,
     makeRequestForPairValidationSchema,
     createProductRequestValidationSchema,
     updateProductRequestStatusValidationSchema,

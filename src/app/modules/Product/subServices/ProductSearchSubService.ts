@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { StatusCodes } from 'http-status-codes';
+import AppError from '../../../errors/AppError';
 import { IJwtPayload } from '../../../../interface/jwt.interface';
 import { ProductModel, RecentSearchModel } from '../Product.model';
 
@@ -72,14 +74,15 @@ export class ProductSearchSubService {
   static async getTrendingNowAndRecentSearches(userDetails: IJwtPayload) {
     const { profileId, role } = userDetails;
 
-    // Fetch buyer's recent 5 searches
-    let recentSearches: string[] = [];
+    // Buyer's 5 latest searches, with _id so the app can delete one (DELETE recent-search/:id)
+    let recentSearches: { _id: unknown; keyword: string; searchedAt?: Date }[] = [];
     if (role === 'Buyer' && profileId) {
       const recent = await RecentSearchModel.find({ buyerId: profileId })
         .sort({ searchedAt: -1 })
         .limit(5)
+        .select('_id keyword searchedAt')
         .lean();
-      recentSearches = recent.map((r) => r.keyword);
+      recentSearches = recent.map((r) => ({ _id: r._id, keyword: r.keyword, searchedAt: r.searchedAt }));
     }
 
     // Top trending sneakers based on inventory search count or latest popular releases
@@ -102,11 +105,17 @@ export class ProductSearchSubService {
    */
   static async deleteRecentSearch(userDetails: IJwtPayload, searchId: string) {
     const { profileId } = userDetails;
-    await RecentSearchModel.findOneAndDelete({
+    if (!mongoose.Types.ObjectId.isValid(searchId)) {
+      throw new AppError(StatusCodes.BAD_REQUEST, 'Invalid recent search id.');
+    }
+    const deleted = await RecentSearchModel.findOneAndDelete({
       _id: searchId,
       buyerId: profileId,
     });
-    return null;
+    if (!deleted) {
+      throw new AppError(StatusCodes.NOT_FOUND, 'Recent search not found.');
+    }
+    return { _id: deleted._id };
   }
 }
 

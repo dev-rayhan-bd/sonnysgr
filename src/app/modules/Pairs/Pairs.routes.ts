@@ -17,9 +17,9 @@ PairsRouter.post(
 
 PairsRouter.patch(
   "/edit-pairs/:id",
-  authorizeUser,
+  auth(["Reseller"]),
   uploadPairImage.array("pair-image", 8),
-  // validateRequest(PairsValidations.addnewPairValidationSchema),
+  validateRequest(PairsValidations.editPairValidationSchema),
   PairsController.editPairsController,
 );
 

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { PipelineStage } from 'mongoose';
 import AppError from '../../../errors/AppError';
 import { StatusCodes } from 'http-status-codes';
 import { IJwtPayload } from '../../../../interface/jwt.interface';
@@ -141,23 +141,61 @@ export class RetailerOrderQuerySubService {
   }
 
   /**
-   * Get detailed order breakdown with native aggregation
+   * Order item detail for the retailer who owns it, the buyer who placed it, or an admin.
+   * Only whitelisted fields are returned: the buyer is reduced to name/phone/image, and the
+   * pickup code is hidden from the store (it is what the store must verify, so it must come
+   * from the buyer).
    */
-  static async getOrderDetailsById(orderItemId: string) {
+  static async getOrderDetailsById(userDetails: IJwtPayload, orderItemId: string) {
     if (!mongoose.Types.ObjectId.isValid(orderItemId)) {
       throw new AppError(StatusCodes.BAD_REQUEST, 'Invalid order item ID.');
     }
 
-    const objectId = new mongoose.Types.ObjectId(orderItemId);
+    const { role, profileId } = userDetails;
+    const isAdmin = ['Admin', 'Super_Admin'].includes(role);
+    const isBuyer = role === 'Buyer';
+    if (!isAdmin && !isBuyer && role !== 'Retailer') {
+      throw new AppError(StatusCodes.FORBIDDEN, 'You do not have access to this order.');
+    }
 
-    const pipeline: any[] = [
-      { $match: { _id: objectId } },
+    // Ownership is part of the match: someone else's order is indistinguishable from a missing one
+    const match: Record<string, unknown> = { _id: new mongoose.Types.ObjectId(orderItemId) };
+    if (!isAdmin) {
+      match[isBuyer ? 'buyerId' : 'retailerId'] = new mongoose.Types.ObjectId(profileId);
+    }
+
+    const orderProjection: Record<string, 1> = {
+      orderNumber: 1,
+      orderType: 1,
+      orderStatus: 1,
+      paymentStatus: 1,
+      subtotal: 1,
+      shippingCharge: 1,
+      discountAmount: 1,
+      totalAmount: 1,
+      totalItems: 1,
+      partialPayment: 1,
+      holdingTime: 1,
+      holdingStartTime: 1,
+      holdingEndTime: 1,
+      pickupTime: 1,
+      'shippingAddress.name': 1,
+      'shippingAddress.phone': 1,
+      'shippingAddress.address': 1,
+      'shippingAddress.city': 1,
+      createdAt: 1,
+    };
+    if (isBuyer || isAdmin) orderProjection.pickupVerificationCode = 1;
+
+    const pipeline: PipelineStage[] = [
+      { $match: match },
       {
         $lookup: {
           from: 'products',
           localField: 'productId',
           foreignField: '_id',
           as: 'product',
+          pipeline: [{ $project: { name: 1, brand: 1, styleCode: 1, images: 1, price: 1 } }],
         },
       },
       { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
@@ -167,6 +205,7 @@ export class RetailerOrderQuerySubService {
           localField: 'buyerId',
           foreignField: '_id',
           as: 'buyer',
+          pipeline: [{ $project: { name: 1, phone: 1, image: 1 } }],
         },
       },
       { $unwind: { path: '$buyer', preserveNullAndEmptyArrays: true } },
@@ -176,9 +215,11 @@ export class RetailerOrderQuerySubService {
           localField: 'orderId',
           foreignField: '_id',
           as: 'order',
+          pipeline: [{ $project: orderProjection }],
         },
       },
       { $unwind: { path: '$order', preserveNullAndEmptyArrays: true } },
+      { $project: { __v: 0 } },
     ];
 
     const result = await OrderItemModel.aggregate(pipeline);
@@ -189,4 +230,3 @@ export class RetailerOrderQuerySubService {
     return result[0];
   }
 }
-
